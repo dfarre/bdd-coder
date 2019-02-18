@@ -3,7 +3,7 @@ import os
 import yaml
 
 from bdd_coder import get_step_specs
-from bdd_coder import step_sentence_to_name
+from bdd_coder import sentence_to_name
 
 
 def indent(text, tabs=1):
@@ -45,8 +45,8 @@ class Coder:
         common_steps = {}
 
         for alias in steps:
-            common_steps.update(dict(zip(map(step_sentence_to_name, steps[alias]),
-                                         [step_sentence_to_name(alias)]*len(steps[alias]))))
+            common_steps.update(dict(zip(map(sentence_to_name, steps[alias]),
+                                         [sentence_to_name(alias)]*len(steps[alias]))))
 
         return common_steps
 
@@ -114,7 +114,7 @@ class StoryCoder:
         return outputs
 
     def scenario_method_defs(self, title, steps):
-        test_name = step_sentence_to_name(title)
+        test_name = sentence_to_name(title)
         doc = indent(make_doc(*steps))
         test_def = indent(f'\n@decorators.scenario\ndef test_{test_name}(self):\n{doc}')
         method_defs = [
