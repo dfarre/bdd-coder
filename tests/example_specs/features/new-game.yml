@@ -1,0 +1,14 @@
+Title: New game
+
+Story: |
+  As a codebreaker
+  I want to start a new Mastermind game of B boards of G guesses
+  In order to play
+
+Scenarios:
+  Odd boards:
+      - When I request a new `game` with an odd number of boards
+      - Then I get a 400 response saying it must be even
+  Even boards:
+      - When I request a new `game` with an even number of boards
+      - Then a game is created with boards of "12" guesses

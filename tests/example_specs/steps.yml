@@ -1,0 +1,3 @@
+POST game:
+  - I create a game
+  - a game is created with boards of "12" guesses
