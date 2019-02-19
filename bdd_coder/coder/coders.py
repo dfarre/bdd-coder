@@ -74,7 +74,7 @@ class Coder:
 
         return f'MAP = {{\n{steps}\n}}'
 
-    def create_package(self):
+    def create_tester_package(self):
         os.makedirs(self.tests_path)
 
         with open(os.path.join(self.tests_path, '__init__.py'), 'w') as init_py:

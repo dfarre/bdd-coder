@@ -2,7 +2,7 @@ import shutil
 import subprocess
 import unittest
 
-from bdd_coder import coders
+from bdd_coder.coder import coders
 
 
 class BlueprintTester(unittest.TestCase):
@@ -11,7 +11,7 @@ class BlueprintTester(unittest.TestCase):
             specs_path='tests/example_specs', tests_path='tests/example_tests')
 
     def test_created_package(self):
-        self.coder.create_package()
+        self.coder.create_tester_package()
 
         try:
             subprocess.check_output(['pytest', self.coder.tests_path])

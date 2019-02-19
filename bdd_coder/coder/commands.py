@@ -1,7 +1,7 @@
 import argparse
 import subprocess
 
-from bdd_coder import coders
+from bdd_coder.coder import coders
 
 
 def bdd_blueprint():
@@ -14,7 +14,7 @@ def bdd_blueprint():
     test = kwargs.pop('pytest')
 
     coder = coders.Coder(**kwargs)
-    coder.create_package()
+    coder.create_tester_package()
 
     if test:
         subprocess.check_output(['pytest', coder.tests_path])

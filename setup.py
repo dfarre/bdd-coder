@@ -10,5 +10,6 @@ setuptools.setup(
     setup_requires=['setuptools'],
     tests_require=tests_require,
     extras_require={'dev': ['ipdb', 'ipython'], 'test': tests_require},
-    entry_points={'console_scripts': ['bdd-blueprint=bdd_coder.cmd:bdd_blueprint']},
+    entry_points={'console_scripts': [
+        'bdd-blueprint=bdd_coder.coder.commands:bdd_blueprint']},
 )
