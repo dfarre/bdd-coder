@@ -1,3 +1,4 @@
+import collections
 import functools
 
 from bdd_coder import get_step_specs
@@ -17,12 +18,14 @@ class Steps:
 
 
 def scenario(method):
-    @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
-        for method_name, inputs, output_names in self.get_step_specs(method.__doc__):
-            output = getattr(self, method_name)(*inputs, **kwargs)
+    outputs = collections.defaultdict(list)
 
-            if output_names:
-                kwargs.update(dict(zip(output_names, output)))
+    @functools.wraps(method)
+    def wrapper(self):
+        for method_name, inputs, output_names in self.get_step_specs(method.__doc__):
+            output = getattr(self, method_name)(*inputs, **outputs) or ()
+
+            for name, value in zip(output_names, output):
+                outputs[name].append(value)
 
     return wrapper

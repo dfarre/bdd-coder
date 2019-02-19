@@ -19,15 +19,19 @@ def make_doc(*lines):
     return f'"""\n{text}\n"""'
 
 
-def make_class_head(name, *doc_lines, inheritance='', decorator=''):
+def decorate(target, decorators):
+    return '\n'.join([f'@{decorator}' for decorator in decorators] + [target])
+
+
+def make_class_head(name, *doc_lines, inheritance='', decorators=()):
     doc = '\n' + indent(make_doc(*doc_lines)) if doc_lines else ''
-    decorator = f'@{decorator}\n' if decorator else ''
 
-    return f'\n\n{decorator}class {name}{inheritance}:{doc}'
+    return '\n\n' + decorate(f'class {name}{inheritance}:{doc}', decorators)
 
 
-def make_method(name, body='pass'):
-    return '\n' + indent(f'def {name}(self, *args, **kwargs):\n{indent(body)}')
+def make_method(name, body='pass', decorators=()):
+    return '\n' + indent(decorate(
+        f'def {name}(self, *args, **kwargs):\n{indent(body)}', decorators))
 
 
 class Coder:
@@ -35,7 +39,7 @@ class Coder:
                  tests_path=''):
         self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
         self.specs_path = specs_path
-        self.tests_path = tests_path or os.path.join(os.dirname(specs_path), 'tests')
+        self.tests_path = tests_path or os.path.join(os.path.dirname(specs_path), 'tests')
         self.common_steps = self._get_common_steps()
 
     def _get_common_steps(self):
@@ -55,12 +59,12 @@ class Coder:
 
         for story_yml_path in os.listdir(features_path):
             yield StoryCoder(os.path.join(features_path, story_yml_path),
-                             self.common_steps).class_def()
+                             self.common_steps).make()
 
     def make_base_class_def(self):
         class_head = make_class_head(
             'BddApiTestCase', inheritance=f'({self.base_class_name})',
-            decorator='decorators.Steps(steps.MAP)')
+            decorators=('decorators.Steps(steps.MAP)',))
         method_defs = list(map(make_method, set(self.common_steps.values())))
 
         return '\n'.join([class_head] + method_defs)
@@ -113,25 +117,30 @@ class StoryCoder:
 
         return outputs
 
-    def scenario_method_defs(self, title, steps):
-        test_name = sentence_to_name(title)
-        doc = indent(make_doc(*steps))
-        test_def = indent(f'\n@decorators.scenario\ndef test_{test_name}(self):\n{doc}')
-        method_defs = [
-            make_method(method_name, self.make_method_body(inputs, output_names))
-            for method_name, inputs, output_names in get_step_specs(steps, self.common_steps)]
+    def make_scenario_method_defs(self):
+        return ['\n' + indent(decorate(
+            f'def test_{sentence_to_name(title)}(self):\n{indent(make_doc(*steps))}',
+            ('decorators.scenario',))) for title, steps in self.feature['Scenarios'].items()]
 
-        return [test_def] + method_defs
+    def make_step_method_defs(self):
+        steps = itertools.chain(*self.feature['Scenarios'].values())
+        step_specs = {name: (inp, out) for name, inp, out in get_step_specs(steps)
+                      if name not in self.common_steps.values()}
 
-    def class_head(self):
+        return [make_method(method_name, self.make_method_body(inputs, output_names))
+                for method_name, (inputs, output_names) in step_specs.items()]
+
+    def make_class_head(self):
         return make_class_head(
             self.title_to_class_name(self.feature['Title']), self.feature['Story'],
             inheritance='(base.BddApiTestCase)')
 
-    def class_body(self):
-        return '\n'.join(itertools.chain(*(
-            self.scenario_method_defs(title, steps)
-            for title, steps in self.feature['Scenarios'].items())))
+    def make_django_fixtures_class_attr(self):
+        fixtures = ', '.join(f"'{sentence_to_name(fixture)}'"
+                             for fixture in self.feature.get('Django fixtures', []))
 
-    def class_def(self):
-        return '\n'.join([self.class_head(), self.class_body()])
+        return indent(f'fixtures = [{fixtures}]') if fixtures else ''
+
+    def make(self):
+        return '\n'.join([self.make_class_head()] + [self.make_django_fixtures_class_attr()]
+                         + self.make_scenario_method_defs() + self.make_step_method_defs())

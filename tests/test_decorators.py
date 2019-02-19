@@ -52,7 +52,7 @@ class DecoratorTests(unittest.TestCase):
         self.new_game_tester.test_even_boards()
 
         even_mock.assert_called_once_with()
-        post_game_mock.assert_called_once_with('12', game='Even Game')
+        post_game_mock.assert_called_once_with('12', game=['Even Game'])
 
     @mock.patch(f'{PATH}.i_get_a_400_response_saying_it_must_be_even')
     @mock.patch(f'{PATH}.i_request_a_new_game_with_an_odd_number_of_boards',
@@ -61,4 +61,4 @@ class DecoratorTests(unittest.TestCase):
         self.new_game_tester.test_odd_boards()
 
         odd_mock.assert_called_once_with()
-        error_mock.assert_called_once_with(game='Odd Game')
+        error_mock.assert_called_once_with(game=['Odd Game'])
