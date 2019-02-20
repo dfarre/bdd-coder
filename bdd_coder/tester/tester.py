@@ -10,7 +10,7 @@ class BddTestCase(unittest.TestCase):
 
     def run_scenario(self, name, method_doc):
         def run_step(method_name, inputs, output_names):
-            output = getattr(self, method_name)(*inputs, **self.steps.outputs) or ()
+            output = getattr(self, method_name)(*inputs) or ()
 
             for name, value in zip(output_names, output):
                 self.steps.outputs[name].append(value)

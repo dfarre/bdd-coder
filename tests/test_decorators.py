@@ -56,11 +56,12 @@ class DecoratorTests(unittest.TestCase):
     @mock.patch(f'{PATH}.post_game')
     @mock.patch(f'{PATH}.i_request_a_new_game_with_an_even_number_of_boards',
                 return_value=('Even Game',))
-    def test_steps_mapping__args_and_kwargs_passed(
+    def test_steps_mapping__args_passed__collected_outputs(
             self, even_mock, post_game_mock, odd_mock, error_mock):
         self.new_game_tester._test()
 
         odd_mock.assert_called_once_with()
-        error_mock.assert_called_once_with(game=['Odd Game', 'Even Game'])
-        even_mock.assert_called_once_with(game=['Odd Game', 'Even Game'])
-        post_game_mock.assert_called_once_with('12', game=['Odd Game', 'Even Game'])
+        error_mock.assert_called_once_with()
+        even_mock.assert_called_once_with()
+        post_game_mock.assert_called_once_with('12')
+        assert self.new_game_tester.steps.outputs == {'game': ['Odd Game', 'Even Game']}
