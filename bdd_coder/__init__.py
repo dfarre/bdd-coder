@@ -13,7 +13,7 @@ def sentence_to_name(text):
 
 def get_step_specs(lines, steps_map=None):
     sentences = list(map(get_step_sentence, filter(None, map(str.strip, lines))))
-    input_lists = map(lambda s: re.findall(r'"(\w+)"', s), sentences)
+    input_lists = map(lambda s: re.findall(r'"([\w\-\.]+)"', s), sentences)
     output_name_lists = map(lambda s: re.findall(r'`([\w\-\.]+)`', s), sentences)
     steps_map = steps_map or {}
     method_names = map(lambda n: steps_map.get(n, n), map(sentence_to_name, sentences))
