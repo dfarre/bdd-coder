@@ -91,7 +91,7 @@ class Coder:
 
     def make_base_class_def(self):
         class_head = text_utils.make_class_head(
-            'BddApiTestCase', inheritance=f'({self.base_class_name})',
+            'BddApiTestCase', inheritance=f'(tester.BddTestCase, {self.base_class_name})',
             decorators=('decorators.Steps(steps.MAP)',))
         method_defs = list(map(text_utils.make_method, set(self.common_steps.values())))
 
@@ -115,10 +115,11 @@ class Coder:
         with open(os.path.join(self.tests_path, 'base.py'), 'w') as base_py:
             base_py.write(
                 f'from {self.module_or_package_path} import {self.base_class_name}\n\n'
-                'from bdd_coder import decorators\n\n'
+                'from bdd_coder.tester import decorators\n'
+                'from bdd_coder.tester import tester\n\n'
                 'from . import steps\n'
                 + self.make_base_class_def())
 
         with open(os.path.join(self.tests_path, 'test_features.py'), 'w') as test_py:
-            test_py.write('from bdd_coder import decorators\n\nfrom . import base\n' +
+            test_py.write('from bdd_coder.tester import decorators\n\nfrom . import base\n' +
                           '\n'.join(self.yield_story_class_defs()))

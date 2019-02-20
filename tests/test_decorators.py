@@ -1,11 +1,12 @@
 import unittest
 import unittest.mock as mock
 
-from bdd_coder import decorators
+from bdd_coder.tester import decorators
+from bdd_coder.tester import tester
 
 
 @decorators.Steps({'a_game_is_created_with_boards_of__guesses': 'post_game'})
-class NewGame:
+class NewGame(tester.BddTestCase):
     """
     As a codebreaker
     I want to start a new Mastermind game of B boards of G guesses
