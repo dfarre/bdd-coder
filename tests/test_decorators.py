@@ -5,7 +5,8 @@ from bdd_coder.tester import decorators
 from bdd_coder.tester import tester
 
 
-@decorators.Steps({'a_game_is_created_with_boards_of__guesses': 'post_game'})
+@decorators.Steps({'a_game_is_created_with_boards_of__guesses': 'post_game'},
+                  'tests/example_tests')
 class NewGame(tester.BddTestCase):
     """
     As a codebreaker

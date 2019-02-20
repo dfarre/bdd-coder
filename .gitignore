@@ -7,3 +7,5 @@ build
 .eggs
 
 .pytest_cache
+
+history.log

@@ -5,8 +5,9 @@ from bdd_coder import get_step_specs
 
 
 class Steps:
-    def __init__(self, steps_mapping):
+    def __init__(self, steps_mapping, tests_path):
         self.steps_mapping = steps_mapping
+        self.tests_path = tests_path
         self.text = ''
         self.outputs = collections.defaultdict(list)
 

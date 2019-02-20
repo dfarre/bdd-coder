@@ -92,7 +92,7 @@ class Coder:
     def make_base_class_def(self):
         class_head = text_utils.make_class_head(
             'BddApiTestCase', inheritance=f'(tester.BddTestCase, {self.base_class_name})',
-            decorators=('decorators.Steps(steps.MAP)',))
+            decorators=("decorators.Steps(steps.MAP, '{self.tests_path}')",))
         method_defs = list(map(text_utils.make_method, set(self.common_steps.values())))
 
         return '\n'.join([class_head] + method_defs)

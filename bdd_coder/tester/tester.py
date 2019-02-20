@@ -12,7 +12,7 @@ class BddTestCase(unittest.TestCase):
 
             return f'{method_name} {inputs} |--> {output_names}'
 
-        history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'history.log')
+        history_path = os.path.join(os.path.dirname(self.steps.tests_path), 'history.log')
 
         with open(history_path, 'a') as history:
             history.write(f'\n\n* {name}\n  - ' + '\n  - '.join([
