@@ -8,7 +8,7 @@ def get_step_sentence(step_text):
 
 
 def sentence_to_name(text):
-    return re.sub(r'[\'`]|"\w+"', '', text).lower().replace(' ', '_')
+    return re.sub(r'[\'`]|".+"', '', text).lower().replace(' ', '_')
 
 
 def get_step_specs(lines, steps_map=None):
