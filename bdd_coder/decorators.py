@@ -23,6 +23,7 @@ def scenario(method):
     @functools.wraps(method)
     def wrapper(self):
         for method_name, inputs, output_names in self.get_step_specs(method.__doc__):
+            print(f'{method_name} {inputs} |--> {output_names}')
             output = getattr(self, method_name)(*inputs, **outputs) or ()
 
             for name, value in zip(output_names, output):

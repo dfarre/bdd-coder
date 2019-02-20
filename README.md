@@ -5,4 +5,5 @@ It consists of:
 
 1. A `decorators` module, to be employed as shown in tests/test_decorators.py
 2. A `coders` package that allows to make a tester package blueprint from user story
-   specifications in YAML files - see tests/example_specs.
+   specifications in YAML files - see tests/example_specs. Then you just implement
+   the methods defined and the test suite is done.
