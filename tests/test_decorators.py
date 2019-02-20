@@ -14,14 +14,14 @@ class NewGame(tester.BddTestCase):
     """
 
     @decorators.scenario
-    def test_odd_boards(self):
+    def A_odd_boards(self):
         """
         When I request a new `game` with an odd number of boards
         Then I get a 400 response saying it must be even
         """
 
     @decorators.scenario
-    def test_even_boards(self):
+    def B_even_boards(self):
         """
         When I request a new `game` with an even number of boards
         Then a game is created with boards of "12" guesses
@@ -39,6 +39,10 @@ class NewGame(tester.BddTestCase):
     def post_game(self, *args, **kwargs):
         pass
 
+    def _test(self):
+        self.A_odd_boards()
+        self.B_even_boards()
+
 
 PATH = f'{NewGame.__module__}.NewGame'
 
@@ -46,20 +50,17 @@ PATH = f'{NewGame.__module__}.NewGame'
 class DecoratorTests(unittest.TestCase):
     new_game_tester = NewGame()
 
-    @mock.patch(f'{PATH}.post_game')
-    @mock.patch(f'{PATH}.i_request_a_new_game_with_an_even_number_of_boards',
-                return_value=('Even Game',))
-    def test_steps_mapping__args_passed(self, even_mock, post_game_mock):
-        self.new_game_tester.test_even_boards()
-
-        even_mock.assert_called_once_with()
-        post_game_mock.assert_called_once_with('12', game=['Even Game'])
-
     @mock.patch(f'{PATH}.i_get_a_400_response_saying_it_must_be_even')
     @mock.patch(f'{PATH}.i_request_a_new_game_with_an_odd_number_of_boards',
                 return_value=('Odd Game',))
-    def test_steps_mapping__kwargs_passed(self, odd_mock, error_mock):
-        self.new_game_tester.test_odd_boards()
+    @mock.patch(f'{PATH}.post_game')
+    @mock.patch(f'{PATH}.i_request_a_new_game_with_an_even_number_of_boards',
+                return_value=('Even Game',))
+    def test_steps_mapping__args_and_kwargs_passed(
+            self, even_mock, post_game_mock, odd_mock, error_mock):
+        self.new_game_tester._test()
 
         odd_mock.assert_called_once_with()
-        error_mock.assert_called_once_with(game=['Odd Game'])
+        error_mock.assert_called_once_with(game=['Odd Game', 'Even Game'])
+        even_mock.assert_called_once_with(game=['Odd Game', 'Even Game'])
+        post_game_mock.assert_called_once_with('12', game=['Odd Game', 'Even Game'])

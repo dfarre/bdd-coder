@@ -1,3 +1,4 @@
+import collections
 import functools
 
 from bdd_coder import get_step_specs
@@ -7,6 +8,7 @@ class Steps:
     def __init__(self, steps_mapping):
         self.steps_mapping = steps_mapping
         self.text = ''
+        self.outputs = collections.defaultdict(list)
 
     def __call__(self, BaseTestCase):
         BaseTestCase.get_step_specs = self.get_step_specs
