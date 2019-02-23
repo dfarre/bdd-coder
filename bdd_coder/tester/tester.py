@@ -1,19 +1,42 @@
-import os
+import datetime
 import unittest
 
 
-class BddTestCase(unittest.TestCase):
-    def run_scenario(self, name, method_doc):
+class BddTester:
+    """
+    To be decorated with `Steps`, and employed with methods decorated with
+    `scenario` - mix with a subclass of `BaseTestCase` to run test methods
+    """
+
+    @classmethod
+    def log_scenario_run(cls, name, step_logs):
+        cls.steps.run_number += 1
+        cls.steps.scenarios[name].append(cls.steps.run_number)
+        cls.steps.write_to_history(f'{cls.steps.run_number} ✓ {cls.__name__}.{name}:'
+                                   + ''.join([f'\n  {cls.steps.run_number}.{n+1} - {text}'
+                                              for n, text in enumerate(step_logs)]))
+
+    def run_scenario(self, method_doc):
         def run_step(method_name, inputs, output_names):
             output = getattr(self, method_name)(*inputs) or ()
 
             for name, value in zip(output_names, output):
                 self.steps.outputs[name].append(value)
 
-            return f'{method_name} {inputs} |--> {output_names}'
+            return (f'{datetime.datetime.utcnow()} ✓ '
+                    f'{method_name} {inputs} |--> {output}')
 
-        history_path = os.path.join(self.steps.tests_path, 'history.log')
+        return [run_step(*args) for args in self.steps.get_step_specs(method_doc)]
 
-        with open(history_path, 'a') as history:
-            history.write(f'\n\n* {name}\n  - ' + '\n  - '.join([
-                run_step(*args) for args in self.get_step_specs(method_doc)]))
+
+class BaseTestCase(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+
+        success_msg = '▌ All scenarios ran successfully! ✅'
+        end_note = '' if cls.steps.pending_runs else '\n\n' + success_msg
+        cls.steps.write_to_history(f'{cls.__name__} - {repr(cls.steps)}{end_note}')
+
+    def tearDown(self):
+        self.steps.reset_outputs()

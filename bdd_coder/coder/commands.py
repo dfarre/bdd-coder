@@ -13,8 +13,8 @@ def bdd_blueprint():
     kwargs = {k: v for k, v in parser.parse_args()._get_kwargs() if v is not None}
     test = kwargs.pop('pytest')
 
-    coder = coders.Coder(**kwargs)
+    coder = coders.PackageCoder(**kwargs)
     coder.create_tester_package()
 
     if test:
-        subprocess.check_output(['pytest', coder.tests_path])
+        subprocess.check_output(['pytest', '-vv', coder.tests_path])

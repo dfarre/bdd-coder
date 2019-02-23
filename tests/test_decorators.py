@@ -4,65 +4,116 @@ import unittest.mock as mock
 from bdd_coder.tester import decorators
 from bdd_coder.tester import tester
 
+steps = decorators.Steps({
+    'a_new_game': 'even_boards',
+    'the_first_board_is_added_to_the_game': 'board__is_added_to_the_game'}, 'tests')
 
-@decorators.Steps({'a_game_is_created_with_boards_of__guesses': 'post_game'},
-                  'tests/example_tests')
-class NewGame(tester.BddTestCase):
+
+@steps
+class NewGame(tester.BddTester):
     """
     As a codebreaker
     I want to start a new Mastermind game of B boards of G guesses
     In order to play
     """
 
-    @decorators.scenario
-    def A_odd_boards(self):
+    @decorators.Scenario(steps)
+    def _test_odd_boards(self):
         """
         When I request a new `game` with an odd number of boards
         Then I get a 400 response saying it must be even
         """
 
-    @decorators.scenario
-    def B_even_boards(self):
+    @decorators.Scenario(steps)
+    def even_boards(self):
         """
         When I request a new `game` with an even number of boards
         Then a game is created with boards of "12" guesses
         """
 
-    def i_request_a_new_game_with_an_even_number_of_boards(self, *args, **kwargs):
-        return 'Even Game',
+    def i_request_a_new_game_with_an_odd_number_of_boards(self, *args):
+        assert len(args) == 0
 
-    def i_request_a_new_game_with_an_odd_number_of_boards(self, *args, **kwargs):
         return 'Odd Game',
 
-    def i_get_a_400_response_saying_it_must_be_even(self, *args, **kwargs):
-        pass
+    def i_get_a_400_response_saying_it_must_be_even(self, *args):
+        assert len(args) == 0
 
-    def post_game(self, *args, **kwargs):
-        pass
+    def i_request_a_new_game_with_an_even_number_of_boards(self, *args):
+        assert len(args) == 0
 
-    def _test(self):
-        self.A_odd_boards()
-        self.B_even_boards()
+        return 'Even Game',
+
+    def a_game_is_created_with_boards_of__guesses(self, *args):
+        assert len(args) == 1
 
 
-PATH = f'{NewGame.__module__}.NewGame'
+class ClearBoard(NewGame, tester.BaseTestCase):
+    """
+    As a codebreaker
+    I want a clear board with a new code
+    In order to start making guesses on it
+    """
+
+    @decorators.Scenario(steps)
+    def _test_start_board(self):
+        """
+        Given a new game
+        When I request a clear `board` in my new game
+        Then the first board is added to the game
+        """
+
+    def i_request_a_clear_board_in_my_new_game(self, *args):
+        assert len(args) == 0
+
+        return 'Board',
+
+    def board__is_added_to_the_game(self, *args):
+        assert len(args) == 0
+
+
+NEW_GAME = f'{NewGame.__module__}.NewGame'
+CLEAR_BOARD = f'{ClearBoard.__module__}.ClearBoard'
 
 
 class DecoratorTests(unittest.TestCase):
-    new_game_tester = NewGame()
+    @classmethod
+    def setUpClass(cls):
+        assert steps.scenarios == {
+            '_test_odd_boards': [], 'even_boards': [], '_test_start_board': []}
 
-    @mock.patch(f'{PATH}.i_get_a_400_response_saying_it_must_be_even')
-    @mock.patch(f'{PATH}.i_request_a_new_game_with_an_odd_number_of_boards',
+        super().setUpClass()
+
+    @mock.patch(f'{NEW_GAME}.i_get_a_400_response_saying_it_must_be_even')
+    @mock.patch(f'{NEW_GAME}.i_request_a_new_game_with_an_odd_number_of_boards',
                 return_value=('Odd Game',))
-    @mock.patch(f'{PATH}.post_game')
-    @mock.patch(f'{PATH}.i_request_a_new_game_with_an_even_number_of_boards',
-                return_value=('Even Game',))
-    def test_steps_mapping__args_passed__collected_outputs(
-            self, even_mock, post_game_mock, odd_mock, error_mock):
-        self.new_game_tester._test()
+    def test_odd_boards(self, odd_mock, error_mock):
+        NewGame()._test_odd_boards()
 
         odd_mock.assert_called_once_with()
+        assert steps.outputs['game'][-1] == 'Odd Game'
         error_mock.assert_called_once_with()
+
+    @mock.patch(f'{CLEAR_BOARD}.board__is_added_to_the_game')
+    @mock.patch(f'{CLEAR_BOARD}.i_request_a_clear_board_in_my_new_game',
+                return_value=('Board',))
+    @mock.patch(f'{NEW_GAME}.a_game_is_created_with_boards_of__guesses')
+    @mock.patch(f'{NEW_GAME}.i_request_a_new_game_with_an_even_number_of_boards',
+                return_value=('Even Game',))
+    def test_start_board(self, even_mock, created_mock, clear_board_mock, added_board_mock):
+        ClearBoard()._test_start_board()
+
         even_mock.assert_called_once_with()
-        post_game_mock.assert_called_once_with('12')
-        assert self.new_game_tester.steps.outputs == {'game': ['Odd Game', 'Even Game']}
+        assert steps.outputs['game'][-1] == 'Even Game'
+        created_mock.assert_called_once_with('12')
+        clear_board_mock.assert_called_once_with()
+        assert steps.outputs['board'][-1] == 'Board'
+        clear_board_mock.assert_called_once_with()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+
+        assert list(map(len, steps.scenarios.values())) == [1]*len(steps.scenarios)
+        assert (steps.scenarios['_test_start_board'][0]
+                == steps.scenarios['even_boards'][0] + 1)

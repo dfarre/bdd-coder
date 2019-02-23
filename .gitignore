@@ -8,4 +8,4 @@ build
 
 .pytest_cache
 
-history.log
+bdd-run-logs

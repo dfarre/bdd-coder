@@ -1,0 +1,12 @@
+Title: Clear board
+
+Story: |
+  As a codebreaker
+  I want a clear board with a new code
+  In order to start making guesses on it
+
+Scenarios:
+  Start board:
+    - Given a new game
+    - When I request a clear `board` in my new game
+    - Then the first board is added to the game

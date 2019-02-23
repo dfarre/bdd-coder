@@ -8,19 +8,26 @@ def indent(text, tabs=1):
 def make_doc(*lines):
     text = '\n'.join(line.strip() for line in lines)
 
-    return f'"""\n{text}\n"""'
+    return f'"""\n{text}\n"""' if text else ''
 
 
 def decorate(target, decorators):
     return '\n'.join([f'@{decorator}' for decorator in decorators] + [target])
 
 
-def make_class_head(name, *doc_lines, inheritance='', decorators=()):
-    doc = '\n' + indent(make_doc(*doc_lines)) if doc_lines else ''
+def make_def_content(*doc_lines, body=''):
+    return indent('\n'.join(([make_doc(*doc_lines)] if doc_lines else []) +
+                            ([body] if body else []) or ['pass']))
 
-    return '\n\n' + decorate(f'class {name}{inheritance}:{doc}', decorators)
+
+def make_class(name, *doc_lines, bases=(), decorators=(), body=''):
+    inh = f'({", ".join(map(str.strip, bases))})' if bases else ''
+    head = decorate(f'class {name}{inh}:', decorators)
+
+    return f'\n\n{head}\n' + make_def_content(*doc_lines, body=body)
 
 
-def make_method(name, body='pass', decorators=()):
-    return '\n' + indent(decorate(
-        f'def {name}(self, *args, **kwargs):\n{indent(body)}', decorators))
+def make_method(name, *doc_lines, args_text='', decorators=(), body=''):
+    head = decorate(f'def {name}(self{args_text}):', decorators)
+
+    return f'\n{head}\n' + make_def_content(*doc_lines, body=body)
