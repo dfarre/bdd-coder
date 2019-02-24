@@ -1,1 +1,2 @@
-
+BASE_TEST_CASE_NAME = 'BaseTestCase'
+BASE_TESTER_NAME = 'BddTester'

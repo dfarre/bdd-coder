@@ -1,6 +1,8 @@
 import datetime
 import unittest
 
+from bdd_coder import SUCCESS_MSG
+
 
 class BddTester:
     """
@@ -34,9 +36,8 @@ class BaseTestCase(unittest.TestCase):
     def tearDownClass(cls):
         super().tearDownClass()
 
-        success_msg = '▌ All scenarios ran successfully! ✅'
-        end_note = '' if cls.steps.pending_runs else '\n\n' + success_msg
-        cls.steps.write_to_history(f'{cls.__name__} - {repr(cls.steps)}{end_note}')
+        end_note = '' if cls.steps.pending_runs else '\n\n' + SUCCESS_MSG
+        cls.steps.write_to_history(f'{cls.__name__} - {cls.steps}{end_note}')
 
     def tearDown(self):
         self.steps.reset_outputs()

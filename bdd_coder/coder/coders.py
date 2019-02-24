@@ -2,6 +2,8 @@ import os
 
 from bdd_coder import sentence_to_name
 
+from bdd_coder.coder import BASE_TESTER_NAME
+from bdd_coder.coder import BASE_TEST_CASE_NAME
 from bdd_coder.coder import features
 from bdd_coder.coder import text_utils
 
@@ -44,8 +46,8 @@ class FeatureClassCoder:
         return text_utils.indent(f'fixtures = [{fixtures}]') if fixtures else ''
 
     def make(self):
-        bases = (self.spec['bases'] or ['base.BddTester']) + (
-            [] if self.spec['inherited'] else ['base.BaseTestCase'])
+        bases = (self.spec['bases'] or [f'base.{BASE_TESTER_NAME}']) + (
+            [] if self.spec['inherited'] else [f'base.{BASE_TEST_CASE_NAME}'])
 
         return text_utils.make_class(
             self.class_name, self.spec['Story'], body=self.make_class_body(), bases=bases)
@@ -57,6 +59,7 @@ class PackageCoder:
         self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
         self.features_spec = features.FeaturesSpec(specs_path)
         self.tests_path = tests_path or os.path.join(os.path.dirname(specs_path), 'tests')
+        self.test_module_name = specs_path.strip('/').rsplit('/', 1)[-1]
 
     @staticmethod
     def rstrip(text):
@@ -74,9 +77,9 @@ class PackageCoder:
 
     def make_base_class_defs(self):
         return '\n'.join([text_utils.make_class(
-            'BddTester', bases=('tester.BddTester',), decorators=('steps',)),
-                text_utils.make_class(
-                    'BaseTestCase', bases=('tester.BaseTestCase', self.base_class_name))])
+            BASE_TESTER_NAME, bases=('tester.BddTester',), decorators=('steps',)),
+                text_utils.make_class(BASE_TEST_CASE_NAME, bases=(
+                    'tester.BaseTestCase', self.base_class_name))])
 
     def create_tester_package(self):
         os.makedirs(self.tests_path)
@@ -96,7 +99,8 @@ class PackageCoder:
                 f"steps = decorators.Steps(aliases.MAP, '{self.tests_path}')\n"
                 + self.make_base_class_defs()))
 
-        with open(os.path.join(self.tests_path, 'test_features.py'), 'w') as test_py:
+        with open(os.path.join(self.tests_path, f'test_{self.test_module_name}.py'),
+                  'w') as test_py:
             test_py.write(self.rstrip(
                 'from bdd_coder.tester import decorators'
                 '\n\nfrom . import base\n' + '\n'.join(self.make_story_class_defs())))

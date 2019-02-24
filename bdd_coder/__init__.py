@@ -1,6 +1,9 @@
-"""Common utils"""
+"""Common utils and constants"""
 
 import re
+
+LOGS_DIR_NAME = '.bdd-run-logs'  # in tests package
+SUCCESS_MSG = '▌ All scenarios ran successfully! ✅'
 
 
 def get_step_sentence(step_text):

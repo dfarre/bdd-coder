@@ -8,12 +8,13 @@ import os
 
 from bdd_coder import get_step_specs
 from bdd_coder import BaseRepr
+from bdd_coder import LOGS_DIR_NAME
 
 
 class Steps(BaseRepr):
     def __init__(self, aliases, tests_path, max_history_length=5):
         self.tests_path = tests_path
-        self.history_dir = os.path.join(tests_path, 'bdd-run-logs')
+        self.history_dir = os.path.join(tests_path, LOGS_DIR_NAME)
         os.makedirs(self.history_dir, exist_ok=True)
         self._clear_old_history(max_history_length)
         note = f'{datetime.datetime.utcnow()} Steps prepared to run {self.tests_path}'
