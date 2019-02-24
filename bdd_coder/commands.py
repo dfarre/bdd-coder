@@ -13,7 +13,8 @@ def bdd_blueprint():
     parser.add_argument('--base-class', '-c', help='default: unittest.TestCase')
     parser.add_argument('--specs-path', '-i', help='default: behaviour/specs')
     parser.add_argument('--tests-path', '-o', help='default: next to specs')
-    parser.add_argument('--pytest', action='store_true')
+    parser.add_argument('--tests-module-name', '-n', help='default: stories (test_stories.py)')
+    parser.add_argument('--pytest', action='store_true', help='run pytest on the blueprint')
     kwargs = {k: v for k, v in parser.parse_args()._get_kwargs() if v is not None}
     test = kwargs.pop('pytest')
 

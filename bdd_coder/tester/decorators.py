@@ -12,12 +12,11 @@ from bdd_coder import LOGS_DIR_NAME
 
 
 class Steps(BaseRepr):
-    def __init__(self, aliases, tests_path, max_history_length=5):
-        self.tests_path = tests_path
-        self.history_dir = os.path.join(tests_path, LOGS_DIR_NAME)
-        os.makedirs(self.history_dir, exist_ok=True)
+    def __init__(self, aliases, logs_parent, max_history_length=5):
+        self.logs_dir = os.path.join(logs_parent, LOGS_DIR_NAME)
+        os.makedirs(self.logs_dir, exist_ok=True)
         self._clear_old_history(max_history_length)
-        note = f'{datetime.datetime.utcnow()} Steps prepared to run {self.tests_path}'
+        note = f'{datetime.datetime.utcnow()} Steps prepared'
         self.write_to_history('\n'.join(['_'*len(note), note]))
         self.reset_outputs()
         self.run_number, self.scenarios = 0, {}
@@ -44,14 +43,14 @@ class Steps(BaseRepr):
         return [name for name, runs in self.scenarios.items() if not runs]
 
     def _clear_old_history(self, max_history_length):
-        for log in sorted(os.listdir(self.history_dir))[:-max_history_length]:
-            os.remove(os.path.join(self.history_dir, log))
+        for log in sorted(os.listdir(self.logs_dir))[:-max_history_length]:
+            os.remove(os.path.join(self.logs_dir, log))
 
     def write_to_history(self, text):
-        history_path = os.path.join(
-            self.history_dir, f'{datetime.datetime.utcnow().date()}.log')
+        log_path = os.path.join(
+            self.logs_dir, f'{datetime.datetime.utcnow().date()}.log')
 
-        with open(history_path, 'a' if os.path.isfile(history_path) else 'w') as history:
+        with open(log_path, 'a' if os.path.isfile(log_path) else 'w') as history:
             history.write(text + '\n\n')
 
     def get_step_specs(self, method_doc):
