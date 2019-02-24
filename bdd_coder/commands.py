@@ -1,6 +1,7 @@
 import argparse
 import os
 import subprocess
+import sys
 
 from bdd_coder import LOGS_DIR_NAME
 from bdd_coder import SUCCESS_MSG
@@ -35,9 +36,13 @@ def check_pending_scenarios(tests_path=''):
             with open(os.path.join(logs_path, log_names[-1]), 'rb') as log_bytes:
                 log_bytes.seek(-5, 2)
 
-                assert log_bytes.read().decode()[0] == '✅', (
-                    f'✘ Some scenarios did not run! Check the logs in {logs_path}')
+                if log_bytes.read().decode()[0] == '✅':
+                    sys.stdout.write(SUCCESS_MSG + '\n')
+                    return 0
+                else:
+                    sys.stderr.write(
+                        f'✘ Some scenarios did not run! Check the logs in {logs_path}\n')
+                    return 1
 
-                return SUCCESS_MSG
-
-    return 'No logs found'
+    sys.stdout.write('No logs found\n')
+    return 0
