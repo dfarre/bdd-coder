@@ -25,16 +25,16 @@ def bdd_blueprint():
         subprocess.check_output(['pytest', '-vv', coder.tests_path])
 
 
-def check_pending_scenarios(tests_path=''):
+def check_pending_scenarios(logs_parent=''):
     parser = argparse.ArgumentParser()
-    parser.add_argument('tests_path')
-    logs_path = os.path.join(tests_path or parser.parse_args().tests_path, LOGS_DIR_NAME)
+    parser.add_argument('logs_parent')
+    logs_dir = os.path.join(logs_parent or parser.parse_args().logs_parent, LOGS_DIR_NAME)
 
-    if os.path.isdir(logs_path):
-        log_names = sorted(os.listdir(logs_path))
+    if os.path.isdir(logs_dir):
+        log_names = sorted(os.listdir(logs_dir))
 
         if log_names:
-            with open(os.path.join(logs_path, log_names[-1]), 'rb') as log_bytes:
+            with open(os.path.join(logs_dir, log_names[-1]), 'rb') as log_bytes:
                 log_bytes.seek(-5, 2)
 
                 if log_bytes.read().decode()[0] == '✅':
@@ -42,7 +42,7 @@ def check_pending_scenarios(tests_path=''):
                     return 0
                 else:
                     sys.stderr.write(
-                        f'✘ Some scenarios did not run! Check the logs in {logs_path}\n')
+                        f'✘ Some scenarios did not run! Check the logs in {logs_dir}\n')
                     return 1
 
     sys.stdout.write('No logs found\n')

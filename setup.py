@@ -1,7 +1,7 @@
 import setuptools
 
 
-tests_require = ['pytest', 'pytest-cov', 'flake8']
+tests_require = ['pytest', 'pytest-cov', 'flake8', 'freezegun']
 
 setuptools.setup(
     name='bdd-coder',
