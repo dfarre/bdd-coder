@@ -6,14 +6,16 @@ import unittest.mock as mock
 
 import freezegun
 
+from bdd_coder import LOGS_DIR_NAME
+
+from example.tests import base
+from example.tests import test_stories
+
 NEW_GAME = 'example.tests.test_stories.NewGame'
 CLEAR_BOARD = 'example.tests.test_stories.ClearBoard'
 
 FROZEN_TIME = datetime.datetime(2019, 2, 26, 17, 30, 13, 71420)
 FIRST_LOG = f"""
-_________________________________________
-{FROZEN_TIME} Steps prepared
-
 1 ✓ ClearBoard.even_boards:
   1.1 - {FROZEN_TIME} ✓ i_request_a_new_game_with_an_even_number_of_boards [] |--> ('Even Game',)
   1.2 - {FROZEN_TIME} ✓ a_game_is_created_with_boards_of__guesses ['12'] |--> ()
@@ -53,15 +55,8 @@ class DecoratorTests(unittest.TestCase):
     @classmethod
     @freezegun.freeze_time(FROZEN_TIME)
     def setUpClass(cls):
-        shutil.rmtree('example/tests/.bdd-run-logs')
-        from example.tests import base
-        from example.tests import test_stories
-
         assert base.steps.scenarios == {
             'test_odd_boards': [], 'even_boards': [], 'test_start_board': []}
-
-        cls.test_stories = test_stories
-        cls.steps = base.steps
 
         super().setUpClass()
 
@@ -69,8 +64,10 @@ class DecoratorTests(unittest.TestCase):
     def tearDownClass(cls):
         super().tearDownClass()
 
-        assert list(map(len, cls.steps.scenarios.values())) == [1]*len(cls.steps.scenarios)
-        assert cls.steps.scenarios == {
+        shutil.rmtree(f'example/tests/{LOGS_DIR_NAME}')
+
+        assert list(map(len, base.steps.scenarios.values())) == [1]*len(base.steps.scenarios)
+        assert base.steps.scenarios == {
             'test_odd_boards': [3], 'even_boards': [1], 'test_start_board': [2]}
 
     @mock.patch(f'{NEW_GAME}.i_get_a_400_response_saying_it_must_be_even',
@@ -78,7 +75,7 @@ class DecoratorTests(unittest.TestCase):
     @mock.patch(f'{NEW_GAME}.i_request_a_new_game_with_an_odd_number_of_boards',
                 return_value=('Odd Game',))
     def assert_odd_boards(self, odd_mock, error_mock):
-        tester = self.test_stories.ClearBoard()
+        tester = test_stories.ClearBoard()
         tester.test_odd_boards()
 
         odd_mock.assert_called_once_with()
@@ -95,7 +92,7 @@ class DecoratorTests(unittest.TestCase):
     @mock.patch(f'{NEW_GAME}.i_request_a_new_game_with_an_even_number_of_boards',
                 return_value=('Even Game',))
     def assert_start_board(self, even_mock, created_mock, clear_board_mock, added_board_mock):
-        tester = self.test_stories.ClearBoard()
+        tester = test_stories.ClearBoard()
         tester.test_start_board()
 
         even_mock.assert_called_once_with()
@@ -106,15 +103,15 @@ class DecoratorTests(unittest.TestCase):
         tester.tearDownClass()
 
     def assert_log(self, log_text):
-        with open(os.path.join(self.steps.logs_dir, f'{FROZEN_TIME.date()}.log')) as log:
+        with open(os.path.join(base.steps.logs_dir, f'{FROZEN_TIME.date()}.log')) as log:
             assert log.read() == log_text
 
     @freezegun.freeze_time(FROZEN_TIME)
     def test(self):
         self.assert_start_board()
-        assert self.steps.outputs['game'] == ['Even Game']
-        assert self.steps.outputs['board'] == ['Board']
+        assert base.steps.outputs['game'] == ['Even Game']
+        assert base.steps.outputs['board'] == ['Board']
         self.assert_log(FIRST_LOG)
         self.assert_odd_boards()
-        assert self.steps.outputs['game'] == ['Even Game', 'Odd Game']
+        assert base.steps.outputs['game'] == ['Even Game', 'Odd Game']
         self.assert_log(FIRST_LOG + SECOND_LOG)

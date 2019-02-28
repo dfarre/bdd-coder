@@ -52,8 +52,12 @@ class BddTester(YamlDumper):
                      strip_lines(getattr(cls, name).__doc__.splitlines())
                      for name in cls.get_own_scenarios()}
         ordered_dict = collections.OrderedDict([
-            ('Title', cls.__name__), ('Story', literal(story)), ('Scenarios', scenarios)])
+            ('Title', cls.get_title()), ('Story', literal(story)), ('Scenarios', scenarios)])
         cls.dump_yaml(ordered_dict, path)
+
+    @classmethod
+    def get_title(cls):
+        return re.sub(r'[A-Z]', lambda m: f' {m.group()}', cls.__name__).strip()
 
     @classmethod
     def get_own_scenarios(cls):
