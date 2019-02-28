@@ -28,19 +28,16 @@ class Steps(BaseRepr):
         return BddTestCase
 
     def __str__(self):
-        runs = dict(map(lambda it: ('-'.join(map(str, it[1])), it[0]), self.runs.items()))
+        return (f'Scenario runs {json.dumps(self.get_runs(), indent=4)}\n'
+                f'Pending {json.dumps(self.get_pending_runs(), indent=4)}')
 
-        return (f'Scenario runs {json.dumps(runs, indent=4)}\n'
-                f'Pending {json.dumps(self.pending_runs, indent=4)}')
+    def get_runs(self):
+        return collections.OrderedDict(map(
+            lambda it: ('-'.join(map(str, it[1])), it[0]), sorted(filter(
+                lambda it: it[1], self.scenarios.items()), key=lambda it: it[1][0])))
 
-    @property
-    def runs(self):
-        return collections.OrderedDict(sorted(filter(
-            lambda it: it[1], self.scenarios.items()), key=lambda it: it[1][0]))
-
-    @property
-    def pending_runs(self):
-        return [name for name, runs in self.scenarios.items() if not runs]
+    def get_pending_runs(self):
+        return [method for method, runs in self.scenarios.items() if not runs]
 
     def _clear_old_history(self, max_history_length):
         for log in sorted(os.listdir(self.logs_dir))[:-max_history_length]:

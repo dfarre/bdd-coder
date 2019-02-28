@@ -46,7 +46,7 @@ class BlueprintTester(unittest.TestCase):
             assert diff == ''
 
     @classmethod
-    def tearDownClass(self):
-        shutil.rmtree(self.coder.tests_path)
+    def tearDownClass(cls):
+        shutil.rmtree('tmp')
 
         super().tearDownClass()

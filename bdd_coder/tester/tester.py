@@ -1,14 +1,64 @@
+import collections
 import datetime
+import inspect
+import re
 import unittest
+import yaml
 
+from bdd_coder import strip_lines
 from bdd_coder import SUCCESS_MSG
 
 
-class BddTester:
+class literal(str):
+    """Employed to make nice YAML files"""
+
+
+class YamlDumper:
+    @staticmethod
+    def to_sentence(name):
+        return name.replace('__', ' "x" ').replace('_', ' ').capitalize()
+
+    @staticmethod
+    def dump_yaml(data, path):
+        yaml.add_representer(collections.OrderedDict,
+                             lambda dumper, data: dumper.represent_dict(data.items()))
+        yaml.add_representer(literal, lambda dumper, data: dumper.represent_scalar(
+            'tag:yaml.org,2002:str', data, style='|'))
+
+        with open(path, 'w') as yml_file:
+            yaml.dump(data, yml_file, default_flow_style=False)
+
+    @classmethod
+    def dump_yaml_aliases(cls, aliases, path):
+        alias_lists = collections.defaultdict(list)
+
+        for item in aliases.items():
+            name, alias = map(cls.to_sentence, item)
+            alias_lists[alias].append(name)
+
+        cls.dump_yaml(dict(alias_lists), path)
+
+
+class BddTester(YamlDumper):
     """
     To be decorated with `Steps`, and employed with methods decorated with
     `scenario` - mix with a subclass of `BaseTestCase` to run test methods
     """
+
+    @classmethod
+    def dump_yaml_feature(cls, path):
+        story = '\n'.join(map(str.strip, cls.__doc__.strip('\n ').splitlines()))
+        scenarios = {cls.to_sentence(re.sub('test_', '', name, 1)):
+                     strip_lines(getattr(cls, name).__doc__.splitlines())
+                     for name in cls.get_own_scenarios()}
+        ordered_dict = collections.OrderedDict([
+            ('Title', cls.__name__), ('Story', literal(story)), ('Scenarios', scenarios)])
+        cls.dump_yaml(ordered_dict, path)
+
+    @classmethod
+    def get_own_scenarios(cls):
+        return [n for n, _ in inspect.getmembers(cls)
+                if n in cls.steps.scenarios and f'def {n}' in inspect.getsource(cls)]
 
     @classmethod
     def log_scenario_run(cls, name, step_logs):
@@ -36,7 +86,7 @@ class BaseTestCase(unittest.TestCase):
     def tearDownClass(cls):
         super().tearDownClass()
 
-        end_note = '' if cls.steps.pending_runs else '\n\n' + SUCCESS_MSG
+        end_note = '' if cls.steps.get_pending_runs() else '\n\n' + SUCCESS_MSG
         cls.steps.write_to_history(f'{cls.__name__} - {cls.steps}{end_note}')
 
     def tearDown(self):

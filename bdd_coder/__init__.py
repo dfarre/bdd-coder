@@ -2,7 +2,7 @@
 
 import re
 
-LOGS_DIR_NAME = '.bdd-run-logs'  # in tests package
+LOGS_DIR_NAME = '.bdd-run-logs'
 SUCCESS_MSG = '▌ All scenarios ran successfully! ✅'
 
 
@@ -14,8 +14,12 @@ def sentence_to_name(text):
     return re.sub(r'[\'`]|"[\w\-\.]+"', '', text).lower().replace(' ', '_')
 
 
+def strip_lines(lines):
+    return list(filter(None, map(str.strip, lines)))
+
+
 def get_step_specs(lines, aliases=None):
-    sentences = list(map(get_step_sentence, filter(None, map(str.strip, lines))))
+    sentences = list(map(get_step_sentence, strip_lines(lines)))
     input_lists = map(lambda s: re.findall(r'"([\w\-\.]+)"', s), sentences)
     output_name_lists = map(lambda s: re.findall(r'`([\w\-\.]+)`', s), sentences)
     aliases = aliases or {}
