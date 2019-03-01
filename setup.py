@@ -5,6 +5,7 @@ tests_require = ['pytest', 'pytest-cov', 'flake8', 'freezegun']
 
 setuptools.setup(
     name='bdd-coder',
+    version='1.0',
     packages=setuptools.find_packages(),
     install_requires=['pyyaml', 'argparse'],
     setup_requires=['setuptools'],
