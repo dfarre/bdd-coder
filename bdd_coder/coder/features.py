@@ -54,15 +54,17 @@ class FeaturesSpec(BaseRepr):
 
         for story_yml_name in os.listdir(features_path):
             with open(os.path.join(features_path, story_yml_name)) as feature_yml:
-                feature = yaml.load(feature_yml.read())
+                yml_feature = yaml.load(feature_yml.read())
 
-            feature['class_name'] = self.title_to_class_name(feature.pop('Title'))
-            feature['bases'] = []
-            feature['inherited'] = False
-            feature['scenarios'] = {sentence_to_name(title): {
-                'title': title, 'inherited': False,  'doc_lines': steps,
-                'step_specs': get_step_specs(steps, self.aliases)}
-                for title, steps in feature.pop('Scenarios').items()}
+            feature = {
+                'class_name': self.title_to_class_name(yml_feature.pop('Title')),
+                'bases': [], 'inherited': False, 'scenarios': {sentence_to_name(title): {
+                    'title': title, 'inherited': False,  'doc_lines': steps,
+                    'step_specs': get_step_specs(steps, self.aliases)}
+                    for title, steps in yml_feature.pop('Scenarios').items()},
+                'doc': yml_feature.pop('Story')}
+            feature['extra_class_attrs'] = {
+                sentence_to_name(key): value for key, value in yml_feature.items()}
 
             yield feature
 

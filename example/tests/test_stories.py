@@ -9,6 +9,7 @@ class NewGame(base.BddTester):
     I want to start a new Mastermind game of B boards of G guesses
     In order to play
     """
+    fixtures = ['player-alice']
 
     @decorators.Scenario(base.steps)
     def test_odd_boards(self):

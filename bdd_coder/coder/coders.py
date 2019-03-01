@@ -1,7 +1,5 @@
 import os
 
-from bdd_coder import sentence_to_name
-
 from bdd_coder.coder import BASE_TESTER_NAME
 from bdd_coder.coder import BASE_TEST_CASE_NAME
 from bdd_coder.coder import features
@@ -37,20 +35,18 @@ class FeatureClassCoder:
                 for name, (inputs, output_names) in steps_to_code.items()]
 
     def make_class_body(self):
-        return '\n'.join(self.make_scenario_method_defs() + self.make_step_method_defs())
+        return '\n'.join(self.make_extra_class_attrs() +
+                         self.make_scenario_method_defs() + self.make_step_method_defs())
 
-    def make_django_fixtures_class_attr(self):
-        fixtures = ', '.join(f"'{sentence_to_name(fixture)}'"
-                             for fixture in self.spec.get('Django fixtures', []))
-
-        return text_utils.indent(f'fixtures = [{fixtures}]') if fixtures else ''
+    def make_extra_class_attrs(self):
+        return [f'{name} = {value}' for name, value in self.spec['extra_class_attrs'].items()]
 
     def make(self):
         bases = (self.spec['bases'] or [f'base.{BASE_TESTER_NAME}']) + (
             [] if self.spec['inherited'] else [f'base.{BASE_TEST_CASE_NAME}'])
 
         return text_utils.make_class(
-            self.class_name, self.spec['Story'], body=self.make_class_body(), bases=bases)
+            self.class_name, self.spec['doc'], body=self.make_class_body(), bases=bases)
 
 
 class PackageCoder:

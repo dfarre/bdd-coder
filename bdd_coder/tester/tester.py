@@ -47,9 +47,10 @@ class BddTester(YamlDumper):
         story = '\n'.join(map(str.strip, cls.__doc__.strip('\n ').splitlines()))
         scenarios = {to_sentence(re.sub('test_', '', name, 1)):
                      strip_lines(getattr(cls, name).__doc__.splitlines())
-                     for name in cls.get_own_scenarios()}
+                     for name in cls.get_own_scenario_names()}
         ordered_dict = collections.OrderedDict([
-            ('Title', cls.get_title()), ('Story', literal(story)), ('Scenarios', scenarios)])
+            ('Title', cls.get_title()), ('Story', literal(story)), ('Scenarios', scenarios)
+        ] + [(to_sentence(n), v) for n, v in cls.get_own_class_attrs().items()])
         cls.dump_yaml(ordered_dict, path)
 
     @classmethod
@@ -57,9 +58,15 @@ class BddTester(YamlDumper):
         return re.sub(r'[A-Z]', lambda m: f' {m.group()}', cls.__name__).strip()
 
     @classmethod
-    def get_own_scenarios(cls):
-        return [n for n, _ in inspect.getmembers(cls)
-                if n in cls.steps.scenarios and f'def {n}' in inspect.getsource(cls)]
+    def get_own_scenario_names(cls):
+        return [n for n, v in inspect.getmembers(
+            cls, lambda x: getattr(x, '__name__', None) in cls.steps.scenarios
+            and f'\n    def {x.__name__}' in inspect.getsource(cls))]
+
+    @classmethod
+    def get_own_class_attrs(cls):
+        return dict(filter(lambda it: f'\n    {it[0]} = ' in inspect.getsource(cls),
+                           inspect.getmembers(cls)))
 
     @classmethod
     def log_scenario_run(cls, name, step_logs):
