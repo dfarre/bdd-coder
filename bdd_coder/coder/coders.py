@@ -8,17 +8,17 @@ from bdd_coder.coder import features
 from bdd_coder.coder import text_utils
 
 
+def make_method_body(inputs, output_names):
+    outputs_help = [
+        'return ' + ''.join(f"'{output}', " for output in output_names)
+    ] if output_names else []
+
+    return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
+
+
 class FeatureClassCoder:
     def __init__(self, class_name, spec):
         self.class_name, self.spec = class_name, spec
-
-    @staticmethod
-    def make_method_body(inputs, output_names):
-        outputs_help = [
-            'return ' + ''.join(f"'{output}', " for output in output_names)
-        ] if output_names else []
-
-        return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
 
     def make_scenario_method_defs(self):
         return [text_utils.make_method(
@@ -32,7 +32,7 @@ class FeatureClassCoder:
             name: (inp, out) for name, inp, out, make_it in step_specs if make_it}
 
         return [text_utils.make_method(
-                    name, body=self.make_method_body(inputs, output_names),
+                    name, body=make_method_body(inputs, output_names),
                     args_text=', *args')
                 for name, (inputs, output_names) in steps_to_code.items()]
 
@@ -76,11 +76,17 @@ class PackageCoder:
 
         return f'MAP = {{\n{dict_text}\n}}'
 
+    def make_base_method_defs(self):
+        return '\n'.join([text_utils.make_method(name, args_text=', *args')
+                          for name in self.features_spec.base_methods])
+
     def make_base_class_defs(self):
-        return '\n'.join([text_utils.make_class(
-            BASE_TESTER_NAME, bases=('tester.BddTester',), decorators=('steps',)),
-                text_utils.make_class(BASE_TEST_CASE_NAME, bases=(
-                    'tester.BaseTestCase', self.base_class_name))])
+        return '\n'.join([
+            text_utils.make_class(BASE_TESTER_NAME, bases=('tester.BddTester',),
+                                  decorators=('steps',)),
+            text_utils.make_class(BASE_TEST_CASE_NAME, bases=(
+                'tester.BaseTestCase', self.base_class_name),
+                body=self.make_base_method_defs())])
 
     def create_tester_package(self):
         os.makedirs(self.tests_path)

@@ -6,6 +6,7 @@ import unittest
 import yaml
 
 from bdd_coder import strip_lines
+from bdd_coder import to_sentence
 from bdd_coder import SUCCESS_MSG
 
 
@@ -14,10 +15,6 @@ class literal(str):
 
 
 class YamlDumper:
-    @staticmethod
-    def to_sentence(name):
-        return name.replace('__', ' "x" ').replace('_', ' ').capitalize()
-
     @staticmethod
     def dump_yaml(data, path):
         yaml.add_representer(collections.OrderedDict,
@@ -33,7 +30,7 @@ class YamlDumper:
         alias_lists = collections.defaultdict(list)
 
         for item in aliases.items():
-            name, alias = map(cls.to_sentence, item)
+            name, alias = map(to_sentence, item)
             alias_lists[alias].append(name)
 
         cls.dump_yaml(dict(alias_lists), path)
@@ -48,7 +45,7 @@ class BddTester(YamlDumper):
     @classmethod
     def dump_yaml_feature(cls, path):
         story = '\n'.join(map(str.strip, cls.__doc__.strip('\n ').splitlines()))
-        scenarios = {cls.to_sentence(re.sub('test_', '', name, 1)):
+        scenarios = {to_sentence(re.sub('test_', '', name, 1)):
                      strip_lines(getattr(cls, name).__doc__.splitlines())
                      for name in cls.get_own_scenarios()}
         ordered_dict = collections.OrderedDict([

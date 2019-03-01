@@ -60,6 +60,3 @@ class ClearBoard(NewGame, base.BaseTestCase):
         assert len(args) == 0
 
         return 'board',
-
-    def board__is_added_to_the_game(self, *args):
-        assert len(args) == 0

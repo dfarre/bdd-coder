@@ -18,14 +18,21 @@ def strip_lines(lines):
     return list(filter(None, map(str.strip, lines)))
 
 
-def get_step_specs(lines, aliases=None):
-    sentences = list(map(get_step_sentence, strip_lines(lines)))
-    input_lists = map(lambda s: re.findall(r'"([\w\-\.]+)"', s), sentences)
-    output_name_lists = map(lambda s: re.findall(r'`([\w\-\.]+)`', s), sentences)
+def get_spec(sentence, aliases=None):
     aliases = aliases or {}
-    method_names = map(lambda n: aliases.get(n, n), map(sentence_to_name, sentences))
+    inputs = re.findall(r'"([\w\-\.]+)"', sentence)
+    output_names = re.findall(r'`([\w\-\.]+)`', sentence)
+    method = sentence_to_name(sentence)
 
-    return list(map(list, zip(method_names, input_lists, output_name_lists)))
+    return [aliases.get(method, method), inputs, output_names]
+
+
+def get_step_specs(lines, aliases):
+    return [get_spec(get_step_sentence(line), aliases) for line in strip_lines(lines)]
+
+
+def to_sentence(name):
+    return name.replace('__', ' "x" ').replace('_', ' ').capitalize()
 
 
 class BaseRepr:

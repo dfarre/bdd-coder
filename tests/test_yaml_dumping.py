@@ -20,7 +20,7 @@ class YamlDumpTests(unittest.TestCase):
         with open(lpath) as lfile, open(rpath) as rfile:
             assert yaml.load(lfile.read()) == yaml.load(rfile.read())
 
-    def test_aliases_yml(self):
+    def test_aliases_yaml(self):
         tester.YamlDumper.dump_yaml_aliases(aliases.MAP, 'tmp/aliases.yml')
 
         self.assert_equal_yamls('tmp/aliases.yml', 'example/specs/aliases.yml')

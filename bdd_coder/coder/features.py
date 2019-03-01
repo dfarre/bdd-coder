@@ -3,9 +3,9 @@ import json
 import os
 import yaml
 
-from bdd_coder import sentence_to_name
-from bdd_coder import get_step_specs
 from bdd_coder import BaseRepr
+from bdd_coder import get_step_specs
+from bdd_coder import sentence_to_name
 
 
 class FeaturesSpec(BaseRepr):
@@ -13,6 +13,7 @@ class FeaturesSpec(BaseRepr):
         """Constructs feature class specifications to be employed by the coders"""
         self.specs_path = specs_path
         self.aliases = self._get_aliases()
+        self.base_methods = set()
         self.features = self._set_inheritance_specs({
             ft.pop('class_name'): ft for ft in self._yield_prepared_features()})
 
@@ -40,6 +41,9 @@ class FeaturesSpec(BaseRepr):
                     feature_spec['bases'].append(other_class_name)
                     features[other_class_name]['inherited'] = True
                     features[other_class_name]['scenarios'][step_spec[0]]['inherited'] = True
+                elif step_spec[0] in self.aliases.values():
+                    step_spec.append(False)
+                    self.base_methods.add(step_spec[0])
                 else:
                     step_spec.append(True)
 
