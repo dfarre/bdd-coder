@@ -1,0 +1,10 @@
+Title: Fake Three
+
+Story: Whatever
+
+Scenarios:
+  Something funny on three:
+    - When bla bla bla
+  Something even funnier on three:
+    - When fours second scenario
+    - Then bla bla bla

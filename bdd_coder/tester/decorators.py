@@ -15,7 +15,7 @@ class Steps(BaseRepr):
     def __init__(self, aliases, logs_parent, max_history_length=5):
         self.logs_dir = os.path.join(logs_parent, LOGS_DIR_NAME)
         os.makedirs(self.logs_dir, exist_ok=True)
-        self._clear_old_history(max_history_length)
+        self.max_history_length = max_history_length
         note = f'{datetime.datetime.utcnow()} Steps prepared'
         self.write_to_history('\n'.join(['_'*len(note), note]))
         self.reset_outputs()
@@ -39,16 +39,17 @@ class Steps(BaseRepr):
     def get_pending_runs(self):
         return [method for method, runs in self.scenarios.items() if not runs]
 
-    def _clear_old_history(self, max_history_length):
-        for log in sorted(os.listdir(self.logs_dir))[:-max_history_length]:
+    def clear_old_history(self):
+        for log in sorted(os.listdir(self.logs_dir))[:-self.max_history_length]:
             os.remove(os.path.join(self.logs_dir, log))
 
     def write_to_history(self, text):
-        log_path = os.path.join(
-            self.logs_dir, f'{datetime.datetime.utcnow().date()}.log')
+        log_path = os.path.join(self.logs_dir, f'{datetime.datetime.utcnow().date()}.log')
 
         with open(log_path, 'a' if os.path.isfile(log_path) else 'w') as history:
             history.write(text + '\n\n')
+
+        self.clear_old_history()
 
     def get_step_specs(self, method_doc):
         return get_step_specs(method_doc.splitlines(), self.aliases)

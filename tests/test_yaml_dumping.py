@@ -21,16 +21,18 @@ class YamlDumpTests(unittest.TestCase):
             assert yaml.load(lfile.read()) == yaml.load(rfile.read())
 
     def test_aliases_yaml(self):
-        tester.YamlDumper.dump_yaml_aliases(aliases.MAP, 'tmp/aliases.yml')
+        tester.YamlDumper.dump_yaml_aliases(aliases.MAP, 'tmp')
 
         self.assert_equal_yamls('tmp/aliases.yml', 'example/specs/aliases.yml')
 
     def test_feature_yamls__newgame(self):
-        test_stories.NewGame.dump_yaml_feature('tmp/newgame.yml')
+        test_stories.NewGame.dump_yaml_feature('tmp')
 
-        self.assert_equal_yamls('tmp/newgame.yml', 'example/specs/features/new-game.yml')
+        self.assert_equal_yamls(
+            'tmp/new-game.yml', 'example/specs/features/new-game.yml')
 
     def test_feature_yamls__clearboard(self):
-        test_stories.ClearBoard.dump_yaml_feature('tmp/clearboard.yml')
+        test_stories.ClearBoard.dump_yaml_feature('tmp')
 
-        self.assert_equal_yamls('tmp/clearboard.yml', 'example/specs/features/clear-board.yml')
+        self.assert_equal_yamls(
+            'tmp/clear-board.yml', 'example/specs/features/clear-board.yml')

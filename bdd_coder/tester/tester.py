@@ -1,6 +1,7 @@
 import collections
 import datetime
 import inspect
+import os
 import re
 import unittest
 import yaml
@@ -26,14 +27,14 @@ class YamlDumper:
             yaml.dump(data, yml_file, default_flow_style=False)
 
     @classmethod
-    def dump_yaml_aliases(cls, aliases, path):
+    def dump_yaml_aliases(cls, aliases, parent_dir):
         alias_lists = collections.defaultdict(list)
 
         for item in aliases.items():
             name, alias = map(to_sentence, item)
             alias_lists[alias].append(name)
 
-        cls.dump_yaml(dict(alias_lists), path)
+        cls.dump_yaml(dict(alias_lists), os.path.join(parent_dir, 'aliases.yml'))
 
 
 class BddTester(YamlDumper):
@@ -43,7 +44,7 @@ class BddTester(YamlDumper):
     """
 
     @classmethod
-    def dump_yaml_feature(cls, path):
+    def dump_yaml_feature(cls, parent_dir):
         story = '\n'.join(map(str.strip, cls.__doc__.strip('\n ').splitlines()))
         scenarios = {to_sentence(re.sub('test_', '', name, 1)):
                      strip_lines(getattr(cls, name).__doc__.splitlines())
@@ -51,7 +52,8 @@ class BddTester(YamlDumper):
         ordered_dict = collections.OrderedDict([
             ('Title', cls.get_title()), ('Story', literal(story)), ('Scenarios', scenarios)
         ] + [(to_sentence(n), v) for n, v in cls.get_own_class_attrs().items()])
-        cls.dump_yaml(ordered_dict, path)
+        name = '-'.join([s.lower() for s in cls.get_title().split()])
+        cls.dump_yaml(ordered_dict, os.path.join(parent_dir, f'{name}.yml'))
 
     @classmethod
     def get_title(cls):

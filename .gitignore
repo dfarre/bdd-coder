@@ -8,5 +8,6 @@ build
 
 .pytest_cache
 .coverage
+.tox
 
 .bdd-run-logs

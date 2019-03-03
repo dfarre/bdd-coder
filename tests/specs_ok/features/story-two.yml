@@ -1,0 +1,8 @@
+Title: Fake Two
+
+Story: Whatever
+
+Scenarios:
+  You keep working on two:
+    - Given something funny on three
+    - Then you laugh

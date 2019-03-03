@@ -1,0 +1,11 @@
+Title: Fake Four
+
+Story: Whatever
+
+Scenarios:
+  Fours fist scenario:
+    - When bla bla bla
+  Fours second scenario:
+    - When bla bla bla
+  Somethig on ones second scenario:
+    - Given ones second scenario

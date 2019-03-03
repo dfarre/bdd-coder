@@ -1,3 +1,4 @@
+import collections
 import itertools
 import json
 import os
@@ -7,20 +8,37 @@ from bdd_coder import BaseRepr
 from bdd_coder import get_step_specs
 from bdd_coder import sentence_to_name
 
+from bdd_coder.coder import MAX_INHERITANCE_LEVEL
+from bdd_coder.coder import text_utils
+
+
+class FeatureSpecsError(Exception):
+    """Inconsistency in provided YAML specifications"""
+
 
 class FeaturesSpec(BaseRepr):
     def __init__(self, specs_path):
-        """Constructs feature class specifications to be employed by the coders"""
+        """
+        Constructs feature class specifications to be employed by the coders.
+        Raises `FeatureSpecsError` for detected inconsistencies
+        """
         self.specs_path = specs_path
         self.aliases = self._get_aliases()
         self.base_methods = set()
-        self.features = self._set_inheritance_specs({
-            ft.pop('class_name'): ft for ft in self._yield_prepared_features()})
+        prepared_specs = list(self._yield_prepared_specs())
+        duplicates_errors = list(filter(None, (
+            self._check_if_duplicate_class_names(prepared_specs),
+            self._check_if_duplicate_scenarios(prepared_specs))))
 
-    def __str__(self):
-        features = json.dumps(self.features, indent=2, ensure_ascii=False)
+        if duplicates_errors:
+            raise FeatureSpecsError('\n'.join(duplicates_errors))
 
-        return f'Aliases {json.dumps(self.aliases, indent=4)}\nFeatures {features}'
+        self.features = self._sets_to_lists(self._sort(self._simplify_bases(
+            self._check_if_cyclical_inheritance(self._set_mro_bases(
+                self._prepare_inheritance_specs({
+                    ft.pop('class_name'): ft for ft in prepared_specs}))))))
+        self.base_methods = sorted(self.base_methods)
+        self.class_tree = self._get_class_tree()
 
     def _get_aliases(self):
         with open(os.path.join(self.specs_path, 'aliases.yml')) as yml_file:
@@ -28,9 +46,16 @@ class FeaturesSpec(BaseRepr):
 
         return dict(itertools.chain(*(
             zip(map(sentence_to_name, names), [sentence_to_name(alias)]*len(names))
-            for alias, names in yml_aliases.items())))
+            for alias, names in yml_aliases.items()))) if yml_aliases else {}
 
-    def _set_inheritance_specs(self, features):
+    def _sets_to_lists(self, features):
+        for feature_spec in features.values():
+            feature_spec['bases'] = sorted(feature_spec['bases'])
+            feature_spec['mro_bases'] = sorted(feature_spec['mro_bases'])
+
+        return features
+
+    def _prepare_inheritance_specs(self, features):
         for class_name, feature_spec in features.items():
             other_scenario_names = self.get_scenarios(features, class_name)
 
@@ -38,9 +63,13 @@ class FeaturesSpec(BaseRepr):
                 if step_spec[0] in other_scenario_names:
                     step_spec.append(False)
                     other_class_name = other_scenario_names[step_spec[0]]
-                    feature_spec['bases'].append(other_class_name)
+                    feature_spec['bases'].add(other_class_name)
+                    feature_spec['mro_bases'].add(other_class_name)
                     features[other_class_name]['inherited'] = True
                     features[other_class_name]['scenarios'][step_spec[0]]['inherited'] = True
+                elif step_spec[0] in feature_spec['scenarios']:
+                    step_spec.append(False)
+                    feature_spec['scenarios'][step_spec[0]]['inherited'] = True
                 elif step_spec[0] in self.aliases.values():
                     step_spec.append(False)
                     self.base_methods.add(step_spec[0])
@@ -49,7 +78,7 @@ class FeaturesSpec(BaseRepr):
 
         return features
 
-    def _yield_prepared_features(self):
+    def _yield_prepared_specs(self):
         features_path = os.path.join(self.specs_path, 'features')
 
         for story_yml_name in os.listdir(features_path):
@@ -58,15 +87,114 @@ class FeaturesSpec(BaseRepr):
 
             feature = {
                 'class_name': self.title_to_class_name(yml_feature.pop('Title')),
-                'bases': [], 'inherited': False, 'scenarios': {sentence_to_name(title): {
-                    'title': title, 'inherited': False,  'doc_lines': steps,
-                    'step_specs': get_step_specs(steps, self.aliases)}
+                'bases': set(), 'mro_bases': set(), 'inherited': False, 'scenarios': {
+                    sentence_to_name(title): {
+                        'title': title, 'inherited': False,  'doc_lines': steps,
+                        'step_specs': get_step_specs(steps, self.aliases)}
                     for title, steps in yml_feature.pop('Scenarios').items()},
                 'doc': yml_feature.pop('Story')}
             feature['extra_class_attrs'] = {
                 sentence_to_name(key): value for key, value in yml_feature.items()}
 
             yield feature
+
+    def _simplify_bases(self, features):
+        for name, spec in filter(lambda it: len(it[1]['bases']) > 1, features.items()):
+            bases = set(spec['bases'])
+
+            for base_name in spec['bases']:
+                bases -= bases & features[base_name]['bases']
+
+            spec['bases'] = bases
+
+        return features
+
+    def _check_if_cyclical_inheritance(self, features):
+        for class_name, feature_spec in features.items():
+            for base_class_name in feature_spec['mro_bases']:
+                if class_name in features[base_class_name]['mro_bases']:
+                    raise FeatureSpecsError(
+                        f'Cyclical inheritance between {class_name} and {base_class_name}')
+
+        return features
+
+    def _sort(self, features):
+        """
+        Sort (or try to sort) the features so that tester classes can be
+        consistently defined.
+
+        `MAX_INHERITANCE_LEVEL` is a limit for debugging, to prevent an
+        infinite loop here, which should be forbidden by previous validation
+        in the constructor
+        """
+        bases = {class_name: {
+            'bases': spec['bases'], 'ordinal': 0 if not spec['bases'] else 1}
+            for class_name, spec in features.items()}
+
+        def get_of_level(ordinal):
+            return {name for name in bases if bases[name]['ordinal'] == ordinal}
+
+        level = 1
+
+        while level < MAX_INHERITANCE_LEVEL:
+            names = get_of_level(level)
+
+            if not names:
+                break
+
+            level += 1
+
+            for cn, bs in filter(lambda it: it[1]['bases'] & names, bases.items()):
+                bs['ordinal'] = level
+        else:
+            raise AssertionError('Cannot sort tester classes to be defined!')
+
+        return collections.OrderedDict(sorted(
+            features.items(), key=lambda it: bases[it[0]]['ordinal']))
+
+    def _set_mro_bases(self, features):
+        for name, spec in features.items():
+            spec['mro_bases'].update(*(features[cn]['bases'] for cn in spec['bases']))
+            spec['mro_bases'].discard(name)
+
+        return features
+
+    def _get_class_tree(self):
+        return list(map(lambda it: (it[0], it[1]['bases']), self.features.items()))
+
+    def __str__(self):
+        tree = json.dumps(self.get_class_tree_text(), indent=4)
+        features = json.dumps(self.features, indent=4, ensure_ascii=False)
+        aliases = json.dumps(self.aliases, indent=4)
+        base_methods = json.dumps(self.base_methods, indent=4)
+
+        return '\n'.join([f'Class tree {tree}', f'Features {features}'
+                          F'Aliases {aliases}', f'Base methods {base_methods}'])
+
+    def get_class_tree_text(self):
+        return list(map(lambda it: text_utils.make_class_head(*it), self.class_tree))
+
+    @staticmethod
+    def _check_if_duplicate_class_names(prepared_specs):
+        repeated = list(map(
+            lambda it: it[0], filter(lambda it: it[1] > 1, collections.Counter(
+                [spec['class_name'] for spec in prepared_specs]).items())))
+
+        if repeated:
+            return f'Duplicate titles are not supported, {repeated}'
+
+    @staticmethod
+    def _check_if_duplicate_scenarios(prepared_specs):
+        scenarios = list(itertools.chain(*(
+            [(nm, spec['class_name']) for nm in spec['scenarios']]
+            for spec in prepared_specs)))
+        repeated = dict(map(
+            lambda it: (it[0], [cn for nm, cn in scenarios if nm == it[0]]),
+            filter(lambda it: it[1] > 1,
+                   collections.Counter([nm for nm, cn in scenarios]).items())))
+
+        if repeated:
+            return f'Repeated scenario names are not supported, {repeated}'
 
     @staticmethod
     def get_scenarios(features, *exclude):

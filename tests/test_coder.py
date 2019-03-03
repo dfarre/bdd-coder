@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import unittest
@@ -6,6 +7,17 @@ import unittest
 from bdd_coder import commands
 
 from bdd_coder.coder import coders
+
+PYTEST_OUTPUT = """
+============================= test session starts ==============================
+platform linux -- Python [L1-4]
+collecting ... collected 2 items
+
+tmp/generated/test_stories.py::ClearBoard::test_odd_boards PASSED        [ 50%]
+tmp/generated/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
+
+=========================== 2 passed in 0.05 seconds ===========================
+""".strip('\n')
 
 
 class BlueprintTester(unittest.TestCase):
@@ -16,15 +28,23 @@ class BlueprintTester(unittest.TestCase):
         cls.coder = coders.PackageCoder(
             specs_path='example/specs/', tests_path='tmp/generated/',
             logs_parent='example/tests/')
-        cls.coder.create_tester_package()
+        cls.output = cls.coder.create_tester_package()
 
-    def test_pass_pytest(self):
-        try:
-            subprocess.check_output(['pytest', '-vv', self.coder.tests_path])
-        except subprocess.CalledProcessError as error:
-            self.fail(error.output.decode())
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree('tmp')
 
-        assert commands.check_pending_scenarios(self.coder.tests_path) == 0
+        super().tearDownClass()
+
+    def test_pytest_output(self):
+        lines = self.output.splitlines()
+        output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:])
+
+        assert re.sub(r'[0-9]{2} seconds', '05 seconds', output) == PYTEST_OUTPUT
+
+    def test_no_pending(self):
+        assert commands.CheckPendingScenarios(test_mode=True)(
+            logs_parent=self.coder.logs_parent) == 0
 
     def test_pass_flake8(self):
         try:
@@ -44,9 +64,3 @@ class BlueprintTester(unittest.TestCase):
                 stdout=subprocess.PIPE).stdout.decode()
 
             assert diff == ''
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree('tmp')
-
-        super().tearDownClass()

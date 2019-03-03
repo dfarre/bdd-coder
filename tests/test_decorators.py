@@ -14,7 +14,7 @@ from example.tests import test_stories
 NEW_GAME = 'example.tests.test_stories.NewGame'
 CLEAR_BOARD = 'example.tests.test_stories.ClearBoard'
 
-FROZEN_TIME = datetime.datetime(2019, 2, 26, 17, 30, 13, 71420)
+FROZEN_TIME = datetime.datetime(2019, 3, 18, 17, 30, 13, 71420)
 FIRST_LOG = f"""
 1 ✓ ClearBoard.even_boards:
   1.1 - {FROZEN_TIME} ✓ i_request_a_new_game_with_an_even_number_of_boards [] |--> ('Even Game',)
@@ -33,7 +33,7 @@ Pending [
     "test_odd_boards"
 ]
 
-""".lstrip('\n')
+""".lstrip('\n')  # noqa
 SECOND_LOG = f"""
 3 ✓ ClearBoard.test_odd_boards:
   3.1 - {FROZEN_TIME} ✓ i_request_a_new_game_with_an_odd_number_of_boards [] |--> ('Odd Game',)
@@ -52,9 +52,15 @@ Pending []
 
 
 class DecoratorTests(unittest.TestCase):
+    logs_dir = f'example/tests/{LOGS_DIR_NAME}'
+
     @classmethod
     @freezegun.freeze_time(FROZEN_TIME)
     def setUpClass(cls):
+        for day in range(11, 11 + base.steps.max_history_length + 1):
+            with open(os.path.join(cls.logs_dir, f'2019-03-{day}.log'), 'w') as log:
+                log.write('This is a fake log')
+
         assert base.steps.scenarios == {
             'test_odd_boards': [], 'even_boards': [], 'test_start_board': []}
 
@@ -64,7 +70,9 @@ class DecoratorTests(unittest.TestCase):
     def tearDownClass(cls):
         super().tearDownClass()
 
-        shutil.rmtree(f'example/tests/{LOGS_DIR_NAME}')
+        assert len(os.listdir(cls.logs_dir)) <= base.steps.max_history_length
+
+        shutil.rmtree(cls.logs_dir)
 
         assert list(map(len, base.steps.scenarios.values())) == [1]*len(base.steps.scenarios)
         assert base.steps.scenarios == {
@@ -107,7 +115,7 @@ class DecoratorTests(unittest.TestCase):
             assert log.read() == log_text
 
     @freezegun.freeze_time(FROZEN_TIME)
-    def test(self):
+    def test_calls(self):
         self.assert_start_board()
         assert base.steps.outputs['game'] == ['Even Game']
         assert base.steps.outputs['board'] == ['Board']

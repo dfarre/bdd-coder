@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from bdd_coder.coder import BASE_TESTER_NAME
 from bdd_coder.coder import BASE_TEST_CASE_NAME
@@ -107,3 +108,7 @@ class PackageCoder:
             test_py.write(self.rstrip(
                 'from bdd_coder.tester import decorators'
                 '\n\nfrom . import base\n' + '\n'.join(self.make_story_class_defs())))
+
+        out = subprocess.run(['pytest', '-vv', self.tests_path], stdout=subprocess.PIPE)
+
+        return out.stdout.decode()

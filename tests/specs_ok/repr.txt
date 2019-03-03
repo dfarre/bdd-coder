@@ -1,0 +1,164 @@
+<FeaturesSpec: Class tree [
+    "class FakeThree",
+    "class FakeTwo(FakeThree)",
+    "class FakeOne(FakeTwo)"
+]
+Features {
+    "FakeThree": {
+        "bases": [],
+        "mro_bases": [],
+        "inherited": true,
+        "scenarios": {
+            "something_funny_on_three": {
+                "title": "Something funny on three",
+                "inherited": true,
+                "doc_lines": [
+                    "When bla bla bla"
+                ],
+                "step_specs": [
+                    [
+                        "bla_bla_bla",
+                        [],
+                        [],
+                        true
+                    ]
+                ]
+            },
+            "something_even_funnier_on_three": {
+                "title": "Something even funnier on three",
+                "inherited": true,
+                "doc_lines": [
+                    "When fours second scenario",
+                    "Then bla bla bla"
+                ],
+                "step_specs": [
+                    [
+                        "fours_second_scenario",
+                        [],
+                        [],
+                        true
+                    ],
+                    [
+                        "bla_bla_bla",
+                        [],
+                        [],
+                        true
+                    ]
+                ]
+            }
+        },
+        "doc": "Whatever",
+        "extra_class_attrs": {}
+    },
+    "FakeTwo": {
+        "bases": [
+            "FakeThree"
+        ],
+        "mro_bases": [
+            "FakeThree"
+        ],
+        "inherited": true,
+        "scenarios": {
+            "you_keep_working_on_two": {
+                "title": "You keep working on two",
+                "inherited": true,
+                "doc_lines": [
+                    "Given something funny on three",
+                    "Then you laugh"
+                ],
+                "step_specs": [
+                    [
+                        "something_funny_on_three",
+                        [],
+                        [],
+                        false
+                    ],
+                    [
+                        "you_laugh",
+                        [],
+                        [],
+                        true
+                    ]
+                ]
+            }
+        },
+        "doc": "Whatever",
+        "extra_class_attrs": {}
+    },
+    "FakeOne": {
+        "bases": [
+            "FakeTwo"
+        ],
+        "mro_bases": [
+            "FakeThree",
+            "FakeTwo"
+        ],
+        "inherited": false,
+        "scenarios": {
+            "ones_first_scenario": {
+                "title": "Ones first scenario",
+                "inherited": true,
+                "doc_lines": [
+                    "Given `something` amazing",
+                    "When something even funnier on three",
+                    "Then you `smile` and say \"cool\""
+                ],
+                "step_specs": [
+                    [
+                        "something_cool",
+                        [],
+                        [
+                            "something"
+                        ],
+                        false
+                    ],
+                    [
+                        "something_even_funnier_on_three",
+                        [],
+                        [],
+                        false
+                    ],
+                    [
+                        "you_smile_and_say_",
+                        [
+                            "cool"
+                        ],
+                        [
+                            "smile"
+                        ],
+                        true
+                    ]
+                ]
+            },
+            "ones_second_scenario": {
+                "title": "Ones second scenario",
+                "inherited": false,
+                "doc_lines": [
+                    "Given ones first scenario",
+                    "Then you keep working on two"
+                ],
+                "step_specs": [
+                    [
+                        "ones_first_scenario",
+                        [],
+                        [],
+                        false
+                    ],
+                    [
+                        "you_keep_working_on_two",
+                        [],
+                        [],
+                        false
+                    ]
+                ]
+            }
+        },
+        "doc": "Once upon a time\nIn a Python test\n",
+        "extra_class_attrs": {}
+    }
+}Aliases {
+    "something_amazing": "something_cool"
+}
+Base methods [
+    "something_cool"
+]>

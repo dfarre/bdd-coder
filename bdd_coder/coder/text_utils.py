@@ -20,11 +20,15 @@ def make_def_content(*doc_lines, body=''):
                             ([body] if body else []) or ['pass']))
 
 
-def make_class(name, *doc_lines, bases=(), decorators=(), body=''):
-    inh = f'({", ".join(map(str.strip, bases))})' if bases else ''
-    head = decorate(f'class {name}{inh}:', decorators)
+def make_class_head(name, bases=(), decorators=()):
+    inheritance = f'({", ".join(map(str.strip, bases))})' if bases else ''
 
-    return f'\n\n{head}\n' + make_def_content(*doc_lines, body=body)
+    return decorate(f'class {name}{inheritance}', decorators)
+
+
+def make_class(name, *doc_lines, bases=(), decorators=(), body=''):
+    return '\n'.join([f'\n\n{make_class_head(name, bases, decorators)}:',
+                      make_def_content(*doc_lines, body=body)])
 
 
 def make_method(name, *doc_lines, args_text='', decorators=(), body=''):

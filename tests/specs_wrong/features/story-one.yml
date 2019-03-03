@@ -1,0 +1,9 @@
+Title: Fake foo
+
+Story: Foo
+
+Scenarios:
+  Scen one:
+    - Given something
+  Scenario in one:
+    - Given scenario in two
