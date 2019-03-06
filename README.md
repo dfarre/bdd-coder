@@ -9,4 +9,6 @@ It consists of:
    independently to make a behavioural test suite, and YAML specifications may
    be extracted from test modules
 
+Test with [tox](https://tox.readthedocs.io/en/latest/) - see tox.ini.
+
 See [mastermind](https://bitbucket.org/coleopter/mastermind) for an application.
