@@ -12,6 +12,20 @@ from bdd_coder.coder import features
 from bdd_coder.tester import tester
 
 
+def validate_bases(features_spec, base_tester):
+    try:
+        for (cls, bases), (name, bases_names) in zip(
+                base_tester.subclasses_down().items(), features_spec.class_bases):
+            assert cls.__name__ == name
+            assert not bases_names - {b.__name__ for b in bases}
+
+            if not features_spec.features[name]['inherited']:
+                assert [b for b in bases if issubclass(b, tester.BaseTestCase)]
+    except AssertionError:
+        return (f'Expected class structure {features_spec.get_class_bases_text()} '
+                'from docs does not match the defined one')
+
+
 class Command(metaclass=abc.ABCMeta):
     arguments = ()
 
@@ -44,7 +58,7 @@ class MakeBlueprint(Command):
     def call(self, **kwargs):
         try:
             coder = coders.PackageCoder(**kwargs)
-        except features.FeatureSpecsError as error:
+        except features.FeaturesSpecError as error:
             sys.stderr.write(str(error) + '\n')
             return 1
 
@@ -91,7 +105,6 @@ class MakeYamlSpecs(Command):
                   importlib.import_module(kwargs['test_module']))
         testers = [obj for name, obj in inspect.getmembers(module)
                    if inspect.isclass(obj) and issubclass(obj, tester.BddTester)]
-
         steps = {cls.steps for cls in testers}.pop()
         tester.YamlDumper.dump_yaml_aliases(steps.aliases, kwargs['specs_path'])
 
@@ -102,11 +115,17 @@ class MakeYamlSpecs(Command):
 
         if kwargs['validate']:
             try:
-                features.FeaturesSpec(kwargs['specs_path'])
-            except features.FeatureSpecsError as error:
+                features_spec = features.FeaturesSpec(kwargs['specs_path'])
+            except features.FeaturesSpecError as error:
                 sys.stderr.write(str(error) + '\n')
                 return 1
             else:
+                error = validate_bases(features_spec, steps.tester)
+
+                if error:
+                    sys.stderr.write(error + '\n')
+                    return 1
+
                 sys.stdout.write('And validated\n')
 
         return 0

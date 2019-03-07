@@ -20,7 +20,7 @@ class FeaturesSpecTests(unittest.TestCase):
         shutil.move(from_path, to_path)
 
         self.assertRaisesRegex(
-            features.FeatureSpecsError,
+            features.FeaturesSpecError,
             r'^Cyclical inheritance between [a-zA-Z]+ and [a-zA-Z]+$',
             lambda: features.FeaturesSpec(self.specs_path))
 
@@ -36,8 +36,8 @@ class FeaturesSpecTests(unittest.TestCase):
         assert self.specs.features['FakeThree']['inherited'] is True
 
     def test_inheritance__no_redundant_bases(self):
-        assert self.specs.class_tree == [
-            ('FakeThree', []), ('FakeTwo', ['FakeThree']), ('FakeOne', ['FakeTwo'])]
+        assert self.specs.class_bases == [
+            ('FakeThree', set()), ('FakeTwo', {'FakeThree'}), ('FakeOne', {'FakeTwo'})]
 
     def test_reference_to_alias_yields_base_method(self):
         assert self.specs.base_methods == ['something_cool']

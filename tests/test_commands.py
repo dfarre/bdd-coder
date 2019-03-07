@@ -52,7 +52,7 @@ class MakeYamlSpecsTests(unittest.TestCase):
             mock.call, (self.files_made_msg, 'And validated\n')))
 
     @mock.patch('sys.stderr.write')
-    def test__validated_wrong(self, stderr_mock):
+    def test__features_spec_error(self, stderr_mock):
         os.makedirs(self.features_dir)
         doc_ok = test_stories.NewGame.test_odd_boards.__doc__
         test_stories.NewGame.test_odd_boards.__doc__ = doc_ok + 'And start board'
@@ -62,6 +62,17 @@ class MakeYamlSpecsTests(unittest.TestCase):
             'Cyclical inheritance between NewGame and ClearBoard\n')
 
         test_stories.NewGame.test_odd_boards.__doc__ = doc_ok
+
+    @mock.patch('example.tests.test_stories.NewGame')
+    @mock.patch('sys.stderr.write')
+    def test__class_bases_error(self, stderr_mock, NewGameMock):
+        NewGameMock.__bases__ = (tuple,)
+        os.makedirs(self.features_dir)
+
+        assert self.call(overwrite=True, validate=True) == 1
+        stderr_mock.assert_called_once_with(
+            "Expected class structure ['class ClearBoard'] from docs does "
+            'not match the defined one\n')
 
 
 class MakeBlueprintTests(unittest.TestCase):

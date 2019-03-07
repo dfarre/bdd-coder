@@ -4,7 +4,7 @@ import json
 import os
 import yaml
 
-from bdd_coder import BaseRepr
+from bdd_coder import Repr
 from bdd_coder import get_step_specs
 from bdd_coder import sentence_to_name
 
@@ -12,15 +12,15 @@ from bdd_coder.coder import MAX_INHERITANCE_LEVEL
 from bdd_coder.coder import text_utils
 
 
-class FeatureSpecsError(Exception):
+class FeaturesSpecError(Exception):
     """Inconsistency in provided YAML specifications"""
 
 
-class FeaturesSpec(BaseRepr):
+class FeaturesSpec(Repr):
     def __init__(self, specs_path):
         """
         Constructs feature class specifications to be employed by the coders.
-        Raises `FeatureSpecsError` for detected inconsistencies
+        Raises `FeaturesSpecError` for detected inconsistencies
         """
         self.specs_path = specs_path
         self.aliases = self._get_aliases()
@@ -31,14 +31,14 @@ class FeaturesSpec(BaseRepr):
             self._check_if_duplicate_scenarios(prepared_specs))))
 
         if duplicates_errors:
-            raise FeatureSpecsError('\n'.join(duplicates_errors))
+            raise FeaturesSpecError('\n'.join(duplicates_errors))
 
         self.features = self._sets_to_lists(self._sort(self._simplify_bases(
             self._check_if_cyclical_inheritance(self._set_mro_bases(
                 self._prepare_inheritance_specs({
                     ft.pop('class_name'): ft for ft in prepared_specs}))))))
         self.base_methods = sorted(self.base_methods)
-        self.class_tree = self._get_class_tree()
+        self.class_bases = self._get_class_bases()
 
     def _get_aliases(self):
         with open(os.path.join(self.specs_path, 'aliases.yml')) as yml_file:
@@ -113,7 +113,7 @@ class FeaturesSpec(BaseRepr):
         for class_name, feature_spec in features.items():
             for base_class_name in feature_spec['mro_bases']:
                 if class_name in features[base_class_name]['mro_bases']:
-                    raise FeatureSpecsError(
+                    raise FeaturesSpecError(
                         f'Cyclical inheritance between {class_name} and {base_class_name}')
 
         return features
@@ -159,20 +159,20 @@ class FeaturesSpec(BaseRepr):
 
         return features
 
-    def _get_class_tree(self):
-        return list(map(lambda it: (it[0], it[1]['bases']), self.features.items()))
+    def _get_class_bases(self):
+        return list(map(lambda it: (it[0], set(it[1]['bases'])), self.features.items()))
 
     def __str__(self):
-        tree = json.dumps(self.get_class_tree_text(), indent=4)
+        bases = json.dumps(self.get_class_bases_text(), indent=4)
         features = json.dumps(self.features, indent=4, ensure_ascii=False)
         aliases = json.dumps(self.aliases, indent=4)
         base_methods = json.dumps(self.base_methods, indent=4)
 
-        return '\n'.join([f'Class tree {tree}', f'Features {features}'
+        return '\n'.join([f'Class bases {bases}', f'Features {features}'
                           F'Aliases {aliases}', f'Base methods {base_methods}'])
 
-    def get_class_tree_text(self):
-        return list(map(lambda it: text_utils.make_class_head(*it), self.class_tree))
+    def get_class_bases_text(self):
+        return list(map(lambda it: text_utils.make_class_head(*it), self.class_bases))
 
     @staticmethod
     def _check_if_duplicate_class_names(prepared_specs):

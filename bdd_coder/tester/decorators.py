@@ -1,4 +1,4 @@
-"""To be employed with `BddTestCase` and `BaseTestCase`"""
+"""To be employed with `BddTester` and `BaseTestCase`"""
 
 import collections
 import datetime
@@ -7,25 +7,24 @@ import json
 import os
 
 from bdd_coder import get_step_specs
-from bdd_coder import BaseRepr
+from bdd_coder import Repr
 from bdd_coder import LOGS_DIR_NAME
 
 
-class Steps(BaseRepr):
+class Steps(Repr):
     def __init__(self, aliases, logs_parent, max_history_length=5):
         self.logs_dir = os.path.join(logs_parent, LOGS_DIR_NAME)
         os.makedirs(self.logs_dir, exist_ok=True)
         self.max_history_length = max_history_length
-        note = f'{datetime.datetime.utcnow()} Steps prepared'
-        self.write_to_history('\n'.join(['_'*len(note), note]))
         self.reset_outputs()
         self.run_number, self.scenarios = 0, {}
         self.aliases = aliases
 
-    def __call__(self, BddTestCase):
-        BddTestCase.steps = self
+    def __call__(self, BddTester):
+        BddTester.steps = self
+        self.tester = BddTester  # TODO Many testers?
 
-        return BddTestCase
+        return BddTester
 
     def __str__(self):
         return (f'Scenario runs {json.dumps(self.get_runs(), indent=4)}\n'

@@ -1,9 +1,34 @@
 """Common utils and constants"""
 
+import collections
+import itertools
 import re
 
 LOGS_DIR_NAME = '.bdd-run-logs'
 SUCCESS_MSG = '▌ All scenarios ran successfully! ✅'
+
+
+class Repr:
+    def __str__(self):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__}: {self}>'
+
+
+class SubclassesMixin:
+    @classmethod
+    def subclasses_down(cls):
+        clss, subclasses = [cls], []
+
+        def chain_subclasses(classes):
+            return list(itertools.chain(*map(lambda k: k.__subclasses__(), classes)))
+
+        while clss:
+            clss = chain_subclasses(clss)
+            subclasses.extend(clss)
+
+        return collections.OrderedDict([(sc, list(sc.__bases__)) for sc in subclasses])
 
 
 def get_step_sentence(step_text):
@@ -33,11 +58,3 @@ def get_step_specs(lines, aliases):
 
 def to_sentence(name):
     return name.replace('__', ' "x" ').replace('_', ' ').capitalize()
-
-
-class BaseRepr:
-    def __str__(self):
-        raise NotImplementedError
-
-    def __repr__(self):
-        return f'<{self.__class__.__name__}: {self}>'

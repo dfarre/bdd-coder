@@ -6,6 +6,7 @@ import re
 import unittest
 import yaml
 
+from bdd_coder import SubclassesMixin
 from bdd_coder import strip_lines
 from bdd_coder import to_sentence
 from bdd_coder import SUCCESS_MSG
@@ -37,7 +38,7 @@ class YamlDumper:
         cls.dump_yaml(dict(alias_lists), os.path.join(parent_dir, 'aliases.yml'))
 
 
-class BddTester(YamlDumper):
+class BddTester(YamlDumper, SubclassesMixin):
     """
     To be decorated with `Steps`, and employed with methods decorated with
     `scenario` - mix with a subclass of `BaseTestCase` to run test methods

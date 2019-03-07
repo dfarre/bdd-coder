@@ -1,3 +1,4 @@
+import importlib
 import os
 import re
 import shutil
@@ -64,3 +65,8 @@ class BlueprintTester(unittest.TestCase):
                 stdout=subprocess.PIPE).stdout.decode()
 
             assert diff == ''
+
+    def test_class_tree(self):
+        assert not commands.validate_bases(
+            self.coder.features_spec,
+            importlib.import_module('tmp.generated.base').BddTester)

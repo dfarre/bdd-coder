@@ -1,4 +1,4 @@
-<FeaturesSpec: Class tree [
+<FeaturesSpec: Class bases [
     "class FakeThree",
     "class FakeTwo(FakeThree)",
     "class FakeOne(FakeTwo)"
