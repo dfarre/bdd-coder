@@ -1,7 +1,5 @@
 import abc
 import argparse
-import importlib
-import inspect
 import os
 import sys
 
@@ -9,21 +7,6 @@ from bdd_coder import LOGS_DIR_NAME
 from bdd_coder import SUCCESS_MSG
 from bdd_coder.coder import coders
 from bdd_coder.coder import features
-from bdd_coder.tester import tester
-
-
-def validate_bases(features_spec, base_tester):
-    try:
-        for (cls, bases), (name, bases_names) in zip(
-                base_tester.subclasses_down().items(), features_spec.class_bases):
-            assert cls.__name__ == name
-            assert not bases_names - {b.__name__ for b in bases}
-
-            if not features_spec.features[name]['inherited']:
-                assert [b for b in bases if issubclass(b, tester.BaseTestCase)]
-    except AssertionError:
-        return (f'Expected class structure {features_spec.get_class_bases_text()} '
-                'from docs does not match the defined one')
 
 
 class Command(metaclass=abc.ABCMeta):
@@ -98,19 +81,8 @@ class MakeYamlSpecs(Command):
                  (('--validate', '-v'), dict(action='store_true')),)
 
     def call(self, overwrite=False, **kwargs):
-        os.makedirs(kwargs['specs_path'], exist_ok=overwrite)
-        features_path = os.path.join(kwargs['specs_path'], 'features')
-        os.makedirs(features_path, exist_ok=overwrite)
-        module = (kwargs['test_module'] if self.test_mode else
-                  importlib.import_module(kwargs['test_module']))
-        testers = [obj for name, obj in inspect.getmembers(module)
-                   if inspect.isclass(obj) and issubclass(obj, tester.BddTester)]
-        steps = {cls.steps for cls in testers}.pop()
-        tester.YamlDumper.dump_yaml_aliases(steps.aliases, kwargs['specs_path'])
-
-        for cls in testers:
-            cls.dump_yaml_feature(features_path)
-
+        base_tester = coders.get_base_tester(kwargs['test_module'])
+        base_tester.dump_yaml_specs(kwargs['specs_path'], overwrite)
         sys.stdout.write(f"Specification files generated in {kwargs['specs_path']}\n")
 
         if kwargs['validate']:
@@ -120,10 +92,12 @@ class MakeYamlSpecs(Command):
                 sys.stderr.write(str(error) + '\n')
                 return 1
             else:
-                error = validate_bases(features_spec, steps.tester)
+                error = base_tester.validate_bases(features_spec)
 
                 if error:
-                    sys.stderr.write(error + '\n')
+                    sys.stderr.write(
+                        f'Expected class structure {features_spec.get_class_bases_text()} '
+                        f'from docs does not match the defined one. {error}\n')
                     return 1
 
                 sys.stdout.write('And validated\n')

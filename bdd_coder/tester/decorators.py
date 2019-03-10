@@ -22,7 +22,7 @@ class Steps(Repr):
 
     def __call__(self, BddTester):
         BddTester.steps = self
-        self.tester = BddTester  # TODO Many testers?
+        self.tester = BddTester  # TODO Many testers? One is supported
 
         return BddTester
 

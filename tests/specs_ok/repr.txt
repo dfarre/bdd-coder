@@ -156,7 +156,8 @@ Features {
         "doc": "Once upon a time\nIn a Python test\n",
         "extra_class_attrs": {}
     }
-}Aliases {
+}
+Aliases {
     "something_amazing": "something_cool"
 }
 Base methods [

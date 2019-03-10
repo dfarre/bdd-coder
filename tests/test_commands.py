@@ -1,3 +1,4 @@
+import collections
 import os
 import shutil
 import unittest
@@ -8,6 +9,41 @@ from bdd_coder import LOGS_DIR_NAME, SUCCESS_MSG
 
 from example.tests import base
 from example.tests import test_stories
+
+
+class ValidateBasesTests(unittest.TestCase):
+    specs = collections.namedtuple('FakeSpecs', ('class_bases', 'features'))
+
+    def assert_error(self, value):
+        assert base.BddTester.validate_bases(self.specs) == value
+
+    def test_wrong_name(self):
+        self.specs.class_bases = [('FooStory', set())]
+
+        self.assert_error('NewGame != FooStory')
+
+    def init_specs(self):
+        self.specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]
+        self.specs.features = collections.OrderedDict([
+            ('NewGame', {'inherited': True}), ('ClearBoard', {'inherited': False})])
+
+    def test_wrong_bases(self):
+        self.init_specs()
+
+        self.assert_error("Bases {'NewGame'} defined in ClearBoard do not "
+                          f'match the specified ones set()')
+
+    def test_missing_test_case(self):
+        self.init_specs()
+        self.specs.features['NewGame']['inherited'] = False
+
+        self.assert_error('Expected one BaseTestCase subclass in NewGame')
+
+    def test_unexpected_test_case(self):
+        self.init_specs()
+        self.specs.features['ClearBoard']['inherited'] = True
+
+        self.assert_error('Unexpected BaseTestCase subclass in ClearBoard')
 
 
 class MakeYamlSpecsTests(unittest.TestCase):
@@ -63,16 +99,15 @@ class MakeYamlSpecsTests(unittest.TestCase):
 
         test_stories.NewGame.test_odd_boards.__doc__ = doc_ok
 
-    @mock.patch('example.tests.test_stories.NewGame')
+    @mock.patch('bdd_coder.tester.tester.BddTester.validate_bases', return_value='Error!')
     @mock.patch('sys.stderr.write')
-    def test__class_bases_error(self, stderr_mock, NewGameMock):
-        NewGameMock.__bases__ = (tuple,)
+    def test__class_bases_error(self, stderr_mock, validate_bases_mock):
         os.makedirs(self.features_dir)
 
         assert self.call(overwrite=True, validate=True) == 1
         stderr_mock.assert_called_once_with(
-            "Expected class structure ['class ClearBoard'] from docs does "
-            'not match the defined one\n')
+            "Expected class structure ['class NewGame', 'class ClearBoard(NewGame)'] "
+            'from docs does not match the defined one. Error!\n')
 
 
 class MakeBlueprintTests(unittest.TestCase):

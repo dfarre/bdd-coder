@@ -1,4 +1,8 @@
+import collections
+import importlib
+import inspect
 import os
+import re
 import subprocess
 
 from bdd_coder.coder import BASE_TESTER_NAME
@@ -6,13 +10,7 @@ from bdd_coder.coder import BASE_TEST_CASE_NAME
 from bdd_coder.coder import features
 from bdd_coder.coder import text_utils
 
-
-def make_method_body(inputs, output_names):
-    outputs_help = [
-        'return ' + ''.join(f"'{output}', " for output in output_names)
-    ] if output_names else []
-
-    return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
+from bdd_coder.tester import tester
 
 
 class FeatureClassCoder:
@@ -31,7 +29,7 @@ class FeatureClassCoder:
             name: (inp, out) for name, inp, out, make_it in step_specs if make_it}
 
         return [text_utils.make_method(
-                    name, body=make_method_body(inputs, output_names),
+                    name, body=self.make_method_body(inputs, output_names),
                     args_text=', *args')
                 for name, (inputs, output_names) in steps_to_code.items()]
 
@@ -48,6 +46,14 @@ class FeatureClassCoder:
 
         return text_utils.make_class(
             self.class_name, self.spec['doc'], body=self.make_class_body(), bases=bases)
+
+    @staticmethod
+    def make_method_body(inputs, output_names):
+        outputs_help = [
+            'return ' + ''.join(f"'{output}', " for output in output_names)
+        ] if output_names else []
+
+        return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
 
 
 class PackageCoder:
@@ -85,6 +91,11 @@ class PackageCoder:
                 'tester.BaseTestCase', self.base_class_name),
                 body=self.make_base_method_defs())])
 
+    def pytest(self):
+        out = subprocess.run(['pytest', '-vv', self.tests_path], stdout=subprocess.PIPE)
+
+        return out.stdout.decode()
+
     def create_tester_package(self):
         os.makedirs(self.tests_path)
 
@@ -109,6 +120,57 @@ class PackageCoder:
                 'from bdd_coder.tester import decorators'
                 '\n\nfrom . import base\n' + '\n'.join(self.make_story_class_defs())))
 
-        out = subprocess.run(['pytest', '-vv', self.tests_path], stdout=subprocess.PIPE)
+        return self.pytest()
 
-        return out.stdout.decode()
+
+class PackagePatcher(PackageCoder):
+    def __init__(self, specs_path='behaviour/specs/',
+                 test_module='behaviour.tests.test_stories'):
+        self.tests_path = os.path.dirname(test_module.replace('.', '/'))
+        self.test_file_name = test_module.rsplit('.', 1)[-1] + '.py'
+
+        base_tester = get_base_tester(test_module)
+
+        self.old_specs = base_tester.get_features_spec()
+        self.features_spec = features.FeaturesSpec(specs_path)
+
+        old_scenarios = self.old_specs.get_scenarios(self.old_specs.features)
+        new_scenarios = self.features_spec.get_scenarios(self.features_spec.features)
+
+        self.features_spec.features = collections.OrderedDict([
+            (cn, spec) for cn, spec in self.features_spec.features.items()
+            if cn in set(new_scenarios.values()) - set(old_scenarios.values())])
+        self.added_scenarios = {name for name in set(new_scenarios) - set(old_scenarios)
+                                if new_scenarios[name] not in self.features_spec.features}
+        self.removed_scenarios = set(old_scenarios) - set(new_scenarios)
+
+    def patch_module(self, name, method):
+        with open(os.path.join(self.tests_path, name)) as py_file:
+            source = py_file.read()
+
+        with open(os.path.join(self.tests_path, name), 'w') as test_py:
+            test_py.write(method(source))
+
+    def remove_scenarios(self, source):
+        for name in self.removed_scenarios:
+            source = re.sub(fr'\n\n    @\S+\n    def (test_)?{name}\S+:\n'
+                            r'"""(.+?)"""\n\n', '', source, flags=re.DOTALL)
+        return source
+
+    def add_new_stories(self):
+        with open(os.path.join(self.tests_path, self.test_file_name), 'a') as test_py:
+            test_py.write(self.rstrip('\n'.join(self.make_story_class_defs())))
+
+    def patch(self):
+        self.patch_module(self.test_file_name, self.remove_scenarios)
+        self.add_new_stories()
+
+        return self.pytest()
+
+
+def get_base_tester(test_module):
+    module = (importlib.import_module(test_module)
+              if isinstance(test_module, str) else test_module)
+
+    return {obj for name, obj in inspect.getmembers(module.base)
+            if inspect.isclass(obj) and tester.BddTester in obj.__bases__}.pop()

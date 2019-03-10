@@ -3,6 +3,7 @@ import datetime
 import inspect
 import os
 import re
+import shutil
 import unittest
 import yaml
 
@@ -10,6 +11,8 @@ from bdd_coder import SubclassesMixin
 from bdd_coder import strip_lines
 from bdd_coder import to_sentence
 from bdd_coder import SUCCESS_MSG
+
+from bdd_coder.coder import features
 
 
 class literal(str):
@@ -41,8 +44,56 @@ class YamlDumper:
 class BddTester(YamlDumper, SubclassesMixin):
     """
     To be decorated with `Steps`, and employed with methods decorated with
-    `scenario` - mix with a subclass of `BaseTestCase` to run test methods
+    `scenario` - mixes with a subclass of `BaseTestCase` to run test methods
     """
+
+    @classmethod
+    def get_features_spec(cls):
+        parent_dir = '.tmp-specs'
+        cls.dump_yaml_specs(parent_dir)
+        specs = features.FeaturesSpec(parent_dir)
+        shutil.rmtree(parent_dir)
+
+        return specs
+
+    @classmethod
+    def validate_bases(cls, features_spec):
+        try:
+            for (klass, bases), (name, bases_names) in zip(
+                    cls.subclasses_down().items(), features_spec.class_bases):
+                assert klass.__name__ == name, f'{klass.__name__} != {name}'
+
+                own_bases = set(bases)
+                own_bases.discard(cls)
+                base_test_cases = [b for b in own_bases if issubclass(b, BaseTestCase)]
+
+                if features_spec.features[name]['inherited']:
+                    assert len(base_test_cases) == 0, 'Unexpected ' \
+                        f'{BaseTestCase.__name__} subclass in {klass.__name__}'
+                else:
+                    assert len(base_test_cases) == 1, 'Expected one ' \
+                        f'{BaseTestCase.__name__} subclass in {klass.__name__}'
+
+                    own_bases.remove(base_test_cases[0])
+
+                own_bases_names = {b.__name__ for b in own_bases}
+
+                assert own_bases_names == bases_names, \
+                    f'Bases {own_bases_names} defined in {klass.__name__} do not ' \
+                    f'match the specified ones {bases_names}'
+        except AssertionError as error:
+            return str(error)
+
+    @classmethod
+    def dump_yaml_specs(cls, parent_dir, overwrite=False):
+        os.makedirs(parent_dir, exist_ok=overwrite)
+        features_path = os.path.join(parent_dir, 'features')
+        os.makedirs(features_path, exist_ok=overwrite)
+
+        cls.dump_yaml_aliases(cls.steps.aliases, parent_dir)
+
+        for tester_subclass in cls.subclasses_down():
+            tester_subclass.dump_yaml_feature(features_path)
 
     @classmethod
     def dump_yaml_feature(cls, parent_dir):

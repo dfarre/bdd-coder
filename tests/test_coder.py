@@ -25,7 +25,6 @@ class BlueprintTester(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
         cls.coder = coders.PackageCoder(
             specs_path='example/specs/', tests_path='tmp/generated/',
             logs_parent='example/tests/')
@@ -33,10 +32,11 @@ class BlueprintTester(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super().tearDownClass()
         shutil.rmtree('tmp')
 
-        super().tearDownClass()
 
+class CoderTester(BlueprintTester):
     def test_pytest_output(self):
         lines = self.output.splitlines()
         output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:])
@@ -67,6 +67,17 @@ class BlueprintTester(unittest.TestCase):
             assert diff == ''
 
     def test_class_tree(self):
-        assert not commands.validate_bases(
-            self.coder.features_spec,
-            importlib.import_module('tmp.generated.base').BddTester)
+        assert not importlib.import_module('tmp.generated.base').BddTester.validate_bases(
+            self.coder.features_spec)
+
+
+class PatcherTester(BlueprintTester):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.patcher = coders.PackagePatcher(
+            specs_path='tests/specs_ok', test_module='tmp.generated.test_stories')
+        cls.patcher_output = cls.patcher.patch()
+
+    def test(self):
+        pass

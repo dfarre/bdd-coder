@@ -168,8 +168,8 @@ class FeaturesSpec(Repr):
         aliases = json.dumps(self.aliases, indent=4)
         base_methods = json.dumps(self.base_methods, indent=4)
 
-        return '\n'.join([f'Class bases {bases}', f'Features {features}'
-                          F'Aliases {aliases}', f'Base methods {base_methods}'])
+        return '\n'.join([f'Class bases {bases}', f'Features {features}',
+                          f'Aliases {aliases}', f'Base methods {base_methods}'])
 
     def get_class_bases_text(self):
         return list(map(lambda it: text_utils.make_class_head(*it), self.class_bases))
