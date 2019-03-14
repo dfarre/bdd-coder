@@ -146,7 +146,8 @@ class BddTester(YamlDumper, SubclassesMixin):
             if symbol == '✓':
                 yield '✓', msg
             else:
-                return output, msg
+                yield output, msg
+                return
 
 
 class BaseTestCase(unittest.TestCase):
