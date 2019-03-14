@@ -66,7 +66,8 @@ class Scenario:
 
         @functools.wraps(method)
         def wrapper(test_case, *args, **kwargs):
-            step_logs = test_case.run_scenario(method.__doc__)
-            test_case.log_scenario_run(method.__name__, step_logs)
+            step_logs = list(test_case.run_steps(method.__doc__))
+            symbol = '✗' if isinstance(step_logs[-1][0], Exception) else '✓'
+            test_case.log_scenario_run(method.__name__, step_logs, symbol)
 
         return wrapper

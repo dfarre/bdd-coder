@@ -123,24 +123,30 @@ class BddTester(YamlDumper, SubclassesMixin):
                            inspect.getmembers(cls)))
 
     @classmethod
-    def log_scenario_run(cls, name, step_logs):
+    def log_scenario_run(cls, name, step_logs, symbol):
         cls.steps.run_number += 1
         cls.steps.scenarios[name].append(cls.steps.run_number)
-        cls.steps.write_to_history(f'{cls.steps.run_number} ✓ {cls.__name__}.{name}:'
+        cls.steps.write_to_history(f'{cls.steps.run_number} {symbol} {cls.__name__}.{name}:'
                                    + ''.join([f'\n  {cls.steps.run_number}.{n+1} - {text}'
-                                              for n, text in enumerate(step_logs)]))
+                                              for n, (o, text) in enumerate(step_logs)]))
 
-    def run_scenario(self, method_doc):
-        def run_step(method_name, inputs, output_names):
-            output = getattr(self, method_name)(*inputs) or ()
+    def run_steps(self, method_doc):
+        for method_name, inputs, output_names in self.steps.get_step_specs(method_doc):
+            try:
+                symbol, output = '✓', getattr(self, method_name)(*inputs) or ()
+            except Exception as error:
+                symbol, output = '✗', error
+            else:
+                for name, value in zip(output_names, output):
+                    self.steps.outputs[name].append(value)
 
-            for name, value in zip(output_names, output):
-                self.steps.outputs[name].append(value)
+            msg = (f'{datetime.datetime.utcnow()} {symbol} '
+                   f'{method_name} {inputs} |--> {output}')
 
-            return (f'{datetime.datetime.utcnow()} ✓ '
-                    f'{method_name} {inputs} |--> {output}')
-
-        return [run_step(*args) for args in self.steps.get_step_specs(method_doc)]
+            if symbol == '✓':
+                yield '✓', msg
+            else:
+                return output, msg
 
 
 class BaseTestCase(unittest.TestCase):

@@ -18,10 +18,8 @@ class FeatureClassCoder:
         self.class_name, self.spec = class_name, spec
 
     def make_scenario_method_defs(self):
-        return [text_utils.make_method(
-            ('' if scenario_spec['inherited'] else 'test_') + name,
-            *scenario_spec['doc_lines'], decorators=('decorators.Scenario(base.steps)',))
-            for name, scenario_spec in self.spec['scenarios'].items()]
+        return [self.make_scenario_method_def(name, scenario_spec)
+                for name, scenario_spec in self.spec['scenarios'].items()]
 
     def make_step_method_defs(self):
         step_specs = features.FeaturesSpec.get_all_step_specs(self.spec)
@@ -41,11 +39,19 @@ class FeatureClassCoder:
         return [f'{name} = {value}' for name, value in self.spec['extra_class_attrs'].items()]
 
     def make(self):
-        bases = (self.spec['bases'] or [f'base.{BASE_TESTER_NAME}']) + (
+        return text_utils.make_class(
+            self.class_name, self.spec['doc'], body=self.make_class_body(),
+            bases=self.get_bases())
+
+    def get_bases(self):
+        return (self.spec['bases'] or [f'base.{BASE_TESTER_NAME}']) + (
             [] if self.spec['inherited'] else [f'base.{BASE_TEST_CASE_NAME}'])
 
-        return text_utils.make_class(
-            self.class_name, self.spec['doc'], body=self.make_class_body(), bases=bases)
+    @staticmethod
+    def make_scenario_method_def(name, scenario_spec):
+        return text_utils.make_method(
+            ('' if scenario_spec['inherited'] else 'test_') + name,
+            *scenario_spec['doc_lines'], decorators=('decorators.Scenario(base.steps)',))
 
     @staticmethod
     def make_method_body(inputs, output_names):
@@ -57,7 +63,7 @@ class FeatureClassCoder:
 
 
 class PackageCoder:
-    def __init__(self, base_class='unittest.TestCase', specs_path='behaviour/specs/',
+    def __init__(self, base_class='unittest.TestCase', specs_path='behaviour/specs',
                  tests_path='', test_module_name='stories', logs_parent=''):
         self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
         self.features_spec = features.FeaturesSpec(specs_path)
@@ -125,45 +131,83 @@ class PackageCoder:
 
 class PackagePatcher(PackageCoder):
     def __init__(self, specs_path='behaviour/specs/',
-                 test_module='behaviour.tests.test_stories'):
+                 test_module='behaviour.tests.test_stories', class_delimiter='\n\n\nclass ',
+                 scenario_delimiter='@decorators.Scenario(base.steps)\n'):
+        self.class_delimiter = class_delimiter
+        self.scenario_delimiter = scenario_delimiter
         self.tests_path = os.path.dirname(test_module.replace('.', '/'))
         self.test_file_name = test_module.rsplit('.', 1)[-1] + '.py'
 
         base_tester = get_base_tester(test_module)
 
         self.old_specs = base_tester.get_features_spec()
-        self.features_spec = features.FeaturesSpec(specs_path)
+        self.new_specs = self.features_spec = features.FeaturesSpec(specs_path)
 
         old_scenarios = self.old_specs.get_scenarios(self.old_specs.features)
-        new_scenarios = self.features_spec.get_scenarios(self.features_spec.features)
+        new_scenarios = self.new_specs.get_scenarios(self.new_specs.features)
 
-        self.features_spec.features = collections.OrderedDict([
-            (cn, spec) for cn, spec in self.features_spec.features.items()
+        new_features = collections.OrderedDict([
+            (cn, spec) for cn, spec in self.new_specs.features.items()
             if cn in set(new_scenarios.values()) - set(old_scenarios.values())])
-        self.added_scenarios = {name for name in set(new_scenarios) - set(old_scenarios)
-                                if new_scenarios[name] not in self.features_spec.features}
-        self.removed_scenarios = set(old_scenarios) - set(new_scenarios)
+        self.added_scenarios = {name: (
+            new_scenarios[name], self.new_specs.features[new_scenarios[name]][
+                'scenarios'][name]) for name in set(new_scenarios) - set(old_scenarios)
+            if new_scenarios[name] not in new_features}
+        self.features_spec.features = new_features
+        self.removed_scenarios = {
+            n: old_scenarios[n] for n in set(old_scenarios) - set(new_scenarios)}
 
     def patch_module(self, name, method):
         with open(os.path.join(self.tests_path, name)) as py_file:
-            source = py_file.read()
+            classes = self.split(py_file.read())
+
+        method(classes)
 
         with open(os.path.join(self.tests_path, name), 'w') as test_py:
-            test_py.write(method(source))
+            test_py.write(self.join(classes))
 
-    def remove_scenarios(self, source):
-        for name in self.removed_scenarios:
-            source = re.sub(fr'\n\n    @\S+\n    def (test_)?{name}\S+:\n'
-                            r'"""(.+?)"""\n\n', '', source, flags=re.DOTALL)
-        return source
+    def split(self, source):
+        return collections.OrderedDict([(
+            re.sub(r'\(.*\)', '', class_text.split(':', 1)[0]), collections.OrderedDict([
+                (re.sub(r'^    def (test_)?', '', re.sub(
+                    r'\(.*\)', '', text.split(':', 1)[0])), text)
+                for text in class_text.split(self.scenario_delimiter)]))
+            for class_text in source.split(self.class_delimiter)])
+
+    def join(self, classes):
+        return self.class_delimiter.join([self.scenario_delimiter.join([
+            t for n, t in texts.items()]) for n, texts in classes.items()])
+
+    def remove_scenarios(self, classes):
+        for name, class_name in self.removed_scenarios.items():
+            del classes[class_name][name]
+
+    def add_scenarios(self, classes):
+        for name, (class_name, spec) in self.added_scenarios.items():
+            code = FeatureClassCoder.make_scenario_method_def(name, spec)
+            classes[class_name].insert(code[len(self.scenario_delimiter):], 1)
 
     def add_new_stories(self):
         with open(os.path.join(self.tests_path, self.test_file_name), 'a') as test_py:
             test_py.write(self.rstrip('\n'.join(self.make_story_class_defs())))
 
+    def sort_hierarchy(self, classes):
+        classes = collections.OrderedDict(list(self.yield_class_text(classes)))
+
+    def yield_class_text(self, classes):
+        for name, bases in self.new_specs.class_bases:
+            bases_code = ', '.join(FeatureClassCoder(
+                name, self.new_specs.features[name]).get_bases())
+            classes[name][0] = re.sub(r'\(([^)])\):', bases_code, classes[name][0], 1)
+            # add/remove _test
+
+            yield name, classes[name]
+
     def patch(self):
         self.patch_module(self.test_file_name, self.remove_scenarios)
+        self.patch_module(self.test_file_name, self.add_scenarios)
         self.add_new_stories()
+        # self.patch_module(self.test_file_name, self.sort_hierarchy)
 
         return self.pytest()
 
