@@ -70,4 +70,7 @@ class Scenario:
             symbol = '✗' if isinstance(step_logs[-1][0], Exception) else '✓'
             test_case.log_scenario_run(method.__name__, step_logs, symbol)
 
+            if symbol == '✗':
+                test_case.fail(str(step_logs[-1][0]))
+
         return wrapper
