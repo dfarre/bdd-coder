@@ -166,6 +166,3 @@ class BaseTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.steps.reset_outputs()
-
-    def fail(self, message):
-        super().fail(message)
