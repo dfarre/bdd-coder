@@ -162,7 +162,7 @@ class BaseTestCase(unittest.TestCase):
             failed = f' ▌ {cls.steps.failed} {FAIL}' if cls.steps.failed else ''
             end_note = '\n\n' + COMPLETION_MSG + passed + failed
 
-        cls.steps.write_to_history(f'{cls.__name__} - {cls.steps}{end_note}')
+        cls.steps.write_to_history(f'{cls.steps}{end_note}')
 
     def tearDown(self):
         self.steps.reset_outputs()
