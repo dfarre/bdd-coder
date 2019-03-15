@@ -4,7 +4,7 @@ import os
 import sys
 
 from bdd_coder import LOGS_DIR_NAME
-from bdd_coder import SUCCESS_MSG
+from bdd_coder import OK_BIG, FAIL_BIG
 from bdd_coder.coder import coders
 from bdd_coder.coder import features
 
@@ -59,16 +59,18 @@ class CheckPendingScenarios(Command):
             log_names = sorted(os.listdir(logs_dir))
 
             if log_names:
-                with open(os.path.join(logs_dir, log_names[-1]), 'rb') as log_bytes:
-                    log_bytes.seek(-5, 2)
+                with open(os.path.join(logs_dir, log_names[-1])) as log:
+                    lines = reversed(list(log))
+                    next(lines)
+                    message = next(lines).strip('\n')
 
-                    if log_bytes.read().decode()[0] == '✅':
-                        sys.stdout.write(SUCCESS_MSG + '\n')
-                        return 0
-                    else:
-                        sys.stderr.write(
-                            f'✘ Some scenarios did not run! Check the logs in {logs_dir}\n')
-                        return 1
+                if message.endswith(OK_BIG) or message.endswith(FAIL_BIG):
+                    sys.stdout.write(message + '\n')
+                    return 0
+                else:
+                    sys.stderr.write(f'{FAIL_BIG} Some scenarios did not run! '
+                                     f'Check the logs in {logs_dir}\n')
+                    return 1
 
         sys.stdout.write('No logs found\n')
         return 2

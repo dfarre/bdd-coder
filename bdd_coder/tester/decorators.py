@@ -8,7 +8,7 @@ import os
 
 from bdd_coder import get_step_specs
 from bdd_coder import Repr
-from bdd_coder import LOGS_DIR_NAME
+from bdd_coder import LOGS_DIR_NAME, FAIL_BIG, OK_BIG
 
 
 class Steps(Repr):
@@ -17,7 +17,8 @@ class Steps(Repr):
         os.makedirs(self.logs_dir, exist_ok=True)
         self.max_history_length = max_history_length
         self.reset_outputs()
-        self.run_number, self.scenarios = 0, {}
+        self.run_number, self.passed, self.failed, self.scenarios = 0, 0, 0, {}
+        self.exceptions = collections.defaultdict(list)
         self.aliases = aliases
 
     def __call__(self, BddTester):
@@ -27,13 +28,23 @@ class Steps(Repr):
         return BddTester
 
     def __str__(self):
-        return (f'Scenario runs {json.dumps(self.get_runs(), indent=4)}\n'
-                f'Pending {json.dumps(self.get_pending_runs(), indent=4)}')
+        pending = json.dumps(self.get_pending_runs(), ensure_ascii=False, indent=4)
+        runs = self.get_runs()
+        runs_json = json.dumps(runs, ensure_ascii=False, indent=4).splitlines()
+
+        for n, name in enumerate(nm for _, nm in list(runs.items())[1:-1]
+                                 if nm in self.exceptions):
+            runs_json.insert(n + 1, '\n'.join(map(str, self.exceptions[name])))
+
+        runs_text = "\n".join(runs_json)
+
+        return f'Scenario runs {runs_text}\nPending {pending}'
 
     def get_runs(self):
-        return collections.OrderedDict(map(
-            lambda it: ('-'.join(map(str, it[1])), it[0]), sorted(filter(
-                lambda it: it[1], self.scenarios.items()), key=lambda it: it[1][0])))
+        return collections.OrderedDict([
+            ('-'.join(map(lambda r: f'{r[0]}{r[1]}', runs)), name)
+            for name, runs in sorted(filter(lambda it: it[1], self.scenarios.items()),
+                                     key=lambda it: it[1][0][0])])
 
     def get_pending_runs(self):
         return [method for method, runs in self.scenarios.items() if not runs]
@@ -67,10 +78,14 @@ class Scenario:
         @functools.wraps(method)
         def wrapper(test_case, *args, **kwargs):
             step_logs = list(test_case.run_steps(method.__doc__))
-            symbol = '✗' if isinstance(step_logs[-1][0], Exception) else '✓'
+            symbol = FAIL_BIG if isinstance(step_logs[-1][0], Exception) else OK_BIG
             test_case.log_scenario_run(method.__name__, step_logs, symbol)
 
-            if symbol == '✗':
+            if symbol == FAIL_BIG:
+                self.steps.failed += 1
+                self.steps.exceptions[method.__name__].append(step_logs[-1][0])
                 test_case.fail(str(step_logs[-1][0]))
+            else:
+                self.steps.passed += 1
 
         return wrapper
