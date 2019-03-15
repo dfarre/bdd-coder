@@ -32,9 +32,9 @@ class Steps(Repr):
         runs = self.get_runs()
         runs_json = json.dumps(runs, ensure_ascii=False, indent=4).splitlines()
 
-        for n, name in enumerate(nm for _, nm in list(runs.items())[1:-1]
-                                 if nm in self.exceptions):
-            runs_json.insert(n + 1, '\n'.join(map(str, self.exceptions[name])))
+        for n, name in enumerate(runs.values()):
+            if name in self.exceptions:
+                runs_json.insert(n + 2, '\n'.join(map(str, self.exceptions[name])))
 
         runs_text = "\n".join(runs_json)
 
