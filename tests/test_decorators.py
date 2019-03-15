@@ -6,7 +6,7 @@ import unittest.mock as mock
 
 import freezegun
 
-from bdd_coder import LOGS_DIR_NAME, OK_BIG, COMPLETION_MSG
+from bdd_coder import LOGS_DIR_NAME, OK, COMPLETION_MSG
 
 from example.tests import base
 from example.tests import test_stories
@@ -16,18 +16,18 @@ CLEAR_BOARD = 'example.tests.test_stories.ClearBoard'
 
 FROZEN_TIME = datetime.datetime(2019, 3, 18, 17, 30, 13, 71420)
 FIRST_LOG = f"""
-1 {OK_BIG} ClearBoard.even_boards:
-  1.1 - {FROZEN_TIME} ✓ i_request_a_new_game_with_an_even_number_of_boards [] |--> ('Even Game',)
-  1.2 - {FROZEN_TIME} ✓ a_game_is_created_with_boards_of__guesses ['12'] |--> ()
+1 {OK} ClearBoard.even_boards:
+  1.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_even_number_of_boards [] |--> ('Even Game',)
+  1.2 - {FROZEN_TIME} {OK} a_game_is_created_with_boards_of__guesses ['12'] |--> ()
 
-2 {OK_BIG} ClearBoard.test_start_board:
-  2.1 - {FROZEN_TIME} ✓ even_boards [] |--> ()
-  2.2 - {FROZEN_TIME} ✓ i_request_a_clear_board_in_my_new_game [] |--> ('Board',)
-  2.3 - {FROZEN_TIME} ✓ board__is_added_to_the_game [] |--> ()
+2 {OK} ClearBoard.test_start_board:
+  2.1 - {FROZEN_TIME} {OK} even_boards [] |--> ()
+  2.2 - {FROZEN_TIME} {OK} i_request_a_clear_board_in_my_new_game [] |--> ('Board',)
+  2.3 - {FROZEN_TIME} {OK} board__is_added_to_the_game [] |--> ()
 
 ClearBoard - Scenario runs {{
-    "1{OK_BIG}": "even_boards",
-    "2{OK_BIG}": "test_start_board"
+    "1{OK}": "even_boards",
+    "2{OK}": "test_start_board"
 }}
 Pending [
     "test_odd_boards"
@@ -35,20 +35,20 @@ Pending [
 
 """.lstrip('\n')  # noqa
 SECOND_LOG = f"""
-3 {OK_BIG} ClearBoard.test_odd_boards:
-  3.1 - {FROZEN_TIME} ✓ i_request_a_new_game_with_an_odd_number_of_boards [] |--> ('Odd Game',)
-  3.2 - {FROZEN_TIME} ✓ i_get_a_400_response_saying_it_must_be_even [] |--> ()
+3 {OK} ClearBoard.test_odd_boards:
+  3.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_odd_number_of_boards [] |--> ('Odd Game',)
+  3.2 - {FROZEN_TIME} {OK} i_get_a_400_response_saying_it_must_be_even [] |--> ()
 
 ClearBoard - Scenario runs {{
-    "1{OK_BIG}": "even_boards",
-    "2{OK_BIG}": "test_start_board",
-    "3{OK_BIG}": "test_odd_boards"
+    "1{OK}": "even_boards",
+    "2{OK}": "test_start_board",
+    "3{OK}": "test_odd_boards"
 }}
 Pending []
 
-{COMPLETION_MSG} ▌ 3 {OK_BIG}
+{COMPLETION_MSG} ▌ 3 {OK}
 
-""".lstrip('\n')
+""".lstrip('\n')  # noqa
 
 
 class DecoratorTests(unittest.TestCase):
@@ -76,8 +76,8 @@ class DecoratorTests(unittest.TestCase):
 
         assert list(map(len, base.steps.scenarios.values())) == [1]*len(base.steps.scenarios)
         assert base.steps.scenarios == {
-            'even_boards': [(1, OK_BIG)], 'test_start_board': [(2, OK_BIG)],
-            'test_odd_boards': [(3, OK_BIG)]}
+            'even_boards': [(1, OK)], 'test_start_board': [(2, OK)],
+            'test_odd_boards': [(3, OK)]}
 
     @mock.patch(f'{NEW_GAME}.i_get_a_400_response_saying_it_must_be_even',
                 return_value=None)

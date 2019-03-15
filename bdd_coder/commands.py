@@ -4,7 +4,7 @@ import os
 import sys
 
 from bdd_coder import LOGS_DIR_NAME
-from bdd_coder import OK_BIG, FAIL_BIG
+from bdd_coder import OK, FAIL
 from bdd_coder.coder import coders
 from bdd_coder.coder import features
 
@@ -64,11 +64,11 @@ class CheckPendingScenarios(Command):
                     next(lines)
                     message = next(lines).strip('\n')
 
-                if message.endswith(OK_BIG) or message.endswith(FAIL_BIG):
+                if message.endswith(OK) or message.endswith(FAIL):
                     sys.stdout.write(message + '\n')
                     return 0
                 else:
-                    sys.stderr.write(f'{FAIL_BIG} Some scenarios did not run! '
+                    sys.stderr.write(f'{FAIL} Some scenarios did not run! '
                                      f'Check the logs in {logs_dir}\n')
                     return 1
 

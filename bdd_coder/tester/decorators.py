@@ -8,7 +8,7 @@ import os
 
 from bdd_coder import get_step_specs
 from bdd_coder import Repr
-from bdd_coder import LOGS_DIR_NAME, FAIL_BIG, OK_BIG
+from bdd_coder import LOGS_DIR_NAME, FAIL, OK
 
 
 class Steps(Repr):
@@ -28,17 +28,10 @@ class Steps(Repr):
         return BddTester
 
     def __str__(self):
+        runs = json.dumps(self.get_runs(), ensure_ascii=False, indent=4)
         pending = json.dumps(self.get_pending_runs(), ensure_ascii=False, indent=4)
-        runs = self.get_runs()
-        runs_json = json.dumps(runs, ensure_ascii=False, indent=4).splitlines()
 
-        for n, name in enumerate(runs.values()):
-            if name in self.exceptions:
-                runs_json.insert(n + 2, '\n'.join(map(str, self.exceptions[name])))
-
-        runs_text = "\n".join(runs_json)
-
-        return f'Scenario runs {runs_text}\nPending {pending}'
+        return f'Scenario runs {runs}\nPending {pending}'
 
     def get_runs(self):
         return collections.OrderedDict([
@@ -78,10 +71,10 @@ class Scenario:
         @functools.wraps(method)
         def wrapper(test_case, *args, **kwargs):
             step_logs = list(test_case.run_steps(method.__doc__))
-            symbol = FAIL_BIG if isinstance(step_logs[-1][0], Exception) else OK_BIG
+            symbol = FAIL if isinstance(step_logs[-1][0], Exception) else OK
             test_case.log_scenario_run(method.__name__, step_logs, symbol)
 
-            if symbol == FAIL_BIG:
+            if symbol == FAIL:
                 self.steps.failed += 1
                 self.steps.exceptions[method.__name__].append(step_logs[-1][0])
                 test_case.fail(str(step_logs[-1][0]))

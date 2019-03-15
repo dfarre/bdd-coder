@@ -5,9 +5,8 @@ import itertools
 import re
 
 LOGS_DIR_NAME = '.bdd-run-logs'
-OK_SMALL, OK_BIG = '✓', '✅'
-FAIL_SMALL, FAIL_BIG = '✗', '❌'
 COMPLETION_MSG = 'All scenarios ran'
+OK, FAIL = '✅', '❌'
 
 
 class Repr:

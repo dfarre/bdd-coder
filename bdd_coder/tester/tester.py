@@ -10,7 +10,7 @@ import yaml
 from bdd_coder import SubclassesMixin
 from bdd_coder import strip_lines
 from bdd_coder import to_sentence
-from bdd_coder import FAIL_SMALL, OK_SMALL, FAIL_BIG, OK_BIG, COMPLETION_MSG
+from bdd_coder import FAIL, OK, COMPLETION_MSG
 
 from bdd_coder.coder import features
 
@@ -133,9 +133,9 @@ class BddTester(YamlDumper, SubclassesMixin):
     def run_steps(self, method_doc):
         for method_name, inputs, output_names in self.steps.get_step_specs(method_doc):
             try:
-                symbol, output = OK_SMALL, getattr(self, method_name)(*inputs) or ()
+                symbol, output = OK, getattr(self, method_name)(*inputs) or ()
             except Exception as error:
-                symbol, output = FAIL_SMALL, error
+                symbol, output = FAIL, error
             else:
                 for name, value in zip(output_names, output):
                     self.steps.outputs[name].append(value)
@@ -143,8 +143,8 @@ class BddTester(YamlDumper, SubclassesMixin):
             msg = (f'{datetime.datetime.utcnow()} {symbol} '
                    f'{method_name} {inputs} |--> {output}')
 
-            if symbol == OK_SMALL:
-                yield OK_SMALL, msg
+            if symbol == OK:
+                yield OK, msg
             else:
                 yield output, msg
                 break
@@ -158,8 +158,8 @@ class BaseTestCase(unittest.TestCase):
         if cls.steps.get_pending_runs():
             end_note = ''
         else:
-            passed = f' ▌ {cls.steps.passed} {OK_BIG}' if cls.steps.passed else ''
-            failed = f' ▌ {cls.steps.failed} {FAIL_BIG}' if cls.steps.failed else ''
+            passed = f' ▌ {cls.steps.passed} {OK}' if cls.steps.passed else ''
+            failed = f' ▌ {cls.steps.failed} {FAIL}' if cls.steps.failed else ''
             end_note = '\n\n' + COMPLETION_MSG + passed + failed
 
         cls.steps.write_to_history(f'{cls.__name__} - {cls.steps}{end_note}')

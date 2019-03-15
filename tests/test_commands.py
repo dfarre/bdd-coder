@@ -5,7 +5,7 @@ import unittest
 import unittest.mock as mock
 
 from bdd_coder import commands
-from bdd_coder import LOGS_DIR_NAME, FAIL_BIG, OK_BIG, COMPLETION_MSG
+from bdd_coder import LOGS_DIR_NAME, FAIL, OK, COMPLETION_MSG
 
 from example.tests import base
 from example.tests import test_stories
@@ -134,7 +134,7 @@ class MakeBlueprintTests(unittest.TestCase):
             "{'scen_one': ['FakeFoo', 'FakeFoo']}\n")
 
 
-SUCCESS_MSG = f'{COMPLETION_MSG} ▌ 3 {OK_BIG}'
+SUCCESS_MSG = f'{COMPLETION_MSG} ▌ 3 {OK}'
 
 
 class CheckPendingScenariosTests(unittest.TestCase):
@@ -174,7 +174,7 @@ class CheckPendingScenariosTests(unittest.TestCase):
 
         assert self.command(logs_parent=self.tmp_dir) == 1
         stderr_mock.assert_called_once_with(
-            f'{FAIL_BIG} Some scenarios did not run! Check the logs in {self.logs_dir}\n')
+            f'{FAIL} Some scenarios did not run! Check the logs in {self.logs_dir}\n')
 
     @mock.patch('sys.stdout.write')
     def test_success(self, stdout_mock):
