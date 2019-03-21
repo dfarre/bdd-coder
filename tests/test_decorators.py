@@ -25,7 +25,7 @@ FIRST_LOG = f"""
   2.2 - {FROZEN_TIME} {OK} i_request_a_clear_board_in_my_new_game [] |--> ('Board',)
   2.3 - {FROZEN_TIME} {OK} board__is_added_to_the_game [] |--> ()
 
-ClearBoard - Scenario runs {{
+Scenario runs {{
     "1{OK}": "even_boards",
     "2{OK}": "test_start_board"
 }}
@@ -39,7 +39,7 @@ SECOND_LOG = f"""
   3.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_odd_number_of_boards [] |--> ('Odd Game',)
   3.2 - {FROZEN_TIME} {OK} i_get_a_400_response_saying_it_must_be_even [] |--> ()
 
-ClearBoard - Scenario runs {{
+Scenario runs {{
     "1{OK}": "even_boards",
     "2{OK}": "test_start_board",
     "3{OK}": "test_odd_boards"

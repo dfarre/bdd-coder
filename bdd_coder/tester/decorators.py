@@ -8,7 +8,7 @@ import os
 
 from bdd_coder import get_step_specs
 from bdd_coder import Repr
-from bdd_coder import LOGS_DIR_NAME, FAIL, OK
+from bdd_coder import LOGS_DIR_NAME, FAIL
 
 
 class Steps(Repr):
@@ -71,13 +71,13 @@ class Scenario:
         @functools.wraps(method)
         def wrapper(test_case, *args, **kwargs):
             step_logs = list(test_case.run_steps(method.__doc__))
-            symbol = FAIL if isinstance(step_logs[-1][0], Exception) else OK
+            symbol, message = step_logs[-1]
             test_case.log_scenario_run(method.__name__, step_logs, symbol)
 
             if symbol == FAIL:
                 self.steps.failed += 1
-                self.steps.exceptions[method.__name__].append(step_logs[-1][0])
-                test_case.fail(str(step_logs[-1][0]))
+                self.steps.exceptions[method.__name__].append(message)
+                test_case.fail(message)
             else:
                 self.steps.passed += 1
 

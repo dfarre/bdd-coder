@@ -4,6 +4,7 @@ import inspect
 import os
 import re
 import shutil
+import traceback
 import unittest
 import yaml
 
@@ -134,19 +135,16 @@ class BddTester(YamlDumper, SubclassesMixin):
         for method_name, inputs, output_names in self.steps.get_step_specs(method_doc):
             try:
                 symbol, output = OK, getattr(self, method_name)(*inputs) or ()
-            except Exception as error:
-                symbol, output = FAIL, error
+            except Exception:
+                symbol, output = FAIL, traceback.format_exc()
             else:
                 for name, value in zip(output_names, output):
                     self.steps.outputs[name].append(value)
 
-            msg = (f'{datetime.datetime.utcnow()} {symbol} '
-                   f'{method_name} {inputs} |--> {output}')
+            yield symbol, (f'{datetime.datetime.utcnow()} {symbol} '
+                           f'{method_name} {inputs} |--> {output}')
 
-            if symbol == OK:
-                yield OK, msg
-            else:
-                yield output, msg
+            if symbol == FAIL:
                 break
 
 
