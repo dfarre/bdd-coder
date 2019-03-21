@@ -4,6 +4,7 @@ import inspect
 import os
 import re
 import shutil
+import sys
 import traceback
 import unittest
 import yaml
@@ -136,7 +137,10 @@ class BddTester(YamlDumper, SubclassesMixin):
             try:
                 symbol, output = OK, getattr(self, method_name)(*inputs) or ()
             except Exception:
-                symbol, output = FAIL, traceback.format_exc()
+                extracts = traceback.extract_tb(sys.exc_info()[2])
+                symbol, output = FAIL, traceback.format_exc(1 - len(extracts) if (
+                    extracts[0].filename.endswith('/bdd_coder/tester/tester.py') and
+                    extracts[0].name == 'run_steps') else None)
             else:
                 for name, value in zip(output_names, output):
                     self.steps.outputs[name].append(value)
