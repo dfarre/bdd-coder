@@ -1,0 +1,11 @@
+Title: New Player
+
+Story: |-
+  As a user
+  I want to sign in
+  In order to play
+
+Scenarios:
+  New player joins:
+      - When a user signs in
+      - Then a new player is added
