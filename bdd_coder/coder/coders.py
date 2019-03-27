@@ -222,7 +222,6 @@ class PackagePatcher(PackageCoder):
 
         for class_name in self.empty_classes:
             self.update_bases(class_name, f'base.{BASE_TESTER_NAME}', pieces)
-            print(pieces)
 
     @staticmethod
     def update_bases(name, bases_code, pieces):
@@ -246,11 +245,22 @@ class PackagePatcher(PackageCoder):
         pieces[class_name][name] = tail + '\n' + text_utils.indent('\n'.join(
             FeatureClassCoder.make_step_method_defs_for(steps_to_code)))
 
+    def update_scenarios(self, pieces):
+        for class_name, piece in list(pieces.items())[1:]:
+            for name, text in list(piece.items())[1:]:
+                stripped_name = re.sub(r'test_', '', name, 1)
+                spec = self.new_specs.features[class_name]['scenarios'][stripped_name]
+                piece[name] = re.sub(
+                    rf'^    def {name}\(self\):\n        """\n(.+?)\n        """',
+                    text_utils.indent(FeatureClassCoder.make_scenario_method_def(
+                        stripped_name, spec).strip()[len(self.scenario_delimiter):]),
+                    text, 1, flags=re.DOTALL)
+
     def patch(self):
         self.patch_module(
             self.test_module_name,
-            self.remove_scenarios, self.add_scenarios, self.add_new_stories,
-            self.sort_hierarchy, *[
+            self.remove_scenarios, self.update_scenarios, self.add_scenarios,
+            self.add_new_stories, self.sort_hierarchy, *[
                 functools.partial(self.add_new_steps, subclass.__name__)
                 for subclass in self.base_tester.subclasses_down()
                 if subclass.__name__ in self.new_specs.features])

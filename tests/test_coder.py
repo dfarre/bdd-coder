@@ -35,6 +35,15 @@ class BlueprintTester(unittest.TestCase):
         super().tearDownClass()
         shutil.rmtree('tmp')
 
+    def assert_test_files_match(self, path):
+        file_names = set(os.listdir(self.coder.tests_path))
+        py_file_names = {'__init__.py', 'aliases.py', 'base.py', 'test_stories.py'}
+
+        assert not py_file_names - file_names
+        assert [subprocess.run(['diff', f'tmp/generated/{name}', os.path.join(path, name)],
+                               stdout=subprocess.PIPE).stdout.decode()
+                for name in py_file_names] == ['']*len(py_file_names)
+
 
 class CoderTester(BlueprintTester):
     def test_pytest_output(self):
@@ -54,17 +63,7 @@ class CoderTester(BlueprintTester):
             self.fail(error.output.decode())
 
     def test_example_test_files_match(self):
-        file_names = set(os.listdir(self.coder.tests_path))
-        py_file_names = {'__init__.py', 'aliases.py', 'base.py', 'test_stories.py'}
-
-        assert not py_file_names - file_names
-
-        for name in py_file_names:
-            diff = subprocess.run([
-                'diff', f'tmp/generated/{name}', f'example/tests/{name}'],
-                stdout=subprocess.PIPE).stdout.decode()
-
-            assert diff == ''
+        self.assert_test_files_match('example/tests')
 
     def test_class_tree(self):
         assert not importlib.import_module('tmp.generated.base').BddTester.validate_bases(
@@ -76,8 +75,8 @@ class PatcherTester(BlueprintTester):
     def setUpClass(cls):
         super().setUpClass()
         cls.patcher = coders.PackagePatcher(
-            specs_path='tests/specs_ok', test_module='tmp.generated.test_stories')
+            specs_path='example/new_specs', test_module='tmp.generated.test_stories')
         cls.patcher_output = cls.patcher.patch()
 
-    def test(self):
-        pass
+    def test_new_example_test_files_match(self):
+        self.assert_test_files_match('example/new_tests')

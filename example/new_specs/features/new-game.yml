@@ -5,11 +5,9 @@ Story: |-
   I want to start a new Mastermind game of B boards of G guesses
   In order to play
 
-Fixtures:
-  - player-alice
-
 Scenarios:
   Even boards:
+      - Given new player joins
       - When I request a new `game` with an even number of boards
       - Then a game is created with boards of "12" guesses
   Funny boards:
