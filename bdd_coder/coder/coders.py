@@ -107,14 +107,15 @@ class PackageCoder:
 
         return out.stdout.decode()
 
+    def write_aliases_module(self):
+        with open(os.path.join(self.tests_path, 'aliases.py'), 'w') as aliases_py:
+            aliases_py.write(self.rstrip(self.make_aliases_def()))
+
     def create_tester_package(self):
         os.makedirs(self.tests_path)
 
         with open(os.path.join(self.tests_path, '__init__.py'), 'w') as init_py:
             init_py.write('')
-
-        with open(os.path.join(self.tests_path, 'aliases.py'), 'w') as aliases_py:
-            aliases_py.write(self.rstrip(self.make_aliases_def()))
 
         with open(os.path.join(self.tests_path, 'base.py'), 'w') as base_py:
             base_py.write(self.rstrip(
@@ -131,6 +132,8 @@ class PackageCoder:
                 'from bdd_coder.tester import decorators'
                 '\n\nfrom . import base\n' + '\n'.join(self.make_story_class_defs())))
 
+        self.write_aliases_module()
+
         return self.pytest()
 
 
@@ -143,16 +146,15 @@ class PackagePatcher(PackageCoder):
         self.tests_path = os.path.dirname(test_module.replace('.', '/'))
         self.test_module_name = test_module.rsplit('.', 1)[-1]
         self.test_module = test_module
-
         self.old_specs = self.base_tester.get_features_spec()
         self.new_specs = features.FeaturesSpec(specs_path)
 
         old_scenarios = self.old_specs.get_scenarios(self.old_specs.features)
         new_scenarios = self.new_specs.get_scenarios(self.new_specs.features)
-
         new_features = collections.OrderedDict([
             (cn, spec) for cn, spec in self.new_specs.features.items()
             if cn in set(new_scenarios.values()) - set(old_scenarios.values())])
+
         self.empty_classes = set(old_scenarios.values()) - set(new_scenarios.values())
         self.added_scenarios = {name: (
             new_scenarios[name], self.new_specs.features[new_scenarios[name]][
@@ -160,8 +162,12 @@ class PackagePatcher(PackageCoder):
             if new_scenarios[name] not in new_features}
         self.removed_scenarios = {
             n: old_scenarios[n] for n in set(old_scenarios) - set(new_scenarios)}
-        self.features_spec = collections.namedtuple('features_spec', ['features'])
+        self.features_spec = collections.namedtuple('features_spec', [
+            'features', 'aliases', 'base_methods'])
         self.features_spec.features = new_features
+        self.features_spec.aliases = {**self.old_specs.aliases, **self.new_specs.aliases}
+        self.features_spec.base_methods = (
+            set(self.new_specs.base_methods) - set(self.old_specs.base_methods))
 
     @property
     def base_tester(self):
@@ -256,6 +262,10 @@ class PackagePatcher(PackageCoder):
                         stripped_name, spec).strip()[len(self.scenario_delimiter):]),
                     text, 1, flags=re.DOTALL)
 
+    def add_base_methods(self, pieces):
+        pieces[BASE_TEST_CASE_NAME][BASE_TEST_CASE_NAME] += text_utils.indent(
+            self.make_base_method_defs())
+
     def patch(self):
         self.patch_module(
             self.test_module_name,
@@ -264,6 +274,8 @@ class PackagePatcher(PackageCoder):
                 functools.partial(self.add_new_steps, subclass.__name__)
                 for subclass in self.base_tester.subclasses_down()
                 if subclass.__name__ in self.new_specs.features])
+        self.patch_module('base', self.add_base_methods)
+        self.write_aliases_module()
 
         return self.pytest()
 

@@ -36,10 +36,9 @@ class BlueprintTester(unittest.TestCase):
         shutil.rmtree('tmp')
 
     def assert_test_files_match(self, path):
-        file_names = set(os.listdir(self.coder.tests_path))
-        py_file_names = {'__init__.py', 'aliases.py', 'base.py', 'test_stories.py'}
+        py_file_names = ['__init__.py', 'aliases.py', 'base.py', 'test_stories.py']
 
-        assert not py_file_names - file_names
+        assert not set(py_file_names) - set(os.listdir(self.coder.tests_path))
         assert [subprocess.run(['diff', f'tmp/generated/{name}', os.path.join(path, name)],
                                stdout=subprocess.PIPE).stdout.decode()
                 for name in py_file_names] == ['']*len(py_file_names)

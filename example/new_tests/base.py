@@ -17,3 +17,6 @@ class BaseTestCase(tester.BaseTestCase, TestCase):
 
     def board__is_added_to_the_game(self, *args):
         pass
+
+    def user_is_welcome(self, *args):
+        pass

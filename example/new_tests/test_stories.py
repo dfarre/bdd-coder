@@ -41,17 +41,17 @@ class NewGame(NewPlayer, base.BaseTestCase):
     fixtures = ['player-alice']
 
     @decorators.Scenario(base.steps)
-    def test_more_boards(self):
-        """
-        Given new player joins
-        Then she is welcome
-        """
-
-    @decorators.Scenario(base.steps)
     def test_funny_boards(self):
         """
         Given new player joins
         Then class hierarchy has changed
+        """
+
+    @decorators.Scenario(base.steps)
+    def test_more_boards(self):
+        """
+        Given new player joins
+        Then she is welcome
         """
 
     @decorators.Scenario(base.steps)
@@ -79,7 +79,4 @@ class NewGame(NewPlayer, base.BaseTestCase):
         assert len(args) == 1
 
     def class_hierarchy_has_changed(self, *args):
-        assert len(args) == 0
-
-    def she_is_welcome(self, *args):
         assert len(args) == 0
