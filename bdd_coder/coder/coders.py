@@ -6,6 +6,8 @@ import os
 import re
 import subprocess
 
+from bdd_coder import DefaultsMixin
+
 from bdd_coder.coder import BASE_TESTER_NAME
 from bdd_coder.coder import BASE_TEST_CASE_NAME
 from bdd_coder.coder import features
@@ -67,7 +69,7 @@ class FeatureClassCoder:
         return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
 
 
-class PackageCoder:
+class PackageCoder(DefaultsMixin):
     def __init__(self, base_class='unittest.TestCase', specs_path='behaviour/specs',
                  tests_path='', test_module_name='stories', logs_parent=''):
         self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
@@ -138,16 +140,18 @@ class PackageCoder:
 
 
 class PackagePatcher(PackageCoder):
+    default_specs_dir_name = 'specs'
     class_delimiter = '\n\n\nclass '
     scenario_delimiter = '@decorators.Scenario(base.steps)\n'
 
-    def __init__(self, specs_path='behaviour/specs/',
-                 test_module='behaviour.tests.test_stories'):
+    def __init__(self, test_module='behaviour.tests.test_stories', specs_path=''):
         self.tests_path = os.path.dirname(test_module.replace('.', '/'))
         self.test_module_name = test_module.rsplit('.', 1)[-1]
         self.test_module = test_module
         self.old_specs = self.base_tester.get_features_spec()
-        self.new_specs = features.FeaturesSpec(specs_path)
+        self.new_specs = features.FeaturesSpec(specs_path or os.path.join(
+            os.path.dirname(os.path.dirname(self.tests_path)),
+            self.default_specs_dir_name))
 
         old_scenarios = self.old_specs.get_scenarios(self.old_specs.features)
         new_scenarios = self.new_specs.get_scenarios(self.new_specs.features)

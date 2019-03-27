@@ -1,6 +1,7 @@
 """Common utils and constants"""
 
 import collections
+import inspect
 import itertools
 import re
 
@@ -30,6 +31,12 @@ class SubclassesMixin:
             subclasses.extend(clss)
 
         return collections.OrderedDict([(sc, list(sc.__bases__)) for sc in subclasses])
+
+
+class DefaultsMixin:
+    @classmethod
+    def get_default(cls, key):
+        return inspect.signature(cls).parameters[key].default
 
 
 def get_step_sentence(step_text):

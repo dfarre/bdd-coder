@@ -31,22 +31,57 @@ class Command(metaclass=abc.ABCMeta):
         """The command function"""
 
 
-class MakeBlueprint(Command):
-    arguments = (
-        (('--base-class', '-c'), dict(help='default: unittest.TestCase')),
-        (('--specs-path', '-i'), dict(help='default: behaviour/specs')),
-        (('--tests-path', '-o'), dict(help='default: next to specs')),
-        (('--tests-module-name', '-n'), dict(help='default: stories (test_stories.py)')))
+class SpecErrorCommand(Command, metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def try_call(self, **kwargs):
+        """May raise `FeaturesSpecError`"""
+
+    @abc.abstractmethod
+    def stdout_write(self, try_call_output):
+        """Return output when no `FeaturesSpecError`"""
 
     def call(self, **kwargs):
         try:
-            coder = coders.PackageCoder(**kwargs)
+            output = self.try_call(**kwargs)
         except features.FeaturesSpecError as error:
             sys.stderr.write(str(error) + '\n')
             return 1
 
-        sys.stdout.write(coder.create_tester_package())
+        sys.stdout.write(self.stdout_write(output))
         return 0
+
+
+class MakeBlueprint(SpecErrorCommand):
+    base_class_default = coders.PackageCoder.get_default('base_class')
+    specs_path_default = coders.PackageCoder.get_default('specs_path')
+    module_name_default = coders.PackageCoder.get_default('test_module_name')
+    arguments = (
+        (('--base-class', '-c'), dict(help=f'default: {base_class_default}')),
+        (('--specs-path', '-i'), dict(help=f'default: {specs_path_default}')),
+        (('--tests-path', '-o'), dict(help='default: next to specs')),
+        (('--tests-module-name', '-n'), dict(
+            help=f'default: {module_name_default} (test_{module_name_default}.py)')))
+
+    def try_call(self, **kwargs):
+        return coders.PackageCoder(**kwargs)
+
+    def stdout_write(self, try_call_output):
+        return try_call_output.create_tester_package()
+
+
+class PatchBlueprint(SpecErrorCommand):
+    arguments = (
+        (('test-module',), dict(help='passed to `importlib.import_module`')),
+        (('specs-path',), dict(
+            nargs='?', help='Directory to take new specs from. '
+            f'default: {coders.PackagePatcher.default_specs_dir_name}/ '
+            'next to test package')))
+
+    def try_call(self, **kwargs):
+        return coders.PackagePatcher(**kwargs)
+
+    def stdout_write(self, try_call_output):
+        return try_call_output.patch()
 
 
 class CheckPendingScenarios(Command):
@@ -108,5 +143,6 @@ class MakeYamlSpecs(Command):
 
 
 make_blueprint = MakeBlueprint()
+patch_blueprint = PatchBlueprint()
 check_pending_scenarios = CheckPendingScenarios()
 make_yaml_specs = MakeYamlSpecs()

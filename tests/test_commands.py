@@ -110,6 +110,11 @@ class MakeYamlSpecsTests(unittest.TestCase):
             'from docs does not match the defined one. Error!\n')
 
 
+SPECS_ERROR = ("Duplicate titles are not supported, ['FakeFoo']\n"
+               'Repeated scenario names are not supported, '
+               "{'scen_one': ['FakeFoo', 'FakeFoo']}\n")
+
+
 class MakeBlueprintTests(unittest.TestCase):
     command = commands.MakeBlueprint(test_mode=True)
 
@@ -128,10 +133,30 @@ class MakeBlueprintTests(unittest.TestCase):
     @mock.patch('sys.stderr.write')
     def test_inconsistent_specs(self, stderr_mock):
         assert self.command(specs_path='tests/specs_wrong') == 1
-        stderr_mock.assert_called_once_with(
-            "Duplicate titles are not supported, ['FakeFoo']\n"
-            'Repeated scenario names are not supported, '
-            "{'scen_one': ['FakeFoo', 'FakeFoo']}\n")
+        stderr_mock.assert_called_once_with(SPECS_ERROR)
+
+
+class PatchBlueprintTests(unittest.TestCase):
+    command = commands.PatchBlueprint(test_mode=True)
+
+    @mock.patch('sys.stdout.write')
+    @mock.patch('bdd_coder.coder.coders.PackagePatcher.__init__', return_value=None)
+    @mock.patch('bdd_coder.coder.coders.PackagePatcher.patch',
+                return_value='Output')
+    def test_patch_package_call(self, patch_package_mock, PackagePatcherMock, stdout_mock):
+        kwargs = {'foo': None, 'bar': 100, 'qux': 'hello'}
+        assert self.command(**kwargs) == 0
+        kwargs.pop('foo')
+        PackagePatcherMock.assert_called_once_with(**kwargs)
+        patch_package_mock.assert_called_once_with()
+        stdout_mock.assert_called_once_with(patch_package_mock.return_value)
+
+    @mock.patch('sys.stderr.write')
+    def test_inconsistent_specs(self, stderr_mock):
+        assert self.command(
+            specs_path='tests/specs_wrong', test_module='example.tests.test_stories'
+        ) == 1
+        stderr_mock.assert_called_once_with(SPECS_ERROR)
 
 
 SUCCESS_MSG = f'{COMPLETION_MSG} ▌ 3 {OK}'
