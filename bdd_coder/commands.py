@@ -71,8 +71,8 @@ class MakeBlueprint(SpecErrorCommand):
 
 class PatchBlueprint(SpecErrorCommand):
     arguments = (
-        (('test-module',), dict(help='passed to `importlib.import_module`')),
-        (('specs-path',), dict(
+        (('test_module',), dict(help='passed to `importlib.import_module`')),
+        (('specs_path',), dict(
             nargs='?', help='Directory to take new specs from. '
             f'default: {coders.PackagePatcher.default_specs_dir_name}/ '
             'next to test package')))
