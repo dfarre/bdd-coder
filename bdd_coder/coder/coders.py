@@ -155,15 +155,17 @@ class PackagePatcher(PackageCoder):
 
         old_scenarios = self.old_specs.get_scenarios(self.old_specs.features)
         new_scenarios = self.new_specs.get_scenarios(self.new_specs.features)
+        new_classes = set(new_scenarios.values()) - set(old_scenarios.values())
         new_features = collections.OrderedDict([
             (cn, spec) for cn, spec in self.new_specs.features.items()
-            if cn in set(new_scenarios.values()) - set(old_scenarios.values())])
+            if cn in new_classes])
 
         self.empty_classes = set(old_scenarios.values()) - set(new_scenarios.values())
-        self.added_scenarios = {name: (
-            new_scenarios[name], self.new_specs.features[new_scenarios[name]][
-                'scenarios'][name]) for name in set(new_scenarios) - set(old_scenarios)
-            if new_scenarios[name] not in new_features}
+        self.added_scenarios = {class_name: collections.OrderedDict(sorted(filter(
+            lambda it: it[0] in set(new_scenarios) - set(old_scenarios),
+            self.new_specs.features[class_name]['scenarios'].items()),
+            key=lambda it: it[0])) for class_name in new_scenarios.values()
+            if class_name not in new_classes}
         self.removed_scenarios = {
             n: old_scenarios[n] for n in set(old_scenarios) - set(new_scenarios)}
         self.features_spec = collections.namedtuple('features_spec', [
@@ -213,12 +215,12 @@ class PackagePatcher(PackageCoder):
             del pieces[class_name][name]
 
     def add_scenarios(self, pieces):
-        for name, (class_name, spec) in self.added_scenarios.items():
-            code = text_utils.indent(FeatureClassCoder.make_scenario_method_def(
-                name, spec).lstrip()[len(self.scenario_delimiter):]) + '\n\n    '
+        for class_name, scenarios in self.added_scenarios.items():
+            codes = [(name, text_utils.indent(FeatureClassCoder.make_scenario_method_def(
+                name, spec).lstrip()[len(self.scenario_delimiter):]) + '\n\n    ')
+                for name, spec in scenarios.items()]
             items = iter(pieces[class_name].items())
-            pieces[class_name] = collections.OrderedDict([
-                next(items), (name, code)] + list(items))
+            pieces[class_name] = collections.OrderedDict([next(items)] + codes + list(items))
 
     def add_new_stories(self, pieces):
         new_classes = self.split_source('\n' + '\n'.join(self.make_story_class_defs()))
