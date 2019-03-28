@@ -33,10 +33,10 @@ class SubclassesMixin:
         return collections.OrderedDict([(sc, list(sc.__bases__)) for sc in subclasses])
 
 
-class DefaultsMixin:
+class ParametersMixin:
     @classmethod
-    def get_default(cls, key):
-        return inspect.signature(cls).parameters[key].default
+    def get_parameters(cls):
+        return inspect.signature(cls).parameters
 
 
 def get_step_sentence(step_text):

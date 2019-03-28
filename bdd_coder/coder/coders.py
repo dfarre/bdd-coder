@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 
-from bdd_coder import DefaultsMixin
+from bdd_coder import ParametersMixin
 
 from bdd_coder.coder import BASE_TESTER_NAME
 from bdd_coder.coder import BASE_TEST_CASE_NAME
@@ -69,7 +69,7 @@ class FeatureClassCoder:
         return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
 
 
-class PackageCoder(DefaultsMixin):
+class PackageCoder(ParametersMixin):
     def __init__(self, base_class='unittest.TestCase', specs_path='behaviour/specs',
                  tests_path='', test_module_name='stories', logs_parent=''):
         self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)

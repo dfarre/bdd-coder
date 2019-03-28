@@ -52,15 +52,16 @@ class SpecErrorCommand(Command, metaclass=abc.ABCMeta):
 
 
 class MakeBlueprint(SpecErrorCommand):
-    base_class_default = coders.PackageCoder.get_default('base_class')
-    specs_path_default = coders.PackageCoder.get_default('specs_path')
-    module_name_default = coders.PackageCoder.get_default('test_module_name')
+    params = coders.PackageCoder.get_parameters()
     arguments = (
-        (('--base-class', '-c'), dict(help=f'default: {base_class_default}')),
-        (('--specs-path', '-i'), dict(help=f'default: {specs_path_default}')),
-        (('--tests-path', '-o'), dict(help='default: next to specs')),
-        (('--tests-module-name', '-n'), dict(
-            help=f'default: {module_name_default} (test_{module_name_default}.py)')))
+        ((f'--{params["base_class"].name.replace("_", "-")}', '-c'), dict(
+            help=f'default: {params["base_class"].default}')),
+        ((f'--{params["specs_path"].name.replace("_", "-")}', '-i'), dict(
+            help=f'default: {params["specs_path"].default}')),
+        ((f'--{params["tests_path"].name.replace("_", "-")}', '-o'), dict(
+            help='default: next to specs')),
+        ((f'--{params["test_module_name"].name.replace("_", "-")}', '-n'), dict(
+            help=f'Name for test_<name>.py. default: {params["test_module_name"].default}')))
 
     def try_call(self, **kwargs):
         return coders.PackageCoder(**kwargs)
@@ -70,9 +71,10 @@ class MakeBlueprint(SpecErrorCommand):
 
 
 class PatchBlueprint(SpecErrorCommand):
+    params = coders.PackagePatcher.get_parameters()
     arguments = (
-        (('test_module',), dict(help='passed to `importlib.import_module`')),
-        (('specs_path',), dict(
+        ((params['test_module'].name,), dict(help='passed to `importlib.import_module`')),
+        ((params['specs_path'].name,), dict(
             nargs='?', help='Directory to take new specs from. '
             f'default: {coders.PackagePatcher.default_specs_dir_name}/ '
             'next to test package')))
