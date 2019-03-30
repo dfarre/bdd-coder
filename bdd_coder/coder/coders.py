@@ -2,11 +2,14 @@ import collections
 import functools
 import importlib
 import inspect
+import itertools
+import json
 import os
 import re
 import subprocess
 
 from bdd_coder import ParametersMixin
+from bdd_coder import Repr
 
 from bdd_coder.coder import BASE_TESTER_NAME
 from bdd_coder.coder import BASE_TEST_CASE_NAME
@@ -78,10 +81,6 @@ class PackageCoder(ParametersMixin):
         self.logs_parent = logs_parent or self.tests_path
         self.test_module_name = test_module_name
 
-    @staticmethod
-    def rstrip(text):
-        return '\n'.join(list(map(str.rstrip, text.splitlines()))) + '\n'
-
     def make_story_class_defs(self):
         return [FeatureClassCoder(class_name, spec).make()
                 for class_name, spec in self.features_spec.features.items()]
@@ -111,7 +110,7 @@ class PackageCoder(ParametersMixin):
 
     def write_aliases_module(self):
         with open(os.path.join(self.tests_path, 'aliases.py'), 'w') as aliases_py:
-            aliases_py.write(self.rstrip(self.make_aliases_def()))
+            aliases_py.write(text_utils.rstrip(self.make_aliases_def()))
 
     def create_tester_package(self):
         os.makedirs(self.tests_path)
@@ -120,7 +119,7 @@ class PackageCoder(ParametersMixin):
             init_py.write('')
 
         with open(os.path.join(self.tests_path, 'base.py'), 'w') as base_py:
-            base_py.write(self.rstrip(
+            base_py.write(text_utils.rstrip(
                 f'from {self.module_or_package_path} import {self.base_class_name}\n\n'
                 'from bdd_coder.tester import decorators\n'
                 'from bdd_coder.tester import tester\n\n'
@@ -130,7 +129,7 @@ class PackageCoder(ParametersMixin):
 
         with open(os.path.join(self.tests_path, f'test_{self.test_module_name}.py'),
                   'w') as test_py:
-            test_py.write(self.rstrip(
+            test_py.write(text_utils.rstrip(
                 'from bdd_coder.tester import decorators'
                 '\n\nfrom . import base\n' + '\n'.join(self.make_story_class_defs())))
 
@@ -139,9 +138,81 @@ class PackageCoder(ParametersMixin):
         return self.pytest()
 
 
+class Split(Repr):
+    class_delimiter = '\n\n\nclass '
+
+    def __init__(self, source, scenario_delimiter):
+        self.scenario_delimiter = scenario_delimiter
+        source = text_utils.rstrip(source)
+        self.pieces = self._split(source)
+
+        if not self.source == source:
+            raise AssertionError(f'Cannot rejoin {self} into\n\n{self.source}')
+
+    def __str__(self):
+        return json.dumps(self.pieces, indent=4, ensure_ascii=False)
+
+    @property
+    def source(self):
+        return text_utils.rstrip(self.class_delimiter.join([
+            '\n\n'.join(filter(None, itertools.chain(*(
+                (f'    {self.scenario_delimiter}    {s}' if s else '',
+                 f'    {r}' if r else '') for s, r in texts.values())))).strip()
+            for n, texts in self.pieces.items()]))
+
+    @property
+    def scenarios(self):
+        return {cn: [(name, txt[0]) for name, txt in texts.items() if txt[0]]
+                for cn, texts in self.pieces.items()}
+
+    def _split(self, source):
+        return self._split_scenarios(self._get_piece_texts(source))
+
+    def _get_piece_texts(self, source):
+        texts = map(str.strip, source.split(self.class_delimiter))
+        top_item = ('top_piece', {'top_piece': next(texts)})
+
+        return collections.OrderedDict([top_item] + [(
+            self.get_class_name(txt), collections.OrderedDict([
+                (self.get_scenario_name(text), text)
+                for text in map(str.strip, txt.split(self.scenario_delimiter))]))
+            for txt in texts])
+
+    def _split_scenarios(self, piece_texts):
+        piece_texts['top_piece']['top_piece'] = ['', piece_texts['top_piece']['top_piece']]
+
+        for class_name, piece in list(piece_texts.items())[1:]:
+            piece_texts[class_name][class_name] = ['', piece_texts[class_name][class_name]]
+
+            for name, text in list(piece.items())[1:]:
+                regex, flags = self.scenario_regex(name)
+                match = re.match(regex, text, flags=flags)
+                piece_texts[class_name][name] = [
+                    match.groups()[0] if match else '',
+                    re.sub(regex, '', text, flags=flags).strip()]
+
+        return piece_texts
+
+    def transform(self, *mutations):
+        for mutate in mutations:
+            mutate(self.pieces)
+
+    @staticmethod
+    def scenario_regex(name):
+        return (rf'^(def (test_)?{name}\(self\):\n{" "*8}"""\n.+?\n{" "*8}""")',
+                re.DOTALL)
+
+    @staticmethod
+    def get_class_name(class_text):
+        return re.match(r'^([A-Za-z]+)', class_text).groups()[0]
+
+    @staticmethod
+    def get_scenario_name(text):
+        return re.sub(r'^def (test_)?', '', re.sub(r'\(.*\)', '', text.split(':', 1)[0]), 1)
+
+
 class PackagePatcher(PackageCoder):
     default_specs_dir_name = 'specs'
-    class_delimiter = '\n\n\nclass '
     scenario_delimiter = '@decorators.Scenario(base.steps)\n'
 
     def __init__(self, test_module='behaviour.tests.test_stories', specs_path=''):
@@ -182,65 +253,53 @@ class PackagePatcher(PackageCoder):
     def get_tester(self, class_name):
         return getattr(importlib.import_module(self.test_module), class_name)
 
-    def patch_module(self, name, *mutations):
-        pieces = self.split_module(name)
+    def patch_module(self, module_name, *mutations):
+        split = self.split(module_name)
+        split.transform(*mutations)
 
-        for mutate in mutations:
-            mutate(pieces)
+        with open(os.path.join(self.tests_path, f'{module_name}.py'), 'w') as py_file:
+            py_file.write(text_utils.rstrip(split.source))
 
-        self.join(name, pieces)
-
-    def split_source(self, source):
-        piece_texts = source.split(self.class_delimiter)
-        top_item = ('top_piece', {'top_piece': piece_texts.pop(0)})
-
-        return collections.OrderedDict([top_item] + [(
-            re.match(r'^([A-Za-z]+)', class_text).groups()[0], collections.OrderedDict([
-                (re.sub(r'^    def (test_)?', '', re.sub(
-                    r'\(.*\)', '', text.split(':', 1)[0])), text)
-                for text in class_text.split(self.scenario_delimiter)]))
-            for class_text in piece_texts])
-
-    def split_module(self, name):
-        with open(os.path.join(self.tests_path, f'{name}.py')) as py_file:
-            return self.split_source(py_file.read())
-
-    def join(self, module_name, pieces):
-        with open(os.path.join(self.tests_path, f'{module_name}.py'), 'w') as test_py:
-            test_py.write(self.rstrip(self.class_delimiter.join([self.scenario_delimiter.join([
-                t for n, t in texts.items()]).strip() for n, texts in pieces.items()])))
+    def split(self, module_name):
+        with open(os.path.join(self.tests_path, f'{module_name}.py')) as py_file:
+            return Split(py_file.read(), self.scenario_delimiter)
 
     def remove_scenarios(self, pieces):
         for name, class_name in self.removed_scenarios.items():
-            del pieces[class_name][name]
+            pieces[class_name][name][0] = ''
+
+    def update_scenarios(self, pieces):
+        for class_name, piece in list(pieces.items())[1:]:
+            for name in filter(lambda n: n not in self.removed_scenarios, list(piece)[1:]):
+                spec = self.new_specs.features[class_name]['scenarios'][name]
+                piece[name][0] = text_utils.indent(
+                    FeatureClassCoder.make_scenario_method_def(
+                        name, spec).strip()[len(self.scenario_delimiter):]).strip()
 
     def add_scenarios(self, pieces):
         for class_name, scenarios in self.added_scenarios.items():
-            codes = [(name, text_utils.indent(FeatureClassCoder.make_scenario_method_def(
-                name, spec).lstrip()[len(self.scenario_delimiter):]) + '\n\n    ')
-                for name, spec in scenarios.items()]
+            codes = [(name, [text_utils.indent(
+                FeatureClassCoder.make_scenario_method_def(
+                    name, spec).strip()[len(self.scenario_delimiter):]).strip(),
+                '']) for name, spec in scenarios.items()]
             items = iter(pieces[class_name].items())
             pieces[class_name] = collections.OrderedDict([next(items)] + codes + list(items))
 
     def add_new_stories(self, pieces):
-        new_classes = self.split_source('\n' + '\n'.join(self.make_story_class_defs()))
+        new_classes = Split('\n' + '\n'.join(self.make_story_class_defs()),
+                            self.scenario_delimiter).pieces
         new_classes.pop('top_piece')
         pieces.update(new_classes)
 
     def sort_hierarchy(self, pieces):
-        for class_name, text in self.yield_piece_text(pieces):
-            pieces[class_name] = text
+        for class_name, piece in self.yield_sorted_pieces(pieces):
+            pieces[class_name] = piece
             pieces.move_to_end(class_name)
 
         for class_name in self.empty_classes:
             self.update_bases(class_name, f'base.{BASE_TESTER_NAME}', pieces)
 
-    @staticmethod
-    def update_bases(name, bases_code, pieces):
-        pieces[name][name] = re.sub(
-            r'\([A-Za-z., ]+\):', f'({bases_code}):', pieces[name][name], 1)
-
-    def yield_piece_text(self, pieces):
+    def yield_sorted_pieces(self, pieces):
         for name, bases in self.new_specs.class_bases:
             bases_code = ', '.join(FeatureClassCoder(
                 name, self.new_specs.features[name]).get_bases())
@@ -248,28 +307,22 @@ class PackagePatcher(PackageCoder):
 
             yield name, pieces[name]
 
+    @staticmethod
+    def update_bases(name, bases_code, pieces):
+        pieces[name][name][1] = re.sub(
+            r'\([A-Za-z., ]+\):', f'({bases_code}):', pieces[name][name][1], 1)
+
     def add_new_steps(self, class_name, pieces):
         tester = self.get_tester(class_name)
         step_specs = self.new_specs.get_all_step_specs(self.new_specs.features[class_name])
         steps_to_code = {name: (inp, out) for name, inp, out, make_it in step_specs
                          if make_it and not hasattr(tester, name)}
-        name, tail = pieces[class_name].popitem()
-        pieces[class_name][name] = tail + '\n' + text_utils.indent('\n'.join(
+        name, (_, tail) = next(reversed(pieces[class_name].items()))
+        pieces[class_name][name][1] = tail + '\n' + text_utils.indent('\n'.join(
             FeatureClassCoder.make_step_method_defs_for(steps_to_code)))
 
-    def update_scenarios(self, pieces):
-        for class_name, piece in list(pieces.items())[1:]:
-            for name, text in list(piece.items())[1:]:
-                stripped_name = re.sub(r'test_', '', name, 1)
-                spec = self.new_specs.features[class_name]['scenarios'][stripped_name]
-                piece[name] = re.sub(
-                    rf'^    def {name}\(self\):\n        """\n(.+?)\n        """',
-                    text_utils.indent(FeatureClassCoder.make_scenario_method_def(
-                        stripped_name, spec).strip()[len(self.scenario_delimiter):]),
-                    text, 1, flags=re.DOTALL)
-
     def add_base_methods(self, pieces):
-        pieces[BASE_TEST_CASE_NAME][BASE_TEST_CASE_NAME] += text_utils.indent(
+        pieces[BASE_TEST_CASE_NAME][BASE_TEST_CASE_NAME][1] += '\n' + text_utils.indent(
             self.make_base_method_defs())
 
     def patch(self):

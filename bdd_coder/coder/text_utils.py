@@ -35,3 +35,7 @@ def make_method(name, *doc_lines, args_text='', decorators=(), body=''):
     head = decorate(f'def {name}(self{args_text}):', decorators)
 
     return f'\n{head}\n' + make_def_content(*doc_lines, body=body)
+
+
+def rstrip(text):
+    return '\n'.join(list(map(str.rstrip, text.splitlines()))) + '\n'

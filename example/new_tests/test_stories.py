@@ -10,6 +10,11 @@ class ClearBoard(base.BddTester):
     In order to start making guesses on it
     """
 
+    def i_request_a_clear_board_in_my_new_game(self, *args):
+        assert len(args) == 0
+
+        return 'board',
+
 
 class NewPlayer(base.BddTester):
     """
