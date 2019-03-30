@@ -160,11 +160,6 @@ class Split(Repr):
                  f'    {r}' if r else '') for s, r in texts.values())))).strip()
             for n, texts in self.pieces.items()]))
 
-    @property
-    def scenarios(self):
-        return {cn: [(name, txt[0]) for name, txt in texts.items() if txt[0]]
-                for cn, texts in self.pieces.items()}
-
     def _split(self, source):
         return self._split_scenarios(self._get_piece_texts(source))
 

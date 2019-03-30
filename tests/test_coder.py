@@ -77,5 +77,9 @@ class PatcherTester(BlueprintTester):
             specs_path='example/new_specs', test_module='tmp.generated.test_stories')
         cls.patcher_output = cls.patcher.patch()
 
+    def test_split_str(self):
+        with open('tests/base_split.json') as json_file:
+            assert str(self.patcher.split('base')) == json_file.read()
+
     def test_new_example_test_files_match(self):
         self.assert_test_files_match('example/new_tests')
