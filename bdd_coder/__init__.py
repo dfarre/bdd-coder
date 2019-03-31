@@ -4,6 +4,8 @@ import collections
 import inspect
 import itertools
 import re
+import subprocess
+import sys
 
 LOGS_DIR_NAME = '.bdd-run-logs'
 COMPLETION_MSG = 'All scenarios ran'
@@ -37,6 +39,26 @@ class ParametersMixin:
     @classmethod
     def get_parameters(cls):
         return inspect.signature(cls).parameters
+
+
+class Process(subprocess.Popen):
+    def __init__(self, *command, **kwargs):
+        super().__init__(command, stdout=subprocess.PIPE, **kwargs)
+
+    def __iter__(self):
+        line = self.next_stdout()
+
+        while line:
+            yield line
+
+            line = self.next_stdout()
+
+    def next_stdout(self):
+        return self.stdout.readline().decode()
+
+    def write(self, stream=sys.stdout):
+        for line in self:
+            stream.write(line)
 
 
 def get_step_sentence(step_text):

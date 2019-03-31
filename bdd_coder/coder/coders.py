@@ -6,9 +6,9 @@ import itertools
 import json
 import os
 import re
-import subprocess
 
 from bdd_coder import ParametersMixin
+from bdd_coder import Process
 from bdd_coder import Repr
 
 from bdd_coder.coder import BASE_TESTER_NAME
@@ -104,9 +104,7 @@ class PackageCoder(ParametersMixin):
                 body=self.make_base_method_defs())])
 
     def pytest(self):
-        out = subprocess.run(['pytest', '-vv', self.tests_path], stdout=subprocess.PIPE)
-
-        return out.stdout.decode()
+        Process('pytest', '-vv', self.tests_path).write()
 
     def write_aliases_module(self):
         with open(os.path.join(self.tests_path, 'aliases.py'), 'w') as aliases_py:
@@ -134,8 +132,7 @@ class PackageCoder(ParametersMixin):
                 '\n\nfrom . import base\n' + '\n'.join(self.make_story_class_defs())))
 
         self.write_aliases_module()
-
-        return self.pytest()
+        self.pytest()
 
 
 class Split(Repr):
@@ -329,8 +326,7 @@ class PackagePatcher(PackageCoder):
                 if subclass.__name__ in self.new_specs.features])
         self.patch_module('base', self.add_base_methods)
         self.write_aliases_module()
-
-        return self.pytest()
+        self.pytest()
 
 
 def get_base_tester(test_module):

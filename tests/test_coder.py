@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import unittest
+import unittest.mock as mock
 
 from bdd_coder import commands
 
@@ -25,10 +26,18 @@ class BlueprintTester(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+
         cls.coder = coders.PackageCoder(
             specs_path='example/specs/', tests_path='tmp/generated/',
             logs_parent='example/tests/')
-        cls.output = cls.coder.create_tester_package()
+
+        with mock.patch('sys.stdout.write') as stdout_mock:
+            cls.coder.create_tester_package()
+
+            assert stdout_mock.call_count == 11
+
+            cls.coder_output = ''.join([
+                line for (line,), kw in stdout_mock.call_args_list])
 
     @classmethod
     def tearDownClass(cls):
@@ -46,7 +55,7 @@ class BlueprintTester(unittest.TestCase):
 
 class CoderTester(BlueprintTester):
     def test_pytest_output(self):
-        lines = self.output.splitlines()
+        lines = self.coder_output.splitlines()
         output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:])
 
         assert re.sub(r'[0-9]{2} seconds', '05 seconds', output) == PYTEST_OUTPUT
@@ -75,7 +84,7 @@ class PatcherTester(BlueprintTester):
         super().setUpClass()
         cls.patcher = coders.PackagePatcher(
             specs_path='example/new_specs', test_module='tmp.generated.test_stories')
-        cls.patcher_output = cls.patcher.patch()
+        cls.patcher.patch()
 
     def test_split_str(self):
         with open('tests/base_split.json') as json_file:
