@@ -216,8 +216,7 @@ class PackagePatcher(PackageCoder):
         self.test_module = test_module
         self.old_specs = self.base_tester.get_features_spec()
         self.new_specs = features.FeaturesSpec(specs_path or os.path.join(
-            os.path.dirname(os.path.dirname(self.tests_path)),
-            self.default_specs_dir_name))
+            os.path.dirname(self.tests_path), self.default_specs_dir_name))
 
         old_scenarios = self.old_specs.get_scenarios(self.old_specs.features)
         new_scenarios = self.new_specs.get_scenarios(self.new_specs.features)
