@@ -42,7 +42,7 @@ class FeaturesSpec(Repr):
 
     def _get_aliases(self):
         with open(os.path.join(self.specs_path, 'aliases.yml')) as yml_file:
-            yml_aliases = yaml.load(yml_file.read())
+            yml_aliases = yaml.load(yml_file.read(), Loader=yaml.FullLoader)
 
         return dict(itertools.chain(*(
             zip(map(sentence_to_name, names), [sentence_to_name(alias)]*len(names))
@@ -83,7 +83,7 @@ class FeaturesSpec(Repr):
 
         for story_yml_name in os.listdir(features_path):
             with open(os.path.join(features_path, story_yml_name)) as feature_yml:
-                yml_feature = yaml.load(feature_yml.read())
+                yml_feature = yaml.load(feature_yml.read(), Loader=yaml.FullLoader)
 
             feature = {
                 'class_name': self.title_to_class_name(yml_feature.pop('Title')),

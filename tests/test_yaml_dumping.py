@@ -18,7 +18,8 @@ class YamlDumpTests(unittest.TestCase):
 
     def assert_equal_yamls(self, lpath, rpath):
         with open(lpath) as lfile, open(rpath) as rfile:
-            assert yaml.load(lfile.read()) == yaml.load(rfile.read())
+            assert yaml.load(lfile.read(), Loader=yaml.FullLoader) == yaml.load(
+                rfile.read(), Loader=yaml.FullLoader)
 
     def test_aliases_yaml(self):
         tester.YamlDumper.dump_yaml_aliases(aliases.MAP, 'tmp')
