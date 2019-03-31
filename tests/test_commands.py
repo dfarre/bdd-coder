@@ -118,17 +118,15 @@ SPECS_ERROR = ("Duplicate titles are not supported, ['FakeFoo']\n"
 class MakeBlueprintTests(unittest.TestCase):
     command = commands.MakeBlueprint(test_mode=True)
 
-    @mock.patch('sys.stdout.write')
     @mock.patch('bdd_coder.coder.coders.PackageCoder.__init__', return_value=None)
     @mock.patch('bdd_coder.coder.coders.PackageCoder.create_tester_package',
                 return_value='Output')
-    def test_create_package_call(self, create_package_mock, PackageCoderMock, stdout_mock):
+    def test_create_package_call(self, create_package_mock, PackageCoderMock):
         kwargs = {'foo': None, 'bar': 100, 'qux': 'hello'}
         assert self.command(**kwargs) == 0
         kwargs.pop('foo')
         PackageCoderMock.assert_called_once_with(**kwargs)
         create_package_mock.assert_called_once_with()
-        stdout_mock.assert_called_once_with(create_package_mock.return_value)
 
     @mock.patch('sys.stderr.write')
     def test_inconsistent_specs(self, stderr_mock):
@@ -139,17 +137,15 @@ class MakeBlueprintTests(unittest.TestCase):
 class PatchBlueprintTests(unittest.TestCase):
     command = commands.PatchBlueprint(test_mode=True)
 
-    @mock.patch('sys.stdout.write')
     @mock.patch('bdd_coder.coder.coders.PackagePatcher.__init__', return_value=None)
     @mock.patch('bdd_coder.coder.coders.PackagePatcher.patch',
                 return_value='Output')
-    def test_patch_package_call(self, patch_package_mock, PackagePatcherMock, stdout_mock):
+    def test_patch_package_call(self, patch_package_mock, PackagePatcherMock):
         kwargs = {'foo': None, 'bar': 100, 'qux': 'hello'}
         assert self.command(**kwargs) == 0
         kwargs.pop('foo')
         PackagePatcherMock.assert_called_once_with(**kwargs)
         patch_package_mock.assert_called_once_with()
-        stdout_mock.assert_called_once_with(patch_package_mock.return_value)
 
     @mock.patch('sys.stderr.write')
     def test_inconsistent_specs(self, stderr_mock):

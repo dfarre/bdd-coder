@@ -36,19 +36,13 @@ class SpecErrorCommand(Command, metaclass=abc.ABCMeta):
     def try_call(self, **kwargs):
         """May raise `FeaturesSpecError`"""
 
-    @abc.abstractmethod
-    def stdout_write(self, try_call_output):
-        """Return output when no `FeaturesSpecError`"""
-
     def call(self, **kwargs):
         try:
-            output = self.try_call(**kwargs)
+            self.try_call(**kwargs)
+            return 0
         except features.FeaturesSpecError as error:
             sys.stderr.write(str(error) + '\n')
             return 1
-
-        sys.stdout.write(self.stdout_write(output))
-        return 0
 
 
 class MakeBlueprint(SpecErrorCommand):
@@ -64,10 +58,7 @@ class MakeBlueprint(SpecErrorCommand):
             help=f'Name for test_<name>.py. default: {params["test_module_name"].default}')))
 
     def try_call(self, **kwargs):
-        return coders.PackageCoder(**kwargs)
-
-    def stdout_write(self, try_call_output):
-        return try_call_output.create_tester_package()
+        coders.PackageCoder(**kwargs).create_tester_package()
 
 
 class PatchBlueprint(SpecErrorCommand):
@@ -80,10 +71,7 @@ class PatchBlueprint(SpecErrorCommand):
             'next to test package')))
 
     def try_call(self, **kwargs):
-        return coders.PackagePatcher(**kwargs)
-
-    def stdout_write(self, try_call_output):
-        return try_call_output.patch()
+        coders.PackagePatcher(**kwargs).patch()
 
 
 class CheckPendingScenarios(Command):
