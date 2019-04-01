@@ -1,30 +1,20 @@
 # BDD Coder
-A package devoted to agile implementation of **class-based behavioural tests**.
-It consists of:
+A package devoted to agile implementation of **class-based behavioural tests**. It consists of:
 
-* [coder](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/coder)
-  package able to
+* [coder](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/coder) package able to
 
-  1. make a tester package - test suite - blueprint - see
-     [example/tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/tests) -
-     from user story specifications in YAML files - see
-     [example/specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/specs),
+  1. make a tester package - test suite - blueprint - see [example/tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/tests) - from user story specifications in YAML files - see [example/specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/specs),
 
-  2. patch such tester package with new YAML specifications - see
-     [example/new_specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_specs) and [example/new_tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_tests)
+  2. patch such tester package with new YAML specifications - see [example/new_specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_specs) and [example/new_tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_tests)
 
-* [tester](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/tester)
-  package employed to run such blueprint tests, which also has the abiliry to
-  export their docs as YAML specifications
+* [tester](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/tester) package employed to run such blueprint tests, which also has the abiliry to export their docs as YAML specifications
 
 Test with [tox](https://tox.readthedocs.io/en/latest/) - see tox.ini.
 
 See [mastermind](https://bitbucket.org/coleopter/mastermind) for an application.
 
 ## Story
-This package was born as a study of Behaviour Driven Development; and from the wish
-of having a handy implementation of Gherkin language in class-based tests, to be
-employed so that development cycles start with:
+This package was born as a study of Behaviour Driven Development; and from the wish of having a handy implementation of Gherkin language in class-based tests, to be employed so that development cycles start with:
 
   1. A set of YAML specifications is agreed
 
@@ -62,9 +52,7 @@ Pending []
 
 All scenarios ran ▌ 2 ✅ ▌ 1 ❌
 ```
-into `$logs_parent/.bdd-run-logs/` (git-ignored), split by date into files `YYYY-MM-DD.log`,
-with the `logs_parent` value passed to `bdd_coder.tester.decorators.Steps`, which
-also has a `max_history_length` parameter - in days, older history is removed.
+into `$logs_parent/.bdd-run-logs/` (git-ignored), split by date into files `YYYY-MM-DD.log`, with the `logs_parent` value passed to `bdd_coder.tester.decorators.Steps`, which also has a `max_history_length` parameter - in days, older history is removed.
 
 In Ubuntu I use the bash function
 ```
@@ -72,14 +60,11 @@ function bdd-log-tab() {
   gnome-terminal --tab -- tail -f $(pwd)/$1/.bdd-run-logs/$(ls $(pwd)/$1/.bdd-run-logs | tail -1)
 }
 ```
-to open a terminal tab that will output the log stream as tests run
-(if the `.bdd-run-logs` directory exists).
+to open a terminal tab that will output the log stream as tests run (if the `.bdd-run-logs` directory exists).
 
 ### Commands
 #### Check if pending scenarios
-It may happen that all steps - and so all tests - that ran succeeded, but some
-scenarios were not reached. Run `bdd-pending-scenarios` after `pytest` to treat this
-as an error (recommended)
+It may happen that all steps - and so all tests - that ran succeeded, but some scenarios were not reached. Run `bdd-pending-scenarios` after `pytest` to treat this as an error (recommended)
 ```
 ❌ Some scenarios did not run! Check the logs in [...]/.bdd-run-logs
 ```
@@ -127,8 +112,7 @@ The following:
 ```
 bdd-coder$ bdd-blueprint -i example/specs -o example/tests --overwrite
 ```
-will rewrite example/tests (with no changes if example/specs is unmodified),
-and run `pytest` on the blueprint yielding the output, like
+will rewrite example/tests (with no changes if example/specs is unmodified), and run `pytest` on the blueprint yielding the output, like
 ```
 ============================= test session starts ==============================
 platform [...]
@@ -141,8 +125,7 @@ example/tests/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
 ```
 
 ### Patch a test suite with new specifications
-Use this command in order to update a tester package with new YAML specifications -
-removing scenario declarations only.
+Use this command in order to update a tester package with new YAML specifications - removing scenario declarations only.
 ```
 usage: bdd-patch [-h] test_module [specs_path]
 
@@ -154,8 +137,7 @@ The following:
 ```
 bdd-coder$ bdd-patch example.tests.test_stories example/new_specs
 ```
-will turn example/tests into example/new_tests, and run `pytest` on the suite
-yielding something like
+will turn example/tests into example/new_tests, and run `pytest` on the suite yielding something like
 ```
 ============================= test session starts ==============================
 platform [...]
