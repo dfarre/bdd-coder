@@ -81,7 +81,7 @@ usage: bdd-make-yaml-specs [-h] [--overwrite] [--validate]
                            test_module specs_path
 
 positional arguments:
-  test_module      passed to `importlib.import_module`
+  test_module      passed to importlib.import_module
   specs_path       will try to write the YAML files in here
 
 optional arguments:
@@ -130,7 +130,7 @@ Use this command in order to update a tester package with new YAML specification
 usage: bdd-patch [-h] test_module [specs_path]
 
 positional arguments:
-  test_module  passed to `importlib.import_module`
+  test_module  passed to importlib.import_module
   specs_path   Directory to take new specs from. default: specs/ next to test package
 ```
 The following:
