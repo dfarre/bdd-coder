@@ -2,7 +2,6 @@
 A package devoted to agile implementation of **class-based behavioural tests**. It consists of:
 
 * [coder](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/coder) package able to
-
   1. make a tester package - test suite - blueprint - see [example/tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/tests) - from user story specifications in YAML files - see [example/specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/specs),
 
   2. patch such tester package with new YAML specifications - see [example/new_specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_specs) and [example/new_tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_tests)
