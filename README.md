@@ -16,11 +16,11 @@ See [mastermind](https://bitbucket.org/coleopter/mastermind) for an application.
 ## Story
 This package was born as a study of Behaviour Driven Development; and from the wish of having a handy implementation of Gherkin language in class-based tests, to be employed so that development cycles start with:
 
-  1. A set of YAML specifications is agreed
+1. A set of YAML specifications is agreed
 
-  2. From these, a test suite is automatically created or patched
+2. From these, a test suite is automatically created or patched
 
-  3. New test methods are coded to efficiently achieve 100% behavioural coverage
+3. New test methods are coded to efficiently achieve 100% behavioural coverage
 
 ## Tester
 ### Test run logging
@@ -112,7 +112,7 @@ The following:
 ```
 bdd-coder$ bdd-blueprint -i example/specs -o example/tests --overwrite
 ```
-will rewrite example/tests (with no changes if example/specs is unmodified), and run `pytest` on the blueprint yielding the output, like
+will rewrite [example/tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/tests) (with no changes if [example/specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/specs) is unmodified), and run `pytest` on the blueprint yielding the output, like
 ```
 ============================= test session starts ==============================
 platform [...]
@@ -137,7 +137,7 @@ The following:
 ```
 bdd-coder$ bdd-patch example.tests.test_stories example/new_specs
 ```
-will turn example/tests into example/new_tests, and run `pytest` on the suite yielding something like
+will turn [example/tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/tests) into [example/new_tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_tests), and run `pytest` on the suite yielding something like
 ```
 ============================= test session starts ==============================
 platform [...]
