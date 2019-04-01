@@ -55,7 +55,8 @@ class MakeBlueprint(SpecErrorCommand):
         ((f'--{params["tests_path"].name.replace("_", "-")}', '-o'), dict(
             help='default: next to specs')),
         ((f'--{params["test_module_name"].name.replace("_", "-")}', '-n'), dict(
-            help=f'Name for test_<name>.py. default: {params["test_module_name"].default}')))
+            help=f'Name for test_<name>.py. default: {params["test_module_name"].default}')),
+        ((f'--{params["overwrite"].name.replace("_", "-")}',), dict(action='store_true')))
 
     def try_call(self, **kwargs):
         coders.PackageCoder(**kwargs).create_tester_package()
@@ -75,7 +76,7 @@ class PatchBlueprint(SpecErrorCommand):
 
 
 class CheckPendingScenarios(Command):
-    arguments = ((('logs_parent',), {}),)
+    arguments = ((('logs_parent',), dict(help=f'Parent directory of {LOGS_DIR_NAME}/')),)
 
     def call(self, **kwargs):
         logs_dir = os.path.join(kwargs['logs_parent'], LOGS_DIR_NAME)

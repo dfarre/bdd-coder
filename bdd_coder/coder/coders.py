@@ -74,12 +74,13 @@ class FeatureClassCoder:
 
 class PackageCoder(ParametersMixin):
     def __init__(self, base_class='unittest.TestCase', specs_path='behaviour/specs',
-                 tests_path='', test_module_name='stories', logs_parent=''):
+                 tests_path='', test_module_name='stories', overwrite=False, logs_parent=''):
         self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
         self.features_spec = features.FeaturesSpec(specs_path)
         self.tests_path = tests_path or os.path.join(os.path.dirname(specs_path), 'tests')
         self.logs_parent = logs_parent or self.tests_path
         self.test_module_name = test_module_name
+        self.overwrite = overwrite
 
     def make_story_class_defs(self):
         return [FeatureClassCoder(class_name, spec).make()
@@ -111,7 +112,7 @@ class PackageCoder(ParametersMixin):
             aliases_py.write(text_utils.rstrip(self.make_aliases_def()))
 
     def create_tester_package(self):
-        os.makedirs(self.tests_path)
+        os.makedirs(self.tests_path, exist_ok=self.overwrite)
 
         with open(os.path.join(self.tests_path, '__init__.py'), 'w') as init_py:
             init_py.write('')
