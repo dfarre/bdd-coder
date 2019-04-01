@@ -5,7 +5,7 @@ from bdd_coder.tester import tester
 
 from . import aliases
 
-steps = decorators.Steps(aliases.MAP, 'example/tests/')
+steps = decorators.Steps(aliases.MAP, 'example/tests')
 
 
 @steps

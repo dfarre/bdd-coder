@@ -2,7 +2,7 @@
     "top_piece": {
         "top_piece": [
             "",
-            "from unittest import TestCase\n\nfrom bdd_coder.tester import decorators\nfrom bdd_coder.tester import tester\n\nfrom . import aliases\n\nsteps = decorators.Steps(aliases.MAP, 'example/tests/')\n\n\n@steps\nclass BddTester(tester.BddTester):\n    pass"
+            "from unittest import TestCase\n\nfrom bdd_coder.tester import decorators\nfrom bdd_coder.tester import tester\n\nfrom . import aliases\n\nsteps = decorators.Steps(aliases.MAP, 'example/tests')\n\n\n@steps\nclass BddTester(tester.BddTester):\n    pass"
         ]
     },
     "BaseTestCase": {

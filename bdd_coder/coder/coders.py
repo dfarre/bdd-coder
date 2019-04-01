@@ -78,7 +78,7 @@ class PackageCoder(ParametersMixin):
         self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
         self.features_spec = features.FeaturesSpec(specs_path)
         self.tests_path = tests_path or os.path.join(os.path.dirname(specs_path), 'tests')
-        self.logs_parent = logs_parent or self.tests_path
+        self.logs_parent = (logs_parent or self.tests_path).rstrip('/')
         self.test_module_name = test_module_name
         self.overwrite = overwrite
 

@@ -13,7 +13,6 @@ It consists of:
   2. patch such tester package with new YAML specifications - see
      [example/new_specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_specs) and [example/new_tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_tests)
 
-
 * [tester](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/tester)
   package employed to run such blueprint tests, which also has the abiliry to
   export their docs as YAML specifications
