@@ -16,7 +16,7 @@ See [mastermind](https://bitbucket.org/coleopter/mastermind) for an application.
 ## Story
 This package was born as a study of Behaviour Driven Development; and from the wish of having a handy implementation of Gherkin language in class-based tests, to be employed so that development cycles start with coding a behavioural test suite containing the scenario specifications in test case method `__doc__`s - as `bdd_coder.tester` achieves.
 
-In conjunction with `bdd_coder.coder`, development cycles may start with:
+In conjunction with `bdd_coder.coder`, development cycles **start** with:
 
 1. A set of YAML specifications is agreed
 
