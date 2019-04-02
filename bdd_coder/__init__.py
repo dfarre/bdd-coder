@@ -7,6 +7,9 @@ import re
 import subprocess
 import sys
 
+BASE_TEST_CASE_NAME = 'BaseTestCase'
+BASE_TESTER_NAME = 'BddTester'
+
 LOGS_DIR_NAME = '.bdd-run-logs'
 COMPLETION_MSG = 'All scenarios ran'
 OK, FAIL = '✅', '❌'
@@ -18,6 +21,41 @@ class Repr:
 
     def __repr__(self):
         return f'<{self.__class__.__name__}: {self}>'
+
+
+class DocException(Exception):
+    def __init__(self, *args, **kwargs):
+        self.text = ' '.join(list(filter(None, map(str.strip, self.__doc__.format(
+            *args, **kwargs).splitlines()))))
+
+    def __str__(self):
+        return self.text
+
+
+class InconsistentClassStructure(DocException):
+    """
+    Expected class structure {class_bases_text} from docs
+    does not match the defined one. {error}
+    """
+
+
+class BaseTesterRetrievalError(DocException):
+    """Raised in the base tester retrieval process"""
+
+
+class StoriesModuleNotFoundError(BaseTesterRetrievalError):
+    """Test module {test_module} not found"""
+
+
+class BaseModuleNotFoundError(BaseTesterRetrievalError):
+    """Test module {test_module} should have a `base` module imported"""
+
+
+class BaseTesterNotFoundError(BaseTesterRetrievalError):
+    """
+    Imported base test module {test_module}.base should have a single
+    BddTester subclass - found {set}
+    """
 
 
 class SubclassesMixin:
@@ -44,6 +82,9 @@ class ParametersMixin:
 class Process(subprocess.Popen):
     def __init__(self, *command, **kwargs):
         super().__init__(command, stdout=subprocess.PIPE, **kwargs)
+
+    def __str__(self):
+        return ''.join(list(self))
 
     def __iter__(self):
         line = self.next_stdout()

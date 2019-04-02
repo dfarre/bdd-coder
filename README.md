@@ -132,6 +132,10 @@ usage: bdd-patch [-h] test_module [specs_path]
 positional arguments:
   test_module  passed to importlib.import_module
   specs_path   Directory to take new specs from. default: specs/ next to test package
+
+optional arguments:
+  --scenario-delimiter SCENARIO_DELIMITER, -d SCENARIO_DELIMITER
+                        default: @decorators.Scenario(base.steps)
 ```
 The following:
 ```

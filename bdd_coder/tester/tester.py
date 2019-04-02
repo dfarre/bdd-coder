@@ -9,6 +9,7 @@ import traceback
 import unittest
 import yaml
 
+from bdd_coder import InconsistentClassStructure
 from bdd_coder import SubclassesMixin
 from bdd_coder import strip_lines
 from bdd_coder import to_sentence
@@ -84,7 +85,8 @@ class BddTester(YamlDumper, SubclassesMixin):
                     f'Bases {own_bases_names} defined in {klass.__name__} do not ' \
                     f'match the specified ones {bases_names}'
         except AssertionError as error:
-            return str(error)
+            raise InconsistentClassStructure(
+                error=error, class_bases_text=features_spec.get_class_bases_text())
 
     @classmethod
     def dump_yaml_specs(cls, parent_dir, overwrite=False):

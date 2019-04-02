@@ -5,6 +5,8 @@ import sys
 
 from bdd_coder import LOGS_DIR_NAME
 from bdd_coder import OK, FAIL
+from bdd_coder import BaseTesterRetrievalError
+from bdd_coder import InconsistentClassStructure
 from bdd_coder.coder import coders
 from bdd_coder.coder import features
 
@@ -31,21 +33,24 @@ class Command(metaclass=abc.ABCMeta):
         """The command function"""
 
 
-class SpecErrorCommand(Command, metaclass=abc.ABCMeta):
+class ErrorsCommand(Command, metaclass=abc.ABCMeta):
+    exceptions = ()
+
     @abc.abstractmethod
     def try_call(self, **kwargs):
-        """May raise `FeaturesSpecError`"""
+        f"""May raise {self.exceptions}"""
 
     def call(self, **kwargs):
         try:
             self.try_call(**kwargs)
             return 0
-        except features.FeaturesSpecError as error:
+        except self.exceptions as error:
             sys.stderr.write(str(error) + '\n')
             return 1
 
 
-class MakeBlueprint(SpecErrorCommand):
+class MakeBlueprint(ErrorsCommand):
+    exceptions = (features.FeaturesSpecError,)
     params = coders.PackageCoder.get_parameters()
     arguments = (
         ((f'--{params["base_class"].name.replace("_", "-")}', '-c'), dict(
@@ -62,17 +67,40 @@ class MakeBlueprint(SpecErrorCommand):
         coders.PackageCoder(**kwargs).create_tester_package()
 
 
-class PatchBlueprint(SpecErrorCommand):
+class PatchBlueprint(ErrorsCommand):
+    exceptions = (
+        BaseTesterRetrievalError, features.FeaturesSpecError, coders.TwoManyBlankLines)
     params = coders.PackagePatcher.get_parameters()
     arguments = (
         ((params['test_module'].name,), dict(help='passed to `importlib.import_module`')),
         ((params['specs_path'].name,), dict(
             nargs='?', help='Directory to take new specs from. '
             f'default: {coders.PackagePatcher.default_specs_dir_name}/ '
-            'next to test package')))
+            'next to test package')),
+        ((f'--{params["scenario_delimiter"].name.replace("_", "-")}', '-d'), dict(
+            help=f'default: {params["scenario_delimiter"].default}')))
 
     def try_call(self, **kwargs):
         coders.PackagePatcher(**kwargs).patch()
+
+
+class MakeYamlSpecs(ErrorsCommand):
+    exceptions = (
+        BaseTesterRetrievalError, features.FeaturesSpecError, InconsistentClassStructure)
+    arguments = ((('test_module',), dict(help='passed to `importlib.import_module`')),
+                 (('specs_path',), dict(help='will try to write the YAML files in here')),
+                 (('--overwrite', '-w'), dict(action='store_true')),
+                 (('--validate', '-v'), dict(action='store_true')),)
+
+    def try_call(self, overwrite=False, **kwargs):
+        base_tester = coders.get_base_tester(kwargs['test_module'])
+        base_tester.dump_yaml_specs(kwargs['specs_path'], overwrite)
+        sys.stdout.write(f"Specification files generated in {kwargs['specs_path']}\n")
+
+        if kwargs['validate']:
+            features_spec = features.FeaturesSpec(kwargs['specs_path'])
+            base_tester.validate_bases(features_spec)
+            sys.stdout.write('And validated\n')
 
 
 class CheckPendingScenarios(Command):
@@ -100,37 +128,6 @@ class CheckPendingScenarios(Command):
 
         sys.stdout.write('No logs found\n')
         return 2
-
-
-class MakeYamlSpecs(Command):
-    arguments = ((('test_module',), dict(help='passed to `importlib.import_module`')),
-                 (('specs_path',), dict(help='will try to write the YAML files in here')),
-                 (('--overwrite', '-w'), dict(action='store_true')),
-                 (('--validate', '-v'), dict(action='store_true')),)
-
-    def call(self, overwrite=False, **kwargs):
-        base_tester = coders.get_base_tester(kwargs['test_module'])
-        base_tester.dump_yaml_specs(kwargs['specs_path'], overwrite)
-        sys.stdout.write(f"Specification files generated in {kwargs['specs_path']}\n")
-
-        if kwargs['validate']:
-            try:
-                features_spec = features.FeaturesSpec(kwargs['specs_path'])
-            except features.FeaturesSpecError as error:
-                sys.stderr.write(str(error) + '\n')
-                return 1
-            else:
-                error = base_tester.validate_bases(features_spec)
-
-                if error:
-                    sys.stderr.write(
-                        f'Expected class structure {features_spec.get_class_bases_text()} '
-                        f'from docs does not match the defined one. {error}\n')
-                    return 1
-
-                sys.stdout.write('And validated\n')
-
-        return 0
 
 
 make_blueprint = MakeBlueprint()

@@ -7,16 +7,21 @@ import json
 import os
 import re
 
+from bdd_coder import BASE_TEST_CASE_NAME
+from bdd_coder import BASE_TESTER_NAME
+from bdd_coder import BaseModuleNotFoundError
+from bdd_coder import BaseTesterNotFoundError
+from bdd_coder import StoriesModuleNotFoundError
 from bdd_coder import ParametersMixin
 from bdd_coder import Process
 from bdd_coder import Repr
 
-from bdd_coder.coder import BASE_TESTER_NAME
-from bdd_coder.coder import BASE_TEST_CASE_NAME
 from bdd_coder.coder import features
 from bdd_coder.coder import text_utils
 
 from bdd_coder.tester import tester
+
+DEFAULT_SCENARIO_DELIMITER = '@decorators.Scenario(base.steps)\n'
 
 
 class FeatureClassCoder:
@@ -139,7 +144,7 @@ class PackageCoder(ParametersMixin):
 class Split(Repr):
     class_delimiter = '\n\n\nclass '
 
-    def __init__(self, source, scenario_delimiter):
+    def __init__(self, source, scenario_delimiter=DEFAULT_SCENARIO_DELIMITER):
         self.scenario_delimiter = scenario_delimiter
         source = text_utils.rstrip(source)
         self.pieces = self._split(source)
@@ -181,7 +186,7 @@ class Split(Repr):
                 regex, flags = self.scenario_regex(name)
                 match = re.match(regex, text, flags=flags)
                 piece_texts[class_name][name] = [
-                    match.groups()[0] if match else '',
+                    match.group() if match else '',
                     re.sub(regex, '', text, flags=flags).strip()]
 
         return piece_texts
@@ -197,22 +202,29 @@ class Split(Repr):
 
     @staticmethod
     def get_class_name(class_text):
-        return re.match(r'^([A-Za-z]+)', class_text).groups()[0]
+        return re.match(r'^([A-Za-z]+)', class_text).group()
 
     @staticmethod
     def get_scenario_name(text):
         return re.sub(r'^def (test_)?', '', re.sub(r'\(.*\)', '', text.split(':', 1)[0]), 1)
 
 
+class TwoManyBlankLines(Exception):
+    """So that modules would not be correctly split in class pieces"""
+
+
 class PackagePatcher(PackageCoder):
     default_specs_dir_name = 'specs'
-    scenario_delimiter = '@decorators.Scenario(base.steps)\n'
 
-    def __init__(self, test_module='behaviour.tests.test_stories', specs_path=''):
+    def __init__(self, test_module='behaviour.tests.test_stories', specs_path='',
+                 scenario_delimiter=DEFAULT_SCENARIO_DELIMITER):
+        """Raises `TwoManyBlankLines` if E303"""
+        self.scenario_delimiter = scenario_delimiter
         self.tests_path = os.path.dirname(test_module.replace('.', '/'))
         self.test_module_name = test_module.rsplit('.', 1)[-1]
         self.test_module = test_module
         self.old_specs = self.base_tester.get_features_spec()
+        self._ensure_not_too_many_blank_lines()
         self.new_specs = features.FeaturesSpec(specs_path or os.path.join(
             os.path.dirname(self.tests_path), self.default_specs_dir_name))
 
@@ -237,6 +249,12 @@ class PackagePatcher(PackageCoder):
         self.features_spec.aliases = {**self.old_specs.aliases, **self.new_specs.aliases}
         self.features_spec.base_methods = (
             set(self.new_specs.base_methods) - set(self.old_specs.base_methods))
+
+    def _ensure_not_too_many_blank_lines(self):
+        flakeE303 = str(Process('flake8', '--select=E303', self.tests_path))
+
+        if flakeE303:
+            raise TwoManyBlankLines(flakeE303)
 
     @property
     def base_tester(self):
@@ -331,8 +349,19 @@ class PackagePatcher(PackageCoder):
 
 
 def get_base_tester(test_module):
-    module = (importlib.import_module(test_module)
-              if isinstance(test_module, str) else test_module)
+    if isinstance(test_module, str):
+        try:
+            test_module = importlib.import_module(test_module)
+        except ModuleNotFoundError:
+            raise StoriesModuleNotFoundError(test_module=test_module)
 
-    return {obj for name, obj in inspect.getmembers(module.base)
-            if inspect.isclass(obj) and tester.BddTester in obj.__bases__}.pop()
+    if not hasattr(test_module, 'base'):
+        raise BaseModuleNotFoundError(test_module=test_module)
+
+    base_tester = {obj for name, obj in inspect.getmembers(test_module.base)
+                   if inspect.isclass(obj) and tester.BddTester in obj.__bases__}
+
+    if not len(base_tester) == 1:
+        raise BaseTesterNotFoundError(test_module=test_module, set=base_tester)
+
+    return base_tester.pop()

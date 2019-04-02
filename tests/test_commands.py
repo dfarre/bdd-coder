@@ -5,6 +5,7 @@ import unittest
 import unittest.mock as mock
 
 from bdd_coder import commands
+from bdd_coder import InconsistentClassStructure
 from bdd_coder import LOGS_DIR_NAME, FAIL, OK, COMPLETION_MSG
 
 from example.tests import base
@@ -12,19 +13,21 @@ from example.tests import test_stories
 
 
 class ValidateBasesTests(unittest.TestCase):
-    specs = collections.namedtuple('FakeSpecs', ('class_bases', 'features'))
+    fake_specs = collections.namedtuple('FakeSpecs', ('class_bases', 'features'))
+    fake_specs.get_class_bases_text = lambda: ['class NewGame', 'class ClearBoard(NewGame)']
 
     def assert_error(self, value):
-        assert base.BddTester.validate_bases(self.specs) == value
+        self.assertRaisesRegex(InconsistentClassStructure, value,
+                               lambda: base.BddTester.validate_bases(self.fake_specs))
 
     def test_wrong_name(self):
-        self.specs.class_bases = [('FooStory', set())]
+        self.fake_specs.class_bases = [('FooStory', set())]
 
         self.assert_error('NewGame != FooStory')
 
     def init_specs(self):
-        self.specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]
-        self.specs.features = collections.OrderedDict([
+        self.fake_specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]
+        self.fake_specs.features = collections.OrderedDict([
             ('NewGame', {'inherited': True}), ('ClearBoard', {'inherited': False})])
 
     def test_wrong_bases(self):
@@ -35,13 +38,13 @@ class ValidateBasesTests(unittest.TestCase):
 
     def test_missing_test_case(self):
         self.init_specs()
-        self.specs.features['NewGame']['inherited'] = False
+        self.fake_specs.features['NewGame']['inherited'] = False
 
         self.assert_error('Expected one BaseTestCase subclass in NewGame')
 
     def test_unexpected_test_case(self):
         self.init_specs()
-        self.specs.features['ClearBoard']['inherited'] = True
+        self.fake_specs.features['ClearBoard']['inherited'] = True
 
         self.assert_error('Unexpected BaseTestCase subclass in ClearBoard')
 
@@ -99,7 +102,10 @@ class MakeYamlSpecsTests(unittest.TestCase):
 
         test_stories.NewGame.test_odd_boards.__doc__ = doc_ok
 
-    @mock.patch('bdd_coder.tester.tester.BddTester.validate_bases', return_value='Error!')
+    @mock.patch('bdd_coder.tester.tester.BddTester.validate_bases',
+                side_effect=InconsistentClassStructure(
+                    class_bases_text=['class NewGame', 'class ClearBoard(NewGame)'],
+                    error='FAKE'))
     @mock.patch('sys.stderr.write')
     def test__class_bases_error(self, stderr_mock, validate_bases_mock):
         os.makedirs(self.features_dir)
@@ -107,7 +113,7 @@ class MakeYamlSpecsTests(unittest.TestCase):
         assert self.call(overwrite=True, validate=True) == 1
         stderr_mock.assert_called_once_with(
             "Expected class structure ['class NewGame', 'class ClearBoard(NewGame)'] "
-            'from docs does not match the defined one. Error!\n')
+            'from docs does not match the defined one. FAKE\n')
 
 
 SPECS_ERROR = ("Duplicate titles are not supported, ['FakeFoo']\n"
