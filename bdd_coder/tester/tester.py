@@ -157,8 +157,6 @@ class BddTester(YamlDumper, SubclassesMixin):
 class BaseTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
-        super().tearDownClass()
-
         if cls.steps.get_pending_runs():
             end_note = ''
         else:

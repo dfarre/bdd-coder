@@ -7,7 +7,7 @@ A package devoted to agile implementation of **class-based behavioural tests**. 
 
     - patch such tester package with new YAML specifications - see [example/new_specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_specs) and [example/new_tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_tests)
 
-* [tester](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/tester) package employed to run such blueprint tests, which also has the abiliry to export their docs as YAML specifications
+* [tester](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/tester) package employed to run such blueprint tests, which also has the ability to export their docs as YAML specifications
 
 Test with [tox](https://tox.readthedocs.io/en/latest/) - see tox.ini.
 
@@ -16,15 +16,114 @@ See [mastermind](https://bitbucket.org/coleopter/mastermind) for an application.
 ## Story
 This package was born as a study of Behaviour Driven Development; and from the wish of having a handy implementation of Gherkin language in class-based tests, to be employed so that development cycles start with coding a behavioural test suite containing the scenario specifications in test case method `__doc__`s - as `bdd_coder.tester` achieves.
 
-In conjunction with `bdd_coder.coder`, development cycles **start** with:
+In conjunction with `bdd_coder.coder`, development cycles *start* with:
 
-1. A set of YAML specifications is agreed
+1. A set of YAML specifications is agreed and crafted
 
 2. From these, a test suite is automatically created or patched
 
-3. New test methods are coded to efficiently achieve 100% behavioural coverage
+3. New *test step methods* are crafted to efficiently achieve 100% behavioural coverage
+
+## User Story (feature) specifications
+Each test suite (tester package) has a structure
+```
+├─ __init__.py
+├─ aliases.py
+├─ base.py
+└─ test_stories.py
+```
+corresponding to a specifications directory
+```
+├─ aliases.yml
+└─ features/
+   ├─ some-story.yml
+   ├─ another-story.yml
+   ├─ ...
+   └─ this-story.yml
+```
+A story YAML file (the ones under features/) corresponds to a test case class declared into `test_stories.py`, consisting mainly of scenario declarations:
+```
+Title: <Story title>  # --> class __name__
+
+Story: |-  # free text --> class __doc__
+  As a <user group>
+  I want <feature>
+  In order to/so that <goal>
+
+Scenarios:
+  Scenario name:  # --> scenario __doc__
+    - Step "1" with "A" gives `x` and `y`
+      # ...
+    - Last step with "B" gives `result`
+  # ...
+
+# Extra class atributes - ignored in patching
+Extra class atribute ignored in patch:
+  <yaml-attribute-coded-with-str(yaml.load)>
+...
+```
+So only the keys `Title`, `Story`, `Scenarios` are reserved.
+
+Scenario names are unique
+
+### Step declarations
+* Start with a whole word - normally 'Given', 'When', or 'Then' - that is ignored by the tester (only order matters)
+
+* May contain:
+
+    + Input `*args` sequence of values in double-quotes - passed to the step method
+
+    + Output variable name sequence using backticks - if non-empty, the method should return the output values as a tuple, which are collected by the `bdd_coder.tester.decorators.Steps` decorator instance, by name into its `outputs` map of sequences
+
+* May refer to a scenario name, either belonging to the same class (story), or to an inherited class
 
 ## Tester
+The core of each test suite consists of the following required class declarations in its `base.py` module:
+```
+from test.case.module import MyTestCase
+
+from bdd_coder.tester import decorators
+from bdd_coder.tester import tester
+
+from . import aliases
+
+steps = decorators.Steps(aliases.MAP, logs_parent='example/tests')
+
+
+@steps
+class BddTester(tester.BddTester):
+    """
+    The decorated BddTester subclass of this suite - manages scenario runs
+    """
+
+
+class BaseTestCase(tester.BaseTestCase, MyTestCase):
+    """
+    The base test case of this suite - manages test runs
+    """
+```
+Then, story test cases are declared in `test_stories.py`, with
+```
+from . import base
+from bdd_coder.tester import decorators
+```
+as
+```
+class StoryTitle(BddTesterSubclass, AnotherBddTesterSubclass, ...[, base.BaseTestCase]):
+```
+with scenario declarations
+```
+  @decorators.Scenario(base.steps):
+  def [test_]scenario_name(self):
+      """
+      Step "1" with "A" gives `x` and `y`
+      ...
+      Last step with "B" gives `result`
+      """
+```
+that will run according to their `__doc__`s, and the necessary step method definitions.
+
+
 ### Test run logging
 Implemented behavioural test step runs are logged by `bdd_coder.tester` as
 ```
@@ -126,7 +225,7 @@ example/tests/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
 ```
 
 ### Patch a test suite with new specifications
-Use this command in order to update a tester package with new YAML specifications - removing scenario declarations only.
+Use this command in order to update a tester package with new YAML specifications - removes scenario declarations *only*, changes the scenario set, which may imply a new test class hierarchy with new stories and scenarios, and adds the necessary step methods, 
 ```
 usage: bdd-patch [-h] test_module [specs_path]
 

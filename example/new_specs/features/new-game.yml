@@ -16,3 +16,8 @@ Scenarios:
   More boards:
       - Given new player joins
       - Then she is welcome
+
+# Extra class atributes ignored in patch
+Extra name:
+  - '1'
+  - '2'

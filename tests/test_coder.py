@@ -30,8 +30,6 @@ tmp/generated/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
 class BlueprintTester(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        super().setUpClass()
-
         cls.coder = coders.PackageCoder(
             specs_path='example/specs/', tests_path='tmp/generated/',
             logs_parent='example/tests/')
