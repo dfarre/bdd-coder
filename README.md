@@ -58,13 +58,13 @@ Scenarios:
   # ...
 
 # Extra class atributes - ignored in patching
-Extra class atribute ignored in patch:
+Extra name:
   <yaml-attribute-coded-with-str(yaml.load)>
 ...
 ```
 So only the keys `Title`, `Story`, `Scenarios` are reserved.
 
-Scenario names are unique
+Scenario names are unique if `bdd_coder.tester.decorators.Steps` takes `validate=True` (the default), which also validates class hierarchy.
 
 ### Step declarations
 * Start with a whole word - normally 'Given', 'When', or 'Then' - that is ignored by the tester (only order matters)
@@ -187,8 +187,8 @@ positional arguments:
 
 optional arguments:
   --overwrite, -w
-  --validate, -v
 ```
+Additionally, validates code against generated specifications.
 
 ## Coder commands
 ### Make a test suite blueprint
@@ -225,7 +225,7 @@ example/tests/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
 ```
 
 ### Patch a test suite with new specifications
-Use this command in order to update a tester package with new YAML specifications - removes scenario declarations *only*, changes the scenario set, which may imply a new test class hierarchy with new stories and scenarios, and adds the necessary step methods, 
+Use this command in order to update a tester package with new YAML specifications - removes scenario declarations *only*, changes the scenario set, which may imply a new test class hierarchy with new stories and scenarios, and adds the necessary step methods.
 ```
 usage: bdd-patch [-h] test_module [specs_path]
 

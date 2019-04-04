@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 from bdd_coder.tester import decorators
 from bdd_coder.tester import tester
 
@@ -13,7 +11,7 @@ class BddTester(tester.BddTester):
     pass
 
 
-class BaseTestCase(tester.BaseTestCase, TestCase):
+class BaseTestCase(tester.BaseTestCase):
 
     def board__is_added_to_the_game(self, *args):
         pass

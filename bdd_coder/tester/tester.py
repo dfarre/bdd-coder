@@ -15,7 +15,7 @@ from bdd_coder import strip_lines
 from bdd_coder import to_sentence
 from bdd_coder import FAIL, OK, COMPLETION_MSG
 
-from bdd_coder.coder import features
+from bdd_coder import features
 
 
 class literal(str):
@@ -49,15 +49,24 @@ class BddTester(YamlDumper, SubclassesMixin):
     To be decorated with `Steps`, and employed with methods decorated with
     `scenario` - mixes with a subclass of `BaseTestCase` to run test methods
     """
+    tmp_dir = '.tmp-specs'
 
     @classmethod
-    def get_features_spec(cls):
-        parent_dir = '.tmp-specs'
-        cls.dump_yaml_specs(parent_dir)
-        specs = features.FeaturesSpec(parent_dir)
-        shutil.rmtree(parent_dir)
+    def validate(cls):
+        cls.validate_bases(cls.features_spec())
 
-        return specs
+    @classmethod
+    def features_spec(cls, parent_dir=None, overwrite=False):
+        directory = parent_dir or cls.tmp_dir
+        cls.dump_yaml_specs(directory, overwrite)
+
+        try:
+            return features.FeaturesSpec(directory)
+        except features.FeaturesSpecError as error:
+            raise error
+        finally:
+            if parent_dir is None:
+                shutil.rmtree(directory)
 
     @classmethod
     def validate_bases(cls, features_spec):
@@ -87,6 +96,8 @@ class BddTester(YamlDumper, SubclassesMixin):
         except AssertionError as error:
             raise InconsistentClassStructure(
                 error=error, class_bases_text=features_spec.get_class_bases_text())
+        else:
+            sys.stdout.write('Test case hierarchy validated\n')
 
     @classmethod
     def dump_yaml_specs(cls, parent_dir, overwrite=False):
@@ -99,17 +110,23 @@ class BddTester(YamlDumper, SubclassesMixin):
         for tester_subclass in cls.subclasses_down():
             tester_subclass.dump_yaml_feature(features_path)
 
+        sys.stdout.write(f'Specification files generated in {parent_dir}\n')
+
     @classmethod
     def dump_yaml_feature(cls, parent_dir):
-        story = '\n'.join(map(str.strip, cls.__doc__.strip('\n ').splitlines()))
-        scenarios = {to_sentence(re.sub('test_', '', name, 1)):
-                     strip_lines(getattr(cls, name).__doc__.splitlines())
-                     for name in cls.get_own_scenario_names()}
-        ordered_dict = collections.OrderedDict([
-            ('Title', cls.get_title()), ('Story', literal(story)), ('Scenarios', scenarios)
-        ] + [(to_sentence(n), v) for n, v in cls.get_own_class_attrs().items()])
         name = '-'.join([s.lower() for s in cls.get_title().split()])
-        cls.dump_yaml(ordered_dict, os.path.join(parent_dir, f'{name}.yml'))
+        cls.dump_yaml(cls.as_yaml(), os.path.join(parent_dir, f'{name}.yml'))
+
+    @classmethod
+    def as_yaml(cls):
+        story = '\n'.join(map(str.strip, cls.__doc__.strip('\n ').splitlines()))
+        scs = {to_sentence(re.sub('test_', '', name, 1)):
+               strip_lines(getattr(cls, name).__doc__.splitlines())
+               for name in cls.get_own_scenario_names()}
+
+        return collections.OrderedDict([
+            ('Title', cls.get_title()), ('Story', literal(story)), ('Scenarios', scs)
+        ] + [(to_sentence(n), v) for n, v in cls.get_own_class_attrs().items()])
 
     @classmethod
     def get_title(cls):
@@ -155,6 +172,11 @@ class BddTester(YamlDumper, SubclassesMixin):
 
 
 class BaseTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if cls.steps.validate:
+            cls.steps.tester.validate()
+
     @classmethod
     def tearDownClass(cls):
         if cls.steps.get_pending_runs():

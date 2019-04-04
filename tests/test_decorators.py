@@ -76,12 +76,8 @@ class DecoratorTests(unittest.TestCase):
         assert base.steps.scenarios == {
             'test_odd_boards': [], 'even_boards': [], 'test_start_board': []}
 
-        super().setUpClass()
-
     @classmethod
     def tearDownClass(cls):
-        super().tearDownClass()
-
         assert len(os.listdir(cls.logs_dir)) <= base.steps.max_history_length
 
         shutil.rmtree(cls.logs_dir)

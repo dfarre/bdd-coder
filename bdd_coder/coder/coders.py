@@ -16,12 +16,16 @@ from bdd_coder import ParametersMixin
 from bdd_coder import Process
 from bdd_coder import Repr
 
-from bdd_coder.coder import features
+from bdd_coder import features
+
 from bdd_coder.coder import text_utils
 
 from bdd_coder.tester import tester
 
 DEFAULT_SCENARIO_DELIMITER = '@decorators.Scenario(base.steps)\n'
+DEFAULT_BASE_TEST_CASE = 'unittest.TestCase'
+BDD_TEST_CASE_PATH = 'tester.BaseTestCase'
+BDD_TESTER_PATH = 'tester.BddTester'
 
 
 class FeatureClassCoder:
@@ -78,9 +82,15 @@ class FeatureClassCoder:
 
 
 class PackageCoder(ParametersMixin):
-    def __init__(self, base_class='unittest.TestCase', specs_path='behaviour/specs',
+    def __init__(self, base_class=DEFAULT_BASE_TEST_CASE, specs_path='behaviour/specs',
                  tests_path='', test_module_name='stories', overwrite=False, logs_parent=''):
-        self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
+        if base_class == DEFAULT_BASE_TEST_CASE:
+            self.base_test_case_bases = (BDD_TEST_CASE_PATH,)
+            self.base_class_name = ''
+        else:
+            self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
+            self.base_test_case_bases = (self.base_class_name, BDD_TEST_CASE_PATH)
+
         self.features_spec = features.FeaturesSpec(specs_path)
         self.tests_path = tests_path or os.path.join(os.path.dirname(specs_path), 'tests')
         self.logs_parent = (logs_parent or self.tests_path).rstrip('/')
@@ -103,11 +113,10 @@ class PackageCoder(ParametersMixin):
 
     def make_base_class_defs(self):
         return '\n'.join([
-            text_utils.make_class(BASE_TESTER_NAME, bases=('tester.BddTester',),
+            text_utils.make_class(BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,),
                                   decorators=('steps',)),
-            text_utils.make_class(BASE_TEST_CASE_NAME, bases=(
-                'tester.BaseTestCase', self.base_class_name),
-                body=self.make_base_method_defs())])
+            text_utils.make_class(BASE_TEST_CASE_NAME, bases=self.base_test_case_bases,
+                                  body=self.make_base_method_defs())])
 
     def pytest(self):
         Process('pytest', '-vv', self.tests_path).write()
@@ -116,6 +125,16 @@ class PackageCoder(ParametersMixin):
         with open(os.path.join(self.tests_path, 'aliases.py'), 'w') as aliases_py:
             aliases_py.write(text_utils.rstrip(self.make_aliases_def()))
 
+    def make_base_module_source(self):
+        return (
+            (f'from {self.module_or_package_path} import {self.base_class_name}'
+             '\n\n') if self.base_class_name else '') + (
+            'from bdd_coder.tester import decorators\n'
+            'from bdd_coder.tester import tester\n\n'
+            'from . import aliases\n\n'
+            f"steps = decorators.Steps(aliases.MAP, '{self.logs_parent}')\n"
+            + self.make_base_class_defs())
+
     def create_tester_package(self):
         os.makedirs(self.tests_path, exist_ok=self.overwrite)
 
@@ -123,13 +142,7 @@ class PackageCoder(ParametersMixin):
             init_py.write('')
 
         with open(os.path.join(self.tests_path, 'base.py'), 'w') as base_py:
-            base_py.write(text_utils.rstrip(
-                f'from {self.module_or_package_path} import {self.base_class_name}\n\n'
-                'from bdd_coder.tester import decorators\n'
-                'from bdd_coder.tester import tester\n\n'
-                'from . import aliases\n\n'
-                f"steps = decorators.Steps(aliases.MAP, '{self.logs_parent}')\n"
-                + self.make_base_class_defs()))
+            base_py.write(text_utils.rstrip(self.make_base_module_source()))
 
         with open(os.path.join(self.tests_path, f'test_{self.test_module_name}.py'),
                   'w') as test_py:
@@ -223,7 +236,7 @@ class PackagePatcher(PackageCoder):
         self.tests_path = os.path.dirname(test_module.replace('.', '/'))
         self.test_module_name = test_module.rsplit('.', 1)[-1]
         self.test_module = test_module
-        self.old_specs = self.base_tester.get_features_spec()
+        self.old_specs = self.base_tester.features_spec()
         self._ensure_not_too_many_blank_lines()
         self.new_specs = features.FeaturesSpec(specs_path or os.path.join(
             os.path.dirname(self.tests_path), self.default_specs_dir_name))

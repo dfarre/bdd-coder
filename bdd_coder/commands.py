@@ -7,8 +7,10 @@ from bdd_coder import LOGS_DIR_NAME
 from bdd_coder import OK, FAIL
 from bdd_coder import BaseTesterRetrievalError
 from bdd_coder import InconsistentClassStructure
+
+from bdd_coder import features
+
 from bdd_coder.coder import coders
-from bdd_coder.coder import features
 
 
 class Command(metaclass=abc.ABCMeta):
@@ -89,18 +91,12 @@ class MakeYamlSpecs(ErrorsCommand):
         BaseTesterRetrievalError, features.FeaturesSpecError, InconsistentClassStructure)
     arguments = ((('test_module',), dict(help='passed to `importlib.import_module`')),
                  (('specs_path',), dict(help='will try to write the YAML files in here')),
-                 (('--overwrite', '-w'), dict(action='store_true')),
-                 (('--validate', '-v'), dict(action='store_true')),)
+                 (('--overwrite', '-w'), dict(action='store_true')))
 
     def try_call(self, overwrite=False, **kwargs):
         base_tester = coders.get_base_tester(kwargs['test_module'])
-        base_tester.dump_yaml_specs(kwargs['specs_path'], overwrite)
-        sys.stdout.write(f"Specification files generated in {kwargs['specs_path']}\n")
-
-        if kwargs['validate']:
-            features_spec = features.FeaturesSpec(kwargs['specs_path'])
-            base_tester.validate_bases(features_spec)
-            sys.stdout.write('And validated\n')
+        features_spec = base_tester.features_spec(kwargs['specs_path'], overwrite)
+        base_tester.validate_bases(features_spec)
 
 
 class CheckPendingScenarios(Command):

@@ -6,6 +6,7 @@ import subprocess
 import unittest
 import unittest.mock as mock
 
+from bdd_coder import BASE_TEST_CASE_NAME
 from bdd_coder import BASE_TESTER_NAME
 from bdd_coder import BaseModuleNotFoundError
 from bdd_coder import BaseTesterNotFoundError
@@ -28,23 +29,22 @@ tmp/generated/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
 
 
 class BlueprintTester(unittest.TestCase):
+    kwargs = dict(specs_path='example/specs/', tests_path='tmp/generated/',
+                  logs_parent='example/tests/')
+    base_class = None
+
     @classmethod
     def setUpClass(cls):
-        cls.coder = coders.PackageCoder(
-            specs_path='example/specs/', tests_path='tmp/generated/',
-            logs_parent='example/tests/')
+        cls.coder = coders.PackageCoder(**{
+            **cls.kwargs, **({'base_class': cls.base_class} if cls.base_class else {})})
 
         with mock.patch('sys.stdout.write') as stdout_mock:
             cls.coder.create_tester_package()
-
-            assert stdout_mock.call_count == 11
-
             cls.coder_output = ''.join([
                 line for (line,), kw in stdout_mock.call_args_list])
 
     @classmethod
     def tearDownClass(cls):
-        super().tearDownClass()
         shutil.rmtree('tmp')
 
     def assert_test_files_match(self, path):
@@ -78,6 +78,18 @@ class CoderTests(BlueprintTester):
     def test_class_tree(self):
         assert not importlib.import_module('tmp.generated.base').BddTester.validate_bases(
             self.coder.features_spec)
+
+
+class CoderCustomBaseTests(BlueprintTester):
+    base_class = 'my.module.path.MyTestCase'
+
+    def test_base_test_case_bases(self):
+        with open(os.path.join(self.coder.tests_path, 'base.py')) as py_file:
+            source = py_file.read()
+
+        regex = rf'class {BASE_TEST_CASE_NAME}\(MyTestCase, tester\.BaseTestCase\)'
+
+        assert len(re.findall(regex, source)) == 1
 
 
 class StoriesModuleNotFoundErrorRaiseTest(unittest.TestCase):

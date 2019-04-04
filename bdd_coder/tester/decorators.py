@@ -12,7 +12,7 @@ from bdd_coder import LOGS_DIR_NAME, FAIL
 
 
 class Steps(Repr):
-    def __init__(self, aliases, logs_parent, max_history_length=5):
+    def __init__(self, aliases, logs_parent, max_history_length=5, validate=True):
         self.logs_dir = os.path.join(logs_parent, LOGS_DIR_NAME)
         os.makedirs(self.logs_dir, exist_ok=True)
         self.max_history_length = max_history_length
@@ -20,6 +20,7 @@ class Steps(Repr):
         self.run_number, self.passed, self.failed, self.scenarios = 0, 0, 0, {}
         self.exceptions = collections.defaultdict(list)
         self.aliases = aliases
+        self.validate = validate
 
     def __call__(self, BddTester):
         BddTester.steps = self

@@ -69,26 +69,12 @@ class MakeYamlSpecsTests(unittest.TestCase):
         self.assertRaises(OSError, self.call)
 
     @mock.patch('sys.stdout.write')
-    @mock.patch('example.tests.test_stories.ClearBoard.dump_yaml_feature')
-    @mock.patch('example.tests.test_stories.NewGame.dump_yaml_feature')
-    @mock.patch('bdd_coder.tester.tester.YamlDumper.dump_yaml_aliases')
-    def test__no_validation(self, dump_aliases_mock, dump_game_mock, dump_board_mock,
-                            stdout_mock):
-        os.makedirs(self.features_dir)
-
-        assert self.call(overwrite=True, validate=False) == 0
-        dump_aliases_mock.assert_called_once_with(base.steps.aliases, self.specs_path)
-        dump_game_mock.assert_called_once_with(self.features_dir)
-        dump_board_mock.assert_called_once_with(self.features_dir)
-        stdout_mock.assert_called_once_with(self.files_made_msg)
-
-    @mock.patch('sys.stdout.write')
     def test__validated_ok(self, stdout_mock):
         os.makedirs(self.features_dir)
 
-        assert self.call(overwrite=True, validate=True) == 0
+        assert self.call(overwrite=True) == 0
         assert stdout_mock.call_args_list == list(map(
-            mock.call, (self.files_made_msg, 'And validated\n')))
+            mock.call, (self.files_made_msg, 'Test case hierarchy validated\n')))
 
     @mock.patch('sys.stderr.write')
     def test__features_spec_error(self, stderr_mock):
@@ -96,7 +82,7 @@ class MakeYamlSpecsTests(unittest.TestCase):
         doc_ok = test_stories.NewGame.test_odd_boards.__doc__
         test_stories.NewGame.test_odd_boards.__doc__ = doc_ok + 'And start board'
 
-        assert self.call(overwrite=True, validate=True) == 1
+        assert self.call(overwrite=True) == 1
         stderr_mock.assert_called_once_with(
             'Cyclical inheritance between NewGame and ClearBoard\n')
 
@@ -110,7 +96,7 @@ class MakeYamlSpecsTests(unittest.TestCase):
     def test__class_bases_error(self, stderr_mock, validate_bases_mock):
         os.makedirs(self.features_dir)
 
-        assert self.call(overwrite=True, validate=True) == 1
+        assert self.call(overwrite=True) == 1
         stderr_mock.assert_called_once_with(
             "Expected class structure ['class NewGame', 'class ClearBoard(NewGame)'] "
             'from docs does not match the defined one. FAKE\n')

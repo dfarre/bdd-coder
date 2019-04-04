@@ -8,7 +8,10 @@ build
 
 .pytest_cache
 .coverage
+.coverage.*
 htmlcov
 .tox
 
 .bdd-run-logs
+
+.msg

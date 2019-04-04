@@ -2,7 +2,7 @@ import os
 import shutil
 import unittest
 
-from bdd_coder.coder import features
+from bdd_coder import features
 
 
 class FeaturesSpecTests(unittest.TestCase):
