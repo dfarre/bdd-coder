@@ -77,6 +77,24 @@ Scenario names are unique if `bdd_coder.tester.decorators.Steps` takes `validate
 
 * May refer to a scenario name, either belonging to the same class (story), or to an inherited class
 
+### Aliases
+Declared as
+```
+Alias sentence:  # --> method to call
+  - Step sentence  # from scenario __doc__s
+  - Another step sentence
+  # ...
+# ...
+```
+corresponding to `aliases.py`:
+```
+MAP = {
+    'step_sentence': 'alias_sentence',
+    'another_step_sentence': 'alias_sentence',
+    # ...
+}
+```
+
 ## Tester
 The core of each test suite consists of the following required class declarations in its `base.py` module:
 ```
@@ -225,7 +243,7 @@ example/tests/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
 ```
 
 ### Patch a test suite with new specifications
-Use this command in order to update a tester package with new YAML specifications - removes scenario declarations *only*, changes the scenario set, which may imply a new test class hierarchy with new stories and scenarios, and adds the necessary step methods.
+Use this command in order to update a tester package with new YAML specifications - removes scenario declarations *only*, changes the scenario set, which may imply a new test class hierarchy with new stories and scenarios, adds the necessary step methods, and adds new aliases (if any).
 ```
 usage: bdd-patch [-h] test_module [specs_path]
 
