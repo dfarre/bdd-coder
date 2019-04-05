@@ -1,3 +1,6 @@
+import os
+
+
 class DocException(Exception):
     def __init__(self, *args, **kwargs):
         self.text = ' '.join(list(filter(None, map(str.strip, self.__doc__.format(
@@ -5,6 +8,19 @@ class DocException(Exception):
 
     def __str__(self):
         return self.text
+
+
+class OverwriteError(DocException):
+    """
+    Cannot overwrite {path} (--overwrite not set). {error}
+    """
+
+
+def makedirs(path, exist_ok):
+    try:
+        os.makedirs(path, exist_ok=exist_ok)
+    except OSError as error:
+        raise OverwriteError(path=path, error=error)
 
 
 class InconsistentClassStructure(DocException):

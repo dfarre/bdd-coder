@@ -8,7 +8,8 @@ from bdd_coder import OK, FAIL
 
 from bdd_coder import features
 
-from bdd_coder.exceptions import (BaseTesterRetrievalError, InconsistentClassStructure)
+from bdd_coder.exceptions import (
+    BaseTesterRetrievalError, InconsistentClassStructure, OverwriteError)
 
 from bdd_coder.coder import coders
 
@@ -52,7 +53,7 @@ class ErrorsCommand(Command, metaclass=abc.ABCMeta):
 
 
 class MakeBlueprint(ErrorsCommand):
-    exceptions = (features.FeaturesSpecError,)
+    exceptions = (features.FeaturesSpecError, OverwriteError)
     params = coders.PackageCoder.get_parameters()
     arguments = (
         ((f'--{params["base_class"].name.replace("_", "-")}', '-c'), dict(
@@ -87,8 +88,8 @@ class PatchBlueprint(ErrorsCommand):
 
 
 class MakeYamlSpecs(ErrorsCommand):
-    exceptions = (
-        BaseTesterRetrievalError, features.FeaturesSpecError, InconsistentClassStructure)
+    exceptions = (BaseTesterRetrievalError, OverwriteError, features.FeaturesSpecError,
+                  InconsistentClassStructure)
     arguments = ((('test_module',), dict(help='passed to `importlib.import_module`')),
                  (('specs_path',), dict(help='will try to write the YAML files in here')),
                  (('--overwrite', '-w'), dict(action='store_true')))

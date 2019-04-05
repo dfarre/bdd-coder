@@ -70,8 +70,11 @@ class MakeYamlSpecsTests(unittest.TestCase):
         return self.command(
             test_module=test_stories, specs_path=self.specs_path, **kwargs)
 
-    def test_raises_cannot_overwrite(self):
-        self.assertRaises(OSError, self.call)
+    @mock.patch('sys.stderr.write')
+    def test_overwrite_error(self, stderr_mock):
+        assert self.call(overwrite=False) == 1
+        stderr_mock.assert_called_once_with(
+            "Cannot overwrite tmp (--overwrite not set). [Errno 17] File exists: 'tmp'\n")
 
     @mock.patch('sys.stdout.write')
     def test__validated_ok(self, stdout_mock):

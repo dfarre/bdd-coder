@@ -13,6 +13,7 @@ from bdd_coder import strip_lines
 from bdd_coder import to_sentence
 from bdd_coder import FAIL, OK, COMPLETION_MSG
 
+from bdd_coder import exceptions
 from bdd_coder import features
 from bdd_coder import stock
 
@@ -104,9 +105,9 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
 
     @classmethod
     def dump_yaml_specs(cls, parent_dir, overwrite=False):
-        os.makedirs(parent_dir, exist_ok=overwrite)
+        exceptions.makedirs(parent_dir, exist_ok=overwrite)
         features_path = os.path.join(parent_dir, 'features')
-        os.makedirs(features_path, exist_ok=overwrite)
+        exceptions.makedirs(features_path, exist_ok=overwrite)
 
         cls.dump_yaml_aliases(cls.steps.aliases, parent_dir)
 

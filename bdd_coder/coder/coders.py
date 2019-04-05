@@ -132,7 +132,7 @@ class PackageCoder(stock.ParametersMixin):
             + self.make_base_class_defs())
 
     def create_tester_package(self):
-        os.makedirs(self.tests_path, exist_ok=self.overwrite)
+        exceptions.makedirs(self.tests_path, exist_ok=self.overwrite)
 
         with open(os.path.join(self.tests_path, '__init__.py'), 'w') as init_py:
             init_py.write('')
