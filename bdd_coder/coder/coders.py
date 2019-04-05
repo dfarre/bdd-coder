@@ -9,13 +9,9 @@ import re
 
 from bdd_coder import BASE_TEST_CASE_NAME
 from bdd_coder import BASE_TESTER_NAME
-from bdd_coder import BaseModuleNotFoundError
-from bdd_coder import BaseTesterNotFoundError
-from bdd_coder import StoriesModuleNotFoundError
-from bdd_coder import ParametersMixin
-from bdd_coder import Process
-from bdd_coder import Repr
 
+from bdd_coder import exceptions
+from bdd_coder import stock
 from bdd_coder import features
 
 from bdd_coder.coder import text_utils
@@ -81,7 +77,7 @@ class FeatureClassCoder:
         return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
 
 
-class PackageCoder(ParametersMixin):
+class PackageCoder(stock.ParametersMixin):
     def __init__(self, base_class=DEFAULT_BASE_TEST_CASE, specs_path='behaviour/specs',
                  tests_path='', test_module_name='stories', overwrite=False, logs_parent=''):
         if base_class == DEFAULT_BASE_TEST_CASE:
@@ -119,7 +115,7 @@ class PackageCoder(ParametersMixin):
                                   body=self.make_base_method_defs())])
 
     def pytest(self):
-        Process('pytest', '-vv', self.tests_path).write()
+        stock.Process('pytest', '-vv', self.tests_path).write()
 
     def write_aliases_module(self):
         with open(os.path.join(self.tests_path, 'aliases.py'), 'w') as aliases_py:
@@ -154,7 +150,7 @@ class PackageCoder(ParametersMixin):
         self.pytest()
 
 
-class Split(Repr):
+class Split(stock.Repr):
     class_delimiter = '\n\n\nclass '
 
     def __init__(self, source, scenario_delimiter=DEFAULT_SCENARIO_DELIMITER):
@@ -264,7 +260,7 @@ class PackagePatcher(PackageCoder):
             set(self.new_specs.base_methods) - set(self.old_specs.base_methods))
 
     def _ensure_not_too_many_blank_lines(self):
-        flakeE303 = str(Process('flake8', '--select=E303', self.tests_path))
+        flakeE303 = str(stock.Process('flake8', '--select=E303', self.tests_path))
 
         if flakeE303:
             raise TwoManyBlankLines(flakeE303)
@@ -366,15 +362,15 @@ def get_base_tester(test_module):
         try:
             test_module = importlib.import_module(test_module)
         except ModuleNotFoundError:
-            raise StoriesModuleNotFoundError(test_module=test_module)
+            raise exceptions.StoriesModuleNotFoundError(test_module=test_module)
 
     if not hasattr(test_module, 'base'):
-        raise BaseModuleNotFoundError(test_module=test_module)
+        raise exceptions.BaseModuleNotFoundError(test_module=test_module)
 
     base_tester = {obj for name, obj in inspect.getmembers(test_module.base)
                    if inspect.isclass(obj) and tester.BddTester in obj.__bases__}
 
     if not len(base_tester) == 1:
-        raise BaseTesterNotFoundError(test_module=test_module, set=base_tester)
+        raise exceptions.BaseTesterNotFoundError(test_module=test_module, set=base_tester)
 
     return base_tester.pop()

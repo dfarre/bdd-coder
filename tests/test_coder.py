@@ -8,11 +8,12 @@ import unittest.mock as mock
 
 from bdd_coder import BASE_TEST_CASE_NAME
 from bdd_coder import BASE_TESTER_NAME
-from bdd_coder import BaseModuleNotFoundError
-from bdd_coder import BaseTesterNotFoundError
-from bdd_coder import StoriesModuleNotFoundError
+
 from bdd_coder import commands
-from bdd_coder import Process
+from bdd_coder import stock
+
+from bdd_coder.exceptions import (
+    BaseModuleNotFoundError, BaseTesterNotFoundError, StoriesModuleNotFoundError)
 
 from bdd_coder.coder import coders
 
@@ -51,7 +52,7 @@ class BlueprintTester(unittest.TestCase):
         py_file_names = ['__init__.py', 'aliases.py', 'base.py', 'test_stories.py']
 
         assert not set(py_file_names) - set(os.listdir(self.coder.tests_path))
-        assert [str(Process('diff', f'tmp/generated/{name}', os.path.join(path, name)))
+        assert [str(stock.Process('diff', f'tmp/generated/{name}', os.path.join(path, name)))
                 for name in py_file_names] == ['']*len(py_file_names)
 
 
@@ -74,10 +75,6 @@ class CoderTests(BlueprintTester):
 
     def test_example_test_files_match(self):
         self.assert_test_files_match('example/tests')
-
-    def test_class_tree(self):
-        assert not importlib.import_module('tmp.generated.base').BddTester.validate_bases(
-            self.coder.features_spec)
 
 
 class CoderCustomBaseTests(BlueprintTester):

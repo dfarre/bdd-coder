@@ -9,13 +9,14 @@ import traceback
 import unittest
 import yaml
 
-from bdd_coder import InconsistentClassStructure
-from bdd_coder import SubclassesMixin
 from bdd_coder import strip_lines
 from bdd_coder import to_sentence
 from bdd_coder import FAIL, OK, COMPLETION_MSG
 
 from bdd_coder import features
+from bdd_coder import stock
+
+from bdd_coder.exceptions import InconsistentClassStructure
 
 
 class literal(str):
@@ -44,7 +45,7 @@ class YamlDumper:
         cls.dump_yaml(dict(alias_lists), os.path.join(parent_dir, 'aliases.yml'))
 
 
-class BddTester(YamlDumper, SubclassesMixin):
+class BddTester(YamlDumper, stock.SubclassesMixin):
     """
     To be decorated with `Steps`, and employed with methods decorated with
     `scenario` - mixes with a subclass of `BaseTestCase` to run test methods
@@ -70,34 +71,36 @@ class BddTester(YamlDumper, SubclassesMixin):
 
     @classmethod
     def validate_bases(cls, features_spec):
-        try:
-            for (klass, bases), (name, bases_names) in zip(
-                    cls.subclasses_down().items(), features_spec.class_bases):
-                assert klass.__name__ == name, f'{klass.__name__} != {name}'
+        spec_bases = collections.OrderedDict(features_spec.class_bases)
+        cls_bases = collections.OrderedDict(
+            (c.__name__, b) for c, b in cls.subclasses_down().items())
+        pair = stock.SetPair(spec_bases, cls_bases, lname='doc', rname='code')
+        errors = []
 
-                own_bases = set(bases)
-                own_bases.discard(cls)
-                base_test_cases = [b for b in own_bases if issubclass(b, BaseTestCase)]
+        if not pair.symbol == '=':
+            raise InconsistentClassStructure(error=f'Sets of class names differ: {repr(pair)}')
 
-                if features_spec.features[name]['inherited']:
-                    assert len(base_test_cases) == 0, 'Unexpected ' \
-                        f'{BaseTestCase.__name__} subclass in {klass.__name__}'
-                else:
-                    assert len(base_test_cases) == 1, 'Expected one ' \
-                        f'{BaseTestCase.__name__} subclass in {klass.__name__}'
+        for name in spec_bases:
+            own_bases = set(cls_bases[name])
+            own_bases.discard(cls)
+            base_test_cases = [b for b in own_bases if issubclass(b, BaseTestCase)]
 
-                    own_bases.remove(base_test_cases[0])
+            if features_spec.features[name]['inherited'] and len(base_test_cases) != 0:
+                errors.append(f'\nUnexpected {BaseTestCase.__name__} subclass in {name}')
 
-                own_bases_names = {b.__name__ for b in own_bases}
+            if not features_spec.features[name]['inherited'] and len(base_test_cases) != 1:
+                errors.append(f'\nExpected one {BaseTestCase.__name__} subclass in {name}')
 
-                assert own_bases_names == bases_names, \
-                    f'Bases {own_bases_names} defined in {klass.__name__} do not ' \
-                    f'match the specified ones {bases_names}'
-        except AssertionError as error:
-            raise InconsistentClassStructure(
-                error=error, class_bases_text=features_spec.get_class_bases_text())
-        else:
-            sys.stdout.write('Test case hierarchy validated\n')
+            own_bases_names = {b.__name__ for b in own_bases if b not in base_test_cases}
+
+            if own_bases_names != spec_bases[name]:
+                errors.append(f'\nBases {own_bases_names} declared in {name} do not '
+                              f'match the specified ones {spec_bases[name]}')
+
+        if errors:
+            raise InconsistentClassStructure(error=''.join(errors))
+
+        sys.stdout.write('Test case hierarchy validated\n')
 
     @classmethod
     def dump_yaml_specs(cls, parent_dir, overwrite=False):

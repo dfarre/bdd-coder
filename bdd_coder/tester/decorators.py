@@ -7,11 +7,12 @@ import json
 import os
 
 from bdd_coder import get_step_specs
-from bdd_coder import Repr
 from bdd_coder import LOGS_DIR_NAME, FAIL
 
+from bdd_coder import stock
 
-class Steps(Repr):
+
+class Steps(stock.Repr):
     def __init__(self, aliases, logs_parent, max_history_length=5, validate=True):
         self.logs_dir = os.path.join(logs_parent, LOGS_DIR_NAME)
         os.makedirs(self.logs_dir, exist_ok=True)

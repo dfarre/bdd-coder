@@ -5,10 +5,10 @@ import sys
 
 from bdd_coder import LOGS_DIR_NAME
 from bdd_coder import OK, FAIL
-from bdd_coder import BaseTesterRetrievalError
-from bdd_coder import InconsistentClassStructure
 
 from bdd_coder import features
+
+from bdd_coder.exceptions import (BaseTesterRetrievalError, InconsistentClassStructure)
 
 from bdd_coder.coder import coders
 

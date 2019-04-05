@@ -4,9 +4,10 @@ import json
 import os
 import yaml
 
-from bdd_coder import Repr
 from bdd_coder import get_step_specs
 from bdd_coder import sentence_to_name
+
+from bdd_coder import stock
 
 from bdd_coder.coder import MAX_INHERITANCE_LEVEL
 from bdd_coder.coder import text_utils
@@ -16,7 +17,7 @@ class FeaturesSpecError(Exception):
     """Inconsistency in provided YAML specifications"""
 
 
-class FeaturesSpec(Repr):
+class FeaturesSpec(stock.Repr):
     def __init__(self, specs_path):
         """
         Constructs feature class specifications to be employed by the coders.

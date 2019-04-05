@@ -4,9 +4,11 @@ import shutil
 import unittest
 import unittest.mock as mock
 
-from bdd_coder import commands
-from bdd_coder import InconsistentClassStructure
 from bdd_coder import LOGS_DIR_NAME, FAIL, OK, COMPLETION_MSG
+
+from bdd_coder import commands
+
+from bdd_coder.exceptions import InconsistentClassStructure
 
 from example.tests import base
 from example.tests import test_stories
@@ -16,24 +18,21 @@ class ValidateBasesTests(unittest.TestCase):
     fake_specs = collections.namedtuple('FakeSpecs', ('class_bases', 'features'))
     fake_specs.get_class_bases_text = lambda: ['class NewGame', 'class ClearBoard(NewGame)']
 
-    def assert_error(self, value):
-        self.assertRaisesRegex(InconsistentClassStructure, value,
-                               lambda: base.BddTester.validate_bases(self.fake_specs))
-
-    def test_wrong_name(self):
-        self.fake_specs.class_bases = [('FooStory', set())]
-
-        self.assert_error('NewGame != FooStory')
-
     def init_specs(self):
         self.fake_specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]
         self.fake_specs.features = collections.OrderedDict([
             ('NewGame', {'inherited': True}), ('ClearBoard', {'inherited': False})])
 
+    def assert_error(self, error):
+        self.assertRaisesRegex(
+            InconsistentClassStructure,
+            rf'Expected class structure from docs does not match the defined one: {error}',
+            lambda: base.BddTester.validate_bases(self.fake_specs))
+
     def test_wrong_bases(self):
         self.init_specs()
 
-        self.assert_error("Bases {'NewGame'} defined in ClearBoard do not "
+        self.assert_error("Bases {'NewGame'} declared in ClearBoard do not "
                           f'match the specified ones set()')
 
     def test_missing_test_case(self):
@@ -47,6 +46,12 @@ class ValidateBasesTests(unittest.TestCase):
         self.fake_specs.features['ClearBoard']['inherited'] = True
 
         self.assert_error('Unexpected BaseTestCase subclass in ClearBoard')
+
+    def test_sets_differ(self):
+        self.fake_specs.class_bases = [('FooStory', set())]
+
+        self.assert_error('Sets of class names differ: <SetPair: doc ~ code '
+                          "disjoint: {'FooStory'} | ø | {'ClearBoard', 'NewGame'}>")
 
 
 class MakeYamlSpecsTests(unittest.TestCase):
@@ -98,8 +103,7 @@ class MakeYamlSpecsTests(unittest.TestCase):
 
         assert self.call(overwrite=True) == 1
         stderr_mock.assert_called_once_with(
-            "Expected class structure ['class NewGame', 'class ClearBoard(NewGame)'] "
-            'from docs does not match the defined one. FAKE\n')
+            'Expected class structure from docs does not match the defined one: FAKE\n')
 
 
 SPECS_ERROR = ("Duplicate titles are not supported, ['FakeFoo']\n"
