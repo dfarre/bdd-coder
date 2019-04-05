@@ -1,13 +1,13 @@
 import setuptools
 
 
-tests_require = ['pytest-cov', 'flake8', 'freezegun']
+tests_require = ['pytest-cov', 'freezegun']
 
 setuptools.setup(
     name='bdd-coder',
     version='1.0',
     packages=setuptools.find_packages(),
-    install_requires=['pyyaml', 'argparse', 'pytest'],
+    install_requires=['pyyaml', 'argparse', 'pytest', 'flake8'],
     setup_requires=['setuptools'],
     tests_require=tests_require,
     extras_require={'dev': ['ipdb', 'ipython'], 'test': tests_require},
