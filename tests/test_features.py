@@ -2,7 +2,18 @@ import os
 import shutil
 import unittest
 
+from bdd_coder import Step
+
+from bdd_coder import exceptions
 from bdd_coder import features
+
+
+class StepTests(unittest.TestCase):
+    def test_parse_error(self):
+        self.assertRaisesRegex(
+            exceptions.FeaturesSpecError,
+            r'Inputs \(by "\) or outputs \(by `\) from I `say" `hello" not understood',
+            Step, 'Given I `say" `hello"')
 
 
 class FeaturesSpecTests(unittest.TestCase):
@@ -12,7 +23,7 @@ class FeaturesSpecTests(unittest.TestCase):
 
     def test_str(self):
         with open(os.path.join(self.specs_path, 'repr.txt')) as repr_file:
-            assert repr(self.specs) == repr_file.read()
+            assert repr(self.specs) == repr_file.read().strip()
 
     def test_inheritance__cyclical_error(self):
         from_path, to_path = (os.path.join(self.specs_path, 'forbidden-story.yml'),
@@ -20,7 +31,7 @@ class FeaturesSpecTests(unittest.TestCase):
         shutil.move(from_path, to_path)
 
         self.assertRaisesRegex(
-            features.FeaturesSpecError,
+            exceptions.FeaturesSpecError,
             r'^Cyclical inheritance between [a-zA-Z]+ and [a-zA-Z]+$',
             lambda: features.FeaturesSpec(self.specs_path))
 
@@ -30,7 +41,7 @@ class FeaturesSpecTests(unittest.TestCase):
         assert self.specs.features['FakeOne']['scenarios']['ones_first_scenario'][
             'inherited'] is True
         assert self.specs.features['FakeOne']['scenarios']['ones_second_scenario'][
-            'step_specs'][0][-1] is False
+            'steps'][0].own is False
         assert self.specs.features['FakeOne']['inherited'] is False
         assert self.specs.features['FakeTwo']['inherited'] is True
         assert self.specs.features['FakeThree']['inherited'] is True
@@ -42,4 +53,4 @@ class FeaturesSpecTests(unittest.TestCase):
     def test_reference_to_alias_yields_base_method(self):
         assert self.specs.base_methods == ['something_cool']
         assert self.specs.features['FakeOne']['scenarios']['ones_first_scenario'][
-            'step_specs'][0][-1] is False
+            'steps'][0].own is False

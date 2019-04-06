@@ -33,11 +33,10 @@ class FeatureClassCoder:
                 for name, scenario_spec in self.spec['scenarios'].items()]
 
     def make_step_method_defs(self):
-        step_specs = features.FeaturesSpec.get_all_step_specs(self.spec)
-        steps_to_code = {
-            name: (inp, out) for name, inp, out, make_it in step_specs if make_it}
+        steps = features.FeaturesSpec.get_all_steps(self.spec)
 
-        return self.make_step_method_defs_for(steps_to_code)
+        return self.make_step_method_defs_for({
+            s.name: (s.inputs, s.output_names) for s in steps if s.own})
 
     def make_class_body(self):
         return '\n'.join(self.make_extra_class_attrs() +
@@ -333,12 +332,12 @@ class PackagePatcher(PackageCoder):
 
     def add_new_steps(self, class_name, pieces):
         tester = self.get_tester(class_name)
-        step_specs = self.new_specs.get_all_step_specs(self.new_specs.features[class_name])
-        steps_to_code = {name: (inp, out) for name, inp, out, make_it in step_specs
-                         if make_it and not hasattr(tester, name)}
+        steps = self.new_specs.get_all_steps(self.new_specs.features[class_name])
         name, (_, tail) = next(reversed(pieces[class_name].items()))
         pieces[class_name][name][1] = tail + '\n' + text_utils.indent('\n'.join(
-            FeatureClassCoder.make_step_method_defs_for(steps_to_code)))
+            FeatureClassCoder.make_step_method_defs_for({
+                s.name: (s.inputs, s.output_names) for s in steps
+                if s.own and not hasattr(tester, s.name)})))
 
     def add_base_methods(self, pieces):
         pieces[BASE_TEST_CASE_NAME][BASE_TEST_CASE_NAME][1] += '\n' + text_utils.indent(

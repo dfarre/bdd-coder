@@ -6,7 +6,7 @@ import unittest.mock as mock
 
 import freezegun
 
-from bdd_coder import LOGS_DIR_NAME, OK, FAIL, COMPLETION_MSG
+from bdd_coder import LOGS_DIR_NAME, OK, FAIL, TO, COMPLETION_MSG
 
 from example.tests import base
 from example.tests import test_stories
@@ -17,13 +17,13 @@ CLEAR_BOARD = 'example.tests.test_stories.ClearBoard'
 FROZEN_TIME = datetime.datetime(2019, 3, 18, 17, 30, 13, 71420)
 FIRST_LOG = f"""
 1 {OK} ClearBoard.even_boards:
-  1.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_even_number_of_boards [] |--> ('Even Game',)
-  1.2 - {FROZEN_TIME} {OK} a_game_is_created_with_boards_of__guesses ['12'] |--> ()
+  1.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_even_number_of_boards [] {TO} ('Even Game',)
+  1.2 - {FROZEN_TIME} {OK} a_game_is_created_with_boards_of__guesses ['12'] {TO} ()
 
 2 {OK} ClearBoard.test_start_board:
-  2.1 - {FROZEN_TIME} {OK} even_boards [] |--> ()
-  2.2 - {FROZEN_TIME} {OK} i_request_a_clear_board_in_my_new_game [] |--> ('Board',)
-  2.3 - {FROZEN_TIME} {OK} board__is_added_to_the_game [] |--> ()
+  2.1 - {FROZEN_TIME} {OK} even_boards [] {TO} ()
+  2.2 - {FROZEN_TIME} {OK} i_request_a_clear_board_in_my_new_game [] {TO} ('Board',)
+  2.3 - {FROZEN_TIME} {OK} board__is_added_to_the_game [] {TO} ()
 
 Scenario runs {{
     "1{OK}": "even_boards",
@@ -36,8 +36,8 @@ Pending [
 """.lstrip('\n')  # noqa
 SECOND_LOG = f"""
 3 {OK} ClearBoard.test_odd_boards:
-  3.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_odd_number_of_boards [] |--> ('Odd Game',)
-  3.2 - {FROZEN_TIME} {OK} i_get_a_400_response_saying_it_must_be_even [] |--> ()
+  3.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} ('Odd Game',)
+  3.2 - {FROZEN_TIME} {OK} i_get_a_400_response_saying_it_must_be_even [] {TO} ()
 
 Scenario runs {{
     "1{OK}": "even_boards",
@@ -49,7 +49,7 @@ Pending []
 {COMPLETION_MSG} ▌ 3 {OK}
 
 """.lstrip('\n')  # noqa
-TRACEBACK = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] |--> Traceback (most recent call last):
+TRACEBACK = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):
   File "/usr/lib/python3.6/unittest/mock.py", line 939, in __call__
     return _mock_self._mock_call(*args, **kwargs)
   File "/usr/lib/python3.6/unittest/mock.py", line 995, in _mock_call

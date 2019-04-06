@@ -1,6 +1,10 @@
 import os
 
 
+class FeaturesSpecError(Exception):
+    """Inconsistency in provided YAML specifications"""
+
+
 class DocException(Exception):
     def __init__(self, *args, **kwargs):
         self.text = ' '.join(list(filter(None, map(str.strip, self.__doc__.format(

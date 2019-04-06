@@ -2,38 +2,77 @@
 
 import re
 
+from . import exceptions
+from . import stock
+
 BASE_TEST_CASE_NAME = 'BaseTestCase'
 BASE_TESTER_NAME = 'BddTester'
 
 LOGS_DIR_NAME = '.bdd-run-logs'
 COMPLETION_MSG = 'All scenarios ran'
-OK, FAIL = '✅', '❌'
+OK, FAIL, TO = '✅', '❌', '↦'
+
+IO_REGEX = r'[^"`]+'
+I_REGEX, O_REGEX = rf'"({IO_REGEX})"', rf'`({IO_REGEX})`'
 
 
-def get_step_sentence(step_text):
-    return step_text.strip().split(maxsplit=1)[1].strip()
+class Step(stock.Repr):
+    def __init__(self, text, aliases=None):
+        self.text = text.strip().split(maxsplit=1)[1].strip()
+        self.validate()
+        self.aliases = aliases or {}
+        self.own = False
 
+    def __str__(self):
+        own = 'i' if self.own else 'o'
+        output_names = ', '.join(self.output_names)
 
-def sentence_to_name(text):
-    return re.sub(r'[\'`]|"[\w\-\.]+"', '', text).lower().replace(' ', '_')
+        return f'({own}) {self.name} {self.inputs} {TO} ({output_names})'
 
+    @classmethod
+    def steps(cls, lines, *args, **kwargs):
+        return (cls(line, *args, **kwargs) for line in strip_lines(lines))
 
-def strip_lines(lines):
-    return list(filter(None, map(str.strip, lines)))
+    def validate(self):
+        inputs_ok = self.inputs == self.get_inputs_by(r'"([^"]+)"')
+        outputs_ok = self.output_names == self.get_output_names_by(r'`([^`]+)`')
 
+        if not (inputs_ok and outputs_ok):
+            raise exceptions.FeaturesSpecError(
+                f'Inputs (by ") or outputs (by `) from {self.text} not understood')
 
-def get_spec(sentence, aliases=None):
-    aliases = aliases or {}
-    inputs = re.findall(r'"([\w\-\.]+)"', sentence)
-    output_names = re.findall(r'`([\w\-\.]+)`', sentence)
-    method = sentence_to_name(sentence)
+    def get_inputs_by(self, regex):
+        return re.findall(regex, self.text)
 
-    return [aliases.get(method, method), inputs, output_names]
+    def get_output_names_by(self, regex):
+        return tuple(sentence_to_name(s) for s in re.findall(regex, self.text))
 
+    @property
+    def name(self):
+        method = sentence_to_method_name(self.text)
 
-def get_step_specs(lines, aliases):
-    return [get_spec(get_step_sentence(line), aliases) for line in strip_lines(lines)]
+        return self.aliases.get(method, method)
+
+    @property
+    def inputs(self):
+        return self.get_inputs_by(I_REGEX)
+
+    @property
+    def output_names(self):
+        return self.get_output_names_by(O_REGEX)
 
 
 def to_sentence(name):
     return name.replace('__', ' "x" ').replace('_', ' ').capitalize()
+
+
+def sentence_to_method_name(text):
+    return re.sub(r'_{3,}', '__', sentence_to_name(re.sub(I_REGEX, '_', text)))
+
+
+def sentence_to_name(text):
+    return '_'.join([re.sub(r'\W+', '', t).lower() for t in text.split()])
+
+
+def strip_lines(lines):
+    return list(filter(None, map(str.strip, lines)))

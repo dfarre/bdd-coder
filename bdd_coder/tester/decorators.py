@@ -6,7 +6,6 @@ import functools
 import json
 import os
 
-from bdd_coder import get_step_specs
 from bdd_coder import LOGS_DIR_NAME, FAIL
 
 from bdd_coder import stock
@@ -55,9 +54,6 @@ class Steps(stock.Repr):
             history.write(text + '\n\n')
 
         self.clear_old_history()
-
-    def get_step_specs(self, method_doc):
-        return get_step_specs(method_doc.splitlines(), self.aliases)
 
     def reset_outputs(self):
         self.outputs = collections.defaultdict(list)

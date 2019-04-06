@@ -15,13 +15,8 @@ Features {
                 "doc_lines": [
                     "When bla bla bla"
                 ],
-                "step_specs": [
-                    [
-                        "bla_bla_bla",
-                        [],
-                        [],
-                        true
-                    ]
+                "steps": [
+                    "(i) bla_bla_bla [] ↦ ()"
                 ]
             },
             "something_even_funnier_on_three": {
@@ -31,19 +26,9 @@ Features {
                     "When fours second scenario",
                     "Then bla bla bla"
                 ],
-                "step_specs": [
-                    [
-                        "fours_second_scenario",
-                        [],
-                        [],
-                        true
-                    ],
-                    [
-                        "bla_bla_bla",
-                        [],
-                        [],
-                        true
-                    ]
+                "steps": [
+                    "(i) fours_second_scenario [] ↦ ()",
+                    "(i) bla_bla_bla [] ↦ ()"
                 ]
             }
         },
@@ -66,19 +51,9 @@ Features {
                     "Given something funny on three",
                     "Then you laugh"
                 ],
-                "step_specs": [
-                    [
-                        "something_funny_on_three",
-                        [],
-                        [],
-                        false
-                    ],
-                    [
-                        "you_laugh",
-                        [],
-                        [],
-                        true
-                    ]
+                "steps": [
+                    "(o) something_funny_on_three [] ↦ ()",
+                    "(i) you_laugh [] ↦ ()"
                 ]
             }
         },
@@ -103,31 +78,10 @@ Features {
                     "When something even funnier on three",
                     "Then you `smile` and say \"cool\""
                 ],
-                "step_specs": [
-                    [
-                        "something_cool",
-                        [],
-                        [
-                            "something"
-                        ],
-                        false
-                    ],
-                    [
-                        "something_even_funnier_on_three",
-                        [],
-                        [],
-                        false
-                    ],
-                    [
-                        "you_smile_and_say_",
-                        [
-                            "cool"
-                        ],
-                        [
-                            "smile"
-                        ],
-                        true
-                    ]
+                "steps": [
+                    "(o) something_cool [] ↦ (something)",
+                    "(o) something_even_funnier_on_three [] ↦ ()",
+                    "(i) you_smile_and_say__ ['cool'] ↦ (smile)"
                 ]
             },
             "ones_second_scenario": {
@@ -137,19 +91,9 @@ Features {
                     "Given ones first scenario",
                     "Then you keep working on two"
                 ],
-                "step_specs": [
-                    [
-                        "ones_first_scenario",
-                        [],
-                        [],
-                        false
-                    ],
-                    [
-                        "you_keep_working_on_two",
-                        [],
-                        [],
-                        false
-                    ]
+                "steps": [
+                    "(o) ones_first_scenario [] ↦ ()",
+                    "(o) you_keep_working_on_two [] ↦ ()"
                 ]
             }
         },

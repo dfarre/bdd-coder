@@ -146,16 +146,16 @@ that will run according to their `__doc__`s, and the necessary step method defin
 Implemented behavioural test step runs are logged by `bdd_coder.tester` as
 ```
 1 ✅ ClearBoard.even_boards:
-  1.1 - 2019-03-18 17:30:13.071420 ✅ i_request_a_new_game_with_an_even_number_of_boards [] |--> ('Even Game',)
-  1.2 - 2019-03-18 17:30:13.071420 ✅ a_game_is_created_with_boards_of__guesses ['12'] |--> ()
+  1.1 - 2019-03-18 17:30:13.071420 ✅ i_request_a_new_game_with_an_even_number_of_boards [] ↦ ('Even Game',)
+  1.2 - 2019-03-18 17:30:13.071420 ✅ a_game_is_created_with_boards_of__guesses ['12'] ↦ ()
 
 2 ✅ ClearBoard.test_start_board:
-  2.1 - 2019-03-18 17:30:13.071420 ✅ even_boards [] |--> ()
-  2.2 - 2019-03-18 17:30:13.071420 ✅ i_request_a_clear_board_in_my_new_game [] |--> ('Board',)
-  2.3 - 2019-03-18 17:30:13.071420 ✅ board__is_added_to_the_game [] |--> ()
+  2.1 - 2019-03-18 17:30:13.071420 ✅ even_boards [] ↦ ()
+  2.2 - 2019-03-18 17:30:13.071420 ✅ i_request_a_clear_board_in_my_new_game [] ↦ ('Board',)
+  2.3 - 2019-03-18 17:30:13.071420 ✅ board__is_added_to_the_game [] ↦ ()
 
 3 ❌ ClearBoard.test_odd_boards:
-  3.1 - 2019-03-18 17:30:13.071420 ❌ i_request_a_new_game_with_an_odd_number_of_boards [] |--> Traceback (most recent call last):
+  3.1 - 2019-03-18 17:30:13.071420 ❌ i_request_a_new_game_with_an_odd_number_of_boards [] ↦ Traceback (most recent call last):
   File "/usr/lib/python3.6/unittest/mock.py", line 939, in __call__
     return _mock_self._mock_call(*args, **kwargs)
   File "/usr/lib/python3.6/unittest/mock.py", line 995, in _mock_call
@@ -274,29 +274,29 @@ example/tests/test_stories.py::NewGame::test_more_boards PASSED          [100%]
 and a log
 ```
 1 ✅ NewGame.new_player_joins:
-  1.1 - 2019-04-01 00:30:50.164042 ✅ a_user_signs_in [] |--> ()
-  1.2 - 2019-04-01 00:30:50.164059 ✅ a_new_player_is_added [] |--> ()
+  1.1 - 2019-04-01 00:30:50.164042 ✅ a_user_signs_in [] ↦ ()
+  1.2 - 2019-04-01 00:30:50.164059 ✅ a_new_player_is_added [] ↦ ()
 
 2 ✅ NewGame.test_even_boards:
-  2.1 - 2019-04-01 00:30:50.164178 ✅ new_player_joins [] |--> ()
-  2.2 - 2019-04-01 00:30:50.164188 ✅ i_request_a_new_game_with_an_even_number_of_boards [] |--> ('game',)
-  2.3 - 2019-04-01 00:30:50.164193 ✅ a_game_is_created_with_boards_of__guesses ['12'] |--> ()
+  2.1 - 2019-04-01 00:30:50.164178 ✅ new_player_joins [] ↦ ()
+  2.2 - 2019-04-01 00:30:50.164188 ✅ i_request_a_new_game_with_an_even_number_of_boards [] ↦ ('game',)
+  2.3 - 2019-04-01 00:30:50.164193 ✅ a_game_is_created_with_boards_of__guesses ['12'] ↦ ()
 
 3 ✅ NewGame.new_player_joins:
-  3.1 - 2019-04-01 00:30:50.165339 ✅ a_user_signs_in [] |--> ()
-  3.2 - 2019-04-01 00:30:50.165348 ✅ a_new_player_is_added [] |--> ()
+  3.1 - 2019-04-01 00:30:50.165339 ✅ a_user_signs_in [] ↦ ()
+  3.2 - 2019-04-01 00:30:50.165348 ✅ a_new_player_is_added [] ↦ ()
 
 4 ✅ NewGame.test_funny_boards:
-  4.1 - 2019-04-01 00:30:50.165422 ✅ new_player_joins [] |--> ()
-  4.2 - 2019-04-01 00:30:50.165429 ✅ class_hierarchy_has_changed [] |--> ()
+  4.1 - 2019-04-01 00:30:50.165422 ✅ new_player_joins [] ↦ ()
+  4.2 - 2019-04-01 00:30:50.165429 ✅ class_hierarchy_has_changed [] ↦ ()
 
 5 ✅ NewGame.new_player_joins:
-  5.1 - 2019-04-01 00:30:50.166458 ✅ a_user_signs_in [] |--> ()
-  5.2 - 2019-04-01 00:30:50.166466 ✅ a_new_player_is_added [] |--> ()
+  5.1 - 2019-04-01 00:30:50.166458 ✅ a_user_signs_in [] ↦ ()
+  5.2 - 2019-04-01 00:30:50.166466 ✅ a_new_player_is_added [] ↦ ()
 
 6 ✅ NewGame.test_more_boards:
-  6.1 - 2019-04-01 00:30:50.166535 ✅ new_player_joins [] |--> ()
-  6.2 - 2019-04-01 00:30:50.166541 ✅ user_is_welcome [] |--> ()
+  6.1 - 2019-04-01 00:30:50.166535 ✅ new_player_joins [] ↦ ()
+  6.2 - 2019-04-01 00:30:50.166541 ✅ user_is_welcome [] ↦ ()
 
 Scenario runs {
     "1✅-3✅-5✅": "new_player_joins",

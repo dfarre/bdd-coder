@@ -11,7 +11,8 @@ import yaml
 
 from bdd_coder import strip_lines
 from bdd_coder import to_sentence
-from bdd_coder import FAIL, OK, COMPLETION_MSG
+from bdd_coder import FAIL, OK, TO, COMPLETION_MSG
+from bdd_coder import Step
 
 from bdd_coder import exceptions
 from bdd_coder import features
@@ -64,7 +65,7 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
 
         try:
             return features.FeaturesSpec(directory)
-        except features.FeaturesSpecError as error:
+        except exceptions.FeaturesSpecError as error:
             raise error
         finally:
             if parent_dir is None:
@@ -156,20 +157,20 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
                                               for n, (o, text) in enumerate(step_logs)]))
 
     def run_steps(self, method_doc):
-        for method_name, inputs, output_names in self.steps.get_step_specs(method_doc):
+        for step in Step.steps(method_doc.splitlines(), self.steps.aliases):
             try:
-                symbol, output = OK, getattr(self, method_name)(*inputs) or ()
+                symbol, output = OK, getattr(self, step.name)(*step.inputs) or ()
             except Exception:
                 extracts = traceback.extract_tb(sys.exc_info()[2])
                 symbol, output = FAIL, traceback.format_exc(1 - len(extracts) if (
                     extracts[0].filename.endswith('/bdd_coder/tester/tester.py') and
                     extracts[0].name == 'run_steps') else None)
             else:
-                for name, value in zip(output_names, output):
+                for name, value in zip(step.output_names, output):
                     self.steps.outputs[name].append(value)
 
             yield symbol, (f'{datetime.datetime.utcnow()} {symbol} '
-                           f'{method_name} {inputs} |--> {output}')
+                           f'{step.name} {step.inputs} {TO} {output}')
 
             if symbol == FAIL:
                 break
