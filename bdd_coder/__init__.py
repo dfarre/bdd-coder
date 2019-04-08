@@ -76,3 +76,6 @@ def sentence_to_name(text):
 
 def strip_lines(lines):
     return list(filter(None, map(str.strip, lines)))
+
+
+release = stock.ToPyPI()

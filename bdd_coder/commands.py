@@ -1,10 +1,10 @@
-import abc
-import argparse
 import os
 import sys
 
 from bdd_coder import LOGS_DIR_NAME
 from bdd_coder import OK, FAIL
+
+from bdd_coder import stock
 
 from bdd_coder.exceptions import (
     BaseTesterRetrievalError, FeaturesSpecError, InconsistentClassStructure, OverwriteError)
@@ -12,45 +12,7 @@ from bdd_coder.exceptions import (
 from bdd_coder.coder import coders
 
 
-class Command(metaclass=abc.ABCMeta):
-    arguments = ()
-
-    def __init__(self, test_mode=False):
-        if not test_mode:
-            self.parser = argparse.ArgumentParser()
-
-            for args, kwargs in self.arguments:
-                self.parser.add_argument(*args, **kwargs)
-
-        self.test_mode = test_mode
-
-    def __call__(self, **kwargs):
-        items = kwargs.items() if self.test_mode else self.parser.parse_args()._get_kwargs()
-
-        return self.call(**{key: value for key, value in items if value is not None})
-
-    @abc.abstractmethod
-    def call(self, **kwargs):
-        """The command function"""
-
-
-class ErrorsCommand(Command, metaclass=abc.ABCMeta):
-    exceptions = ()
-
-    @abc.abstractmethod
-    def try_call(self, **kwargs):
-        f"""May raise {self.exceptions}"""
-
-    def call(self, **kwargs):
-        try:
-            self.try_call(**kwargs)
-            return 0
-        except self.exceptions as error:
-            sys.stderr.write(str(error) + '\n')
-            return 1
-
-
-class MakeBlueprint(ErrorsCommand):
+class MakeBlueprint(stock.ErrorsCommand):
     exceptions = (FeaturesSpecError, OverwriteError)
     params = coders.PackageCoder.get_parameters()
     arguments = (
@@ -68,7 +30,7 @@ class MakeBlueprint(ErrorsCommand):
         coders.PackageCoder(**kwargs).create_tester_package()
 
 
-class PatchBlueprint(ErrorsCommand):
+class PatchBlueprint(stock.ErrorsCommand):
     exceptions = (
         BaseTesterRetrievalError, FeaturesSpecError, coders.TwoManyBlankLines)
     params = coders.PackagePatcher.get_parameters()
@@ -85,7 +47,7 @@ class PatchBlueprint(ErrorsCommand):
         coders.PackagePatcher(**kwargs).patch()
 
 
-class MakeYamlSpecs(ErrorsCommand):
+class MakeYamlSpecs(stock.ErrorsCommand):
     exceptions = (BaseTesterRetrievalError, OverwriteError, FeaturesSpecError,
                   InconsistentClassStructure)
     arguments = ((('test_module',), dict(help='passed to `importlib.import_module`')),
@@ -98,7 +60,7 @@ class MakeYamlSpecs(ErrorsCommand):
         base_tester.validate_bases(features_spec)
 
 
-class CheckPendingScenarios(Command):
+class CheckPendingScenarios(stock.Command):
     arguments = ((('logs_parent',), dict(help=f'Parent directory of {LOGS_DIR_NAME}/')),)
 
     def call(self, **kwargs):
