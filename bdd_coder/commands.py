@@ -1,10 +1,10 @@
 import os
 import sys
 
+from simple_cmd import commands
+
 from bdd_coder import LOGS_DIR_NAME
 from bdd_coder import OK, FAIL
-
-from bdd_coder import stock
 
 from bdd_coder.exceptions import (
     BaseTesterRetrievalError, FeaturesSpecError, InconsistentClassStructure, OverwriteError)
@@ -12,7 +12,7 @@ from bdd_coder.exceptions import (
 from bdd_coder.coder import coders
 
 
-class MakeBlueprint(stock.ErrorsCommand):
+class MakeBlueprint(commands.ErrorsCommand):
     exceptions = (FeaturesSpecError, OverwriteError)
     params = coders.PackageCoder.get_parameters()
     arguments = (
@@ -30,7 +30,7 @@ class MakeBlueprint(stock.ErrorsCommand):
         coders.PackageCoder(**kwargs).create_tester_package()
 
 
-class PatchBlueprint(stock.ErrorsCommand):
+class PatchBlueprint(commands.ErrorsCommand):
     exceptions = (
         BaseTesterRetrievalError, FeaturesSpecError, coders.TwoManyBlankLines)
     params = coders.PackagePatcher.get_parameters()
@@ -47,7 +47,7 @@ class PatchBlueprint(stock.ErrorsCommand):
         coders.PackagePatcher(**kwargs).patch()
 
 
-class MakeYamlSpecs(stock.ErrorsCommand):
+class MakeYamlSpecs(commands.ErrorsCommand):
     exceptions = (BaseTesterRetrievalError, OverwriteError, FeaturesSpecError,
                   InconsistentClassStructure)
     arguments = ((('test_module',), dict(help='passed to `importlib.import_module`')),
@@ -60,7 +60,7 @@ class MakeYamlSpecs(stock.ErrorsCommand):
         base_tester.validate_bases(features_spec)
 
 
-class CheckPendingScenarios(stock.Command):
+class CheckPendingScenarios(commands.Command):
     arguments = ((('logs_parent',), dict(help=f'Parent directory of {LOGS_DIR_NAME}/')),)
 
     def call(self, **kwargs):

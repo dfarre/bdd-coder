@@ -74,7 +74,8 @@ class MakeYamlSpecsTests(unittest.TestCase):
     def test_overwrite_error(self, stderr_mock):
         assert self.call(overwrite=False) == 1
         stderr_mock.assert_called_once_with(
-            "Cannot overwrite tmp (--overwrite not set). [Errno 17] File exists: 'tmp'\n")
+            "OverwriteError: Cannot overwrite tmp (--overwrite not set). "
+            "[Errno 17] File exists: 'tmp'\n")
 
     @mock.patch('sys.stdout.write')
     def test__validated_ok(self, stdout_mock):
@@ -92,7 +93,7 @@ class MakeYamlSpecsTests(unittest.TestCase):
 
         assert self.call(overwrite=True) == 1
         stderr_mock.assert_called_once_with(
-            'Cyclical inheritance between NewGame and ClearBoard\n')
+            'FeaturesSpecError: Cyclical inheritance between NewGame and ClearBoard\n')
 
         test_stories.NewGame.test_odd_boards.__doc__ = doc_ok
 
@@ -106,10 +107,11 @@ class MakeYamlSpecsTests(unittest.TestCase):
 
         assert self.call(overwrite=True) == 1
         stderr_mock.assert_called_once_with(
-            'Expected class structure from docs does not match the defined one: FAKE\n')
+            'InconsistentClassStructure: Expected class structure from docs '
+            'does not match the defined one: FAKE\n')
 
 
-SPECS_ERROR = ("Duplicate titles are not supported, ['FakeFoo']\n"
+SPECS_ERROR = ("FeaturesSpecError: Duplicate titles are not supported, ['FakeFoo']\n"
                'Repeated scenario names are not supported, '
                "{'scen_one': ['FakeFoo', 'FakeFoo']}\n")
 

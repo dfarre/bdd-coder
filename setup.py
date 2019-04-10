@@ -27,15 +27,13 @@ setuptools.setup(
         'Environment :: Console',
         'Intended Audience :: Developers'],
     packages=setuptools.find_packages(),
-    install_requires=['pyyaml', 'argparse', 'pytest', 'flake8', 'packaging'],
+    install_requires=['pyyaml', 'argparse', 'pytest', 'flake8', 'simple-cmd'],
     setup_requires=['setuptools', 'configparser'],
     tests_require=tests_require,
-    extras_require={'dev': ['ipdb', 'ipython'], 'pypi': ['twine'],
-                    'test': tests_require},
+    extras_require={'dev': ['ipdb', 'ipython'], 'test': tests_require},
     entry_points={'console_scripts': [
         'bdd-blueprint=bdd_coder.commands:make_blueprint',
         'bdd-patch=bdd_coder.commands:patch_blueprint',
         'bdd-pending-scenarios=bdd_coder.commands:check_pending_scenarios',
-        'bdd-make-yaml-specs=bdd_coder.commands:make_yaml_specs',
-        'pypi-release=bdd_coder:release']},
+        'bdd-make-yaml-specs=bdd_coder.commands:make_yaml_specs']},
 )
