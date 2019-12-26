@@ -9,11 +9,11 @@ import unittest.mock as mock
 from bdd_coder import BASE_TEST_CASE_NAME
 from bdd_coder import BASE_TESTER_NAME
 
-from bdd_coder import commands
 from bdd_coder import stock
 
 from bdd_coder.exceptions import (
-    BaseModuleNotFoundError, BaseTesterNotFoundError, StoriesModuleNotFoundError)
+    BaseModuleNotFoundError, BaseTesterNotFoundError, StoriesModuleNotFoundError,
+    Flake8Error)
 
 from bdd_coder.coder import coders
 
@@ -25,7 +25,7 @@ collecting ... collected 2 items
 tmp/generated/test_stories.py::ClearBoard::test_odd_boards PASSED        [ 50%]
 tmp/generated/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
 
-=========================== 2 passed in 0.05 seconds ===========================
+============================== 2 passed in 0.05s ===============================
 """.strip('\n')
 
 
@@ -61,17 +61,14 @@ class CoderTests(BlueprintTester):
         lines = self.coder_output.splitlines()
         output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:])
 
-        assert re.sub(r'[0-9]{2} seconds', '05 seconds', output) == PYTEST_OUTPUT
+        assert re.sub(r'[0-9]{2}s', '05s', output) == PYTEST_OUTPUT
 
     def test_no_pending(self):
-        assert commands.CheckPendingScenarios(test_mode=True)(
-            logs_parent=self.coder.logs_parent) == 0
+        assert subprocess.run([
+            'bdd-pending-scenarios', self.coder.logs_parent]).returncode == 0
 
     def test_pass_flake8(self):
-        try:
-            subprocess.check_output(['flake8', self.coder.tests_path])
-        except subprocess.CalledProcessError as error:
-            self.fail(error.output.decode())
+        subprocess.check_output(['flake8', self.coder.tests_path])
 
     def test_example_test_files_match(self):
         self.assert_test_files_match('example/tests')
@@ -91,9 +88,10 @@ class CoderCustomBaseTests(BlueprintTester):
 
 class StoriesModuleNotFoundErrorRaiseTest(unittest.TestCase):
     def test_cannot_import(self):
-        self.assertRaisesRegex(
-            StoriesModuleNotFoundError, r'Test module foo\.bar not found',
-            coders.get_base_tester, test_module='foo.bar')
+        with self.assertRaises(StoriesModuleNotFoundError) as cm:
+            coders.get_base_tester(test_module_path='foo.bar')
+
+        assert str(cm.exception) == 'Test module foo.bar not found'
 
 
 class PatcherTester(BlueprintTester):
@@ -114,8 +112,8 @@ class PatcherTests(PatcherTester):
         self.assert_test_files_match('example/new_tests')
 
 
-class TwoManyBlankLinesRaiseTest(PatcherTester):
-    def test_too_many_blank_lines(self):
+class Flake8ErrorRaiseTest(PatcherTester):
+    def test_flake8_error(self):
         with open('tmp/generated/test_stories.py') as py_file:
             source = py_file.read()
 
@@ -125,15 +123,16 @@ class TwoManyBlankLinesRaiseTest(PatcherTester):
                 lambda m: '\n' + m.group(), re.sub(
                     'class NewGame', lambda m: '\n' + m.group(), source, 1), 1))
 
-        self.assertRaisesRegex(
-            coders.TwoManyBlankLines,
-            r'tmp/generated/test_stories.py:7:1: E303 too many blank lines \(3\)\n'
-            r'tmp/generated/test_stories.py:23:5: E303 too many blank lines \(2\)\n',
-            lambda: self.patcher)
+        with self.assertRaises(Flake8Error) as cm:
+            self.patcher
+
+        assert str(cm.exception) == (
+            'tmp/generated/test_stories.py:7:1: E303 too many blank lines (3)\n'
+            'tmp/generated/test_stories.py:23:5: E303 too many blank lines (2)\n')
 
 
-MODULE_REGEX = (r"<module 'tmp\.generated\.test_stories' from "
-                r"'/home/coleopter/src/bdd-coder/tmp/generated/test_stories\.py'>")
+MODULE_TEXT = ("<module 'tmp.generated.test_stories' from "
+               "'/home/coleopter/src/bdd-coder/tmp/generated/test_stories.py'>")
 
 
 class BaseTesterNotFoundErrorRaiseTest(PatcherTester):
@@ -141,11 +140,12 @@ class BaseTesterNotFoundErrorRaiseTest(PatcherTester):
         test_module = 'tmp.generated.test_stories'
         del importlib.import_module(test_module).base.BddTester
 
-        self.assertRaisesRegex(
-            BaseTesterNotFoundError,
-            rf'Imported base test module {MODULE_REGEX}.base should have a single '
-            rf'{BASE_TESTER_NAME} subclass - found set\(\)',
-            coders.get_base_tester, test_module=test_module)
+        with self.assertRaises(BaseTesterNotFoundError) as cm:
+            coders.get_base_tester(test_module_path=test_module)
+
+        assert str(cm.exception) == (
+            f'Imported base test module {MODULE_TEXT}.base should have a single '
+            f'{BASE_TESTER_NAME} subclass - found set()')
 
 
 class BaseModuleNotFoundErrorRaiseTest(PatcherTester):
@@ -153,7 +153,8 @@ class BaseModuleNotFoundErrorRaiseTest(PatcherTester):
         test_module = 'tmp.generated.test_stories'
         del importlib.import_module(test_module).base
 
-        self.assertRaisesRegex(
-            BaseModuleNotFoundError,
-            rf'Test module {MODULE_REGEX} should have a `base` module imported',
-            coders.get_base_tester, test_module=test_module)
+        with self.assertRaises(BaseModuleNotFoundError) as cm:
+            coders.get_base_tester(test_module_path=test_module)
+
+        assert str(cm.exception) == (
+            f'Test module {MODULE_TEXT} should have a `base` module imported')

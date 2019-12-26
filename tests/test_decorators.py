@@ -52,7 +52,7 @@ Pending []
 TRACEBACK = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):
   File "/usr/lib/python3.6/unittest/mock.py", line 939, in __call__
     return _mock_self._mock_call(*args, **kwargs)
-  File "/usr/lib/python3.6/unittest/mock.py", line 995, in _mock_call
+  File "/usr/lib/python3.6/unittest/mock.py", line 999, in _mock_call
     raise effect
 AssertionError: FAKE
 """  # noqa
@@ -106,11 +106,6 @@ class DecoratorTests(unittest.TestCase):
     def assert_odd_boards__fail(self, odd_mock, error_mock):
         tester = test_stories.ClearBoard()
         tester.test_odd_boards()
-
-        odd_mock.assert_called_once_with()
-        error_mock.assert_not_called()
-
-        tester.tearDownClass()
 
     @mock.patch(f'{CLEAR_BOARD}.board__is_added_to_the_game',
                 return_value=None)

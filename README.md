@@ -1,5 +1,7 @@
 # BDD Coder
-A package devoted to agile implementation of **class-based behavioural tests**. It consists of:
+[![PyPI version](https://badge.fury.io/py/bdd-coder.svg)](https://badge.fury.io/py/bdd-coder) [![PyPI downloads](https://img.shields.io/pypi/dm/bdd-coder.svg)](https://img.shields.io/pypi/dm/bdd-coder)
+
+A package devoted to agile implementation of **class-based behavioral tests**. It consists of:
 
 * [coder](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/coder) package able to
 
@@ -14,7 +16,7 @@ Test with [tox](https://tox.readthedocs.io/en/latest/) - see tox.ini.
 See [mastermind](https://bitbucket.org/coleopter/mastermind) for an application.
 
 ## Story
-This package was born as a study of Behaviour Driven Development; and from the wish of having a handy implementation of Gherkin language in class-based tests, to be employed so that development cycles start with coding a behavioural test suite containing the scenario specifications in test case method `__doc__`s - as `bdd_coder.tester` achieves.
+This package was born as a study of Behavior Driven Development; and from the wish of having a handy implementation of Gherkin language in class-based tests, to be employed so that development cycles start with coding a behavioral test suite containing the scenario specifications in test case method `__doc__`s - as `bdd_coder.tester` achieves.
 
 In conjunction with `bdd_coder.coder`, development cycles *start* with:
 
@@ -22,7 +24,7 @@ In conjunction with `bdd_coder.coder`, development cycles *start* with:
 
 2. From these, a test suite is automatically created or patched
 
-3. New *test step methods* are crafted to efficiently achieve 100% behavioural coverage
+3. New *test step methods* are crafted to efficiently achieve 100% behavioral coverage
 
 ## User Story (feature) specifications
 Each test suite (tester package) has a structure

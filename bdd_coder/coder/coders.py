@@ -6,6 +6,7 @@ import itertools
 import json
 import os
 import re
+import subprocess
 
 from bdd_coder import BASE_TEST_CASE_NAME
 from bdd_coder import BASE_TESTER_NAME
@@ -76,7 +77,7 @@ class FeatureClassCoder:
         return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
 
 
-class PackageCoder(stock.ParametersMixin):
+class PackageCoder:
     def __init__(self, base_class=DEFAULT_BASE_TEST_CASE, specs_path='behaviour/specs',
                  tests_path='', test_module_name='stories', overwrite=False, logs_parent=''):
         if base_class == DEFAULT_BASE_TEST_CASE:
@@ -98,7 +99,8 @@ class PackageCoder(stock.ParametersMixin):
 
     def make_aliases_def(self):
         dict_text = text_utils.indent(
-            '\n'.join(f"'{k}': '{v}'," for k, v in self.features_spec.aliases.items()))
+            '\n'.join([f"'{k}': '{v}'," for k, v in sorted(
+                self.features_spec.aliases.items(), key=lambda it: it[0])]))
 
         return f'MAP = {{\n{dict_text}\n}}'
 
@@ -217,22 +219,19 @@ class Split(stock.Repr):
         return re.sub(r'^def (test_)?', '', re.sub(r'\(.*\)', '', text.split(':', 1)[0]), 1)
 
 
-class TwoManyBlankLines(Exception):
-    """So that modules would not be correctly split in class pieces"""
-
-
 class PackagePatcher(PackageCoder):
     default_specs_dir_name = 'specs'
+    required_flake8_codes = ['E302', 'E303']
 
     def __init__(self, test_module='behaviour.tests.test_stories', specs_path='',
                  scenario_delimiter=DEFAULT_SCENARIO_DELIMITER):
-        """Raises `TwoManyBlankLines` if E303"""
+        """May raise `Flake8Error`"""
         self.scenario_delimiter = scenario_delimiter
         self.tests_path = os.path.dirname(test_module.replace('.', '/'))
+        self._flake8_validate()
         self.test_module_name = test_module.rsplit('.', 1)[-1]
         self.test_module = test_module
         self.old_specs = self.base_tester.features_spec()
-        self._ensure_not_too_many_blank_lines()
         self.new_specs = features.FeaturesSpec(specs_path or os.path.join(
             os.path.dirname(self.tests_path), self.default_specs_dir_name))
 
@@ -258,11 +257,13 @@ class PackagePatcher(PackageCoder):
         self.features_spec.base_methods = (
             set(self.new_specs.base_methods) - set(self.old_specs.base_methods))
 
-    def _ensure_not_too_many_blank_lines(self):
-        flakeE303 = str(stock.Process('flake8', '--select=E303', self.tests_path))
+    def _flake8_validate(self):
+        codes = ','.join(self.required_flake8_codes)
 
-        if flakeE303:
-            raise TwoManyBlankLines(flakeE303)
+        try:
+            subprocess.check_output(['flake8', f'--select={codes}', self.tests_path])
+        except subprocess.CalledProcessError as error:
+            raise exceptions.Flake8Error(error.stdout.decode())
 
     @property
     def base_tester(self):
@@ -356,12 +357,11 @@ class PackagePatcher(PackageCoder):
         self.pytest()
 
 
-def get_base_tester(test_module):
-    if isinstance(test_module, str):
-        try:
-            test_module = importlib.import_module(test_module)
-        except ModuleNotFoundError:
-            raise exceptions.StoriesModuleNotFoundError(test_module=test_module)
+def get_base_tester(test_module_path):
+    try:
+        test_module = importlib.import_module(test_module_path)
+    except ModuleNotFoundError:
+        raise exceptions.StoriesModuleNotFoundError(test_module=test_module_path)
 
     if not hasattr(test_module, 'base'):
         raise exceptions.BaseModuleNotFoundError(test_module=test_module)

@@ -1,17 +1,24 @@
 import collections
 import os
 import shutil
+import subprocess
 import unittest
 import unittest.mock as mock
 
 from bdd_coder import LOGS_DIR_NAME, FAIL, OK, COMPLETION_MSG
 
-from bdd_coder import commands
-
 from bdd_coder.exceptions import InconsistentClassStructure
 
 from example.tests import base
 from example.tests import test_stories
+
+
+class CommandsE2ETestCase(unittest.TestCase):
+    command_name = ''
+
+    def call(self, *args):
+        return subprocess.run((self.command_name,) + args,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 class ValidateBasesTests(unittest.TestCase):
@@ -22,41 +29,45 @@ class ValidateBasesTests(unittest.TestCase):
         self.fake_specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]
         self.fake_specs.features = collections.OrderedDict([
             ('NewGame', {'inherited': True}), ('ClearBoard', {'inherited': False})])
+        self.wrong_bases_error = ("Bases {'NewGame'} declared in ClearBoard do not "
+                                  'match the specified ones set()')
 
     def assert_error(self, error):
-        self.assertRaisesRegex(
-            InconsistentClassStructure,
-            rf'Expected class structure from docs does not match the defined one: {error}',
-            lambda: base.BddTester.validate_bases(self.fake_specs))
+        with self.assertRaises(InconsistentClassStructure) as contextm:
+            base.BddTester.validate_bases(self.fake_specs)
+
+        assert str(contextm.exception) == (
+            f'Expected class structure from docs does not match the defined one: {error}')
 
     def test_wrong_bases(self):
         self.init_specs()
 
-        self.assert_error("Bases {'NewGame'} declared in ClearBoard do not "
-                          f'match the specified ones set()')
+        self.assert_error(self.wrong_bases_error)
 
     def test_missing_test_case(self):
         self.init_specs()
         self.fake_specs.features['NewGame']['inherited'] = False
 
-        self.assert_error('Expected one BaseTestCase subclass in NewGame')
+        self.assert_error('Expected one BaseTestCase subclass in NewGame. '
+                          + self.wrong_bases_error)
 
     def test_unexpected_test_case(self):
         self.init_specs()
         self.fake_specs.features['ClearBoard']['inherited'] = True
 
-        self.assert_error('Unexpected BaseTestCase subclass in ClearBoard')
+        self.assert_error('Unexpected BaseTestCase subclass in ClearBoard. '
+                          + self.wrong_bases_error)
 
     def test_sets_differ(self):
         self.fake_specs.class_bases = [('FooStory', set())]
 
-        self.assert_error('Sets of class names differ: <SetPair: doc ~ code '
-                          "disjoint: {'FooStory'} | ø | {'ClearBoard', 'NewGame'}>")
+        self.assert_error('Sets of class names differ: <SetPair: doc ⪥ code: '
+                          "{'FooStory'} | ø | {'ClearBoard', 'NewGame'}>")
 
 
-class MakeYamlSpecsTests(unittest.TestCase):
+class MakeYamlSpecsTests(CommandsE2ETestCase):
     specs_path = 'tmp'
-    command = commands.MakeYamlSpecs(test_mode=True)
+    command_name = 'bdd-make-yaml-specs'
     files_made_msg = f'Specification files generated in {specs_path}\n'
 
     def setUp(self):
@@ -66,49 +77,48 @@ class MakeYamlSpecsTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.specs_path)
 
-    def call(self, **kwargs):
-        return self.command(
-            test_module=test_stories, specs_path=self.specs_path, **kwargs)
+    def call(self, suff='', overwrite=False):
+        pref = 'wrong_' if suff else ''
+        args = [f'example.{pref}tests.test_stories{suff}', self.specs_path] + (
+            ['--overwrite'] if overwrite else [])
 
-    @mock.patch('sys.stderr.write')
-    def test_overwrite_error(self, stderr_mock):
-        assert self.call(overwrite=False) == 1
-        stderr_mock.assert_called_once_with(
+        return super().call(*args)
+
+    def test_overwrite_error(self):
+        process = self.call(overwrite=False)
+
+        assert process.returncode == 4
+        assert process.stderr.decode() == (
             "OverwriteError: Cannot overwrite tmp (--overwrite not set). "
             "[Errno 17] File exists: 'tmp'\n")
+        assert process.stdout.decode() == ''
 
-    @mock.patch('sys.stdout.write')
-    def test__validated_ok(self, stdout_mock):
+    def test_validated_ok(self):
         os.makedirs(self.features_dir)
+        process = self.call(overwrite=True)
 
-        assert self.call(overwrite=True) == 0
-        assert stdout_mock.call_args_list == list(map(
-            mock.call, (self.files_made_msg, 'Test case hierarchy validated\n')))
+        assert process.returncode == 0
+        assert process.stdout.decode() == (
+            self.files_made_msg + 'Test case hierarchy validated\n')
+        assert process.stderr.decode() == ''
 
-    @mock.patch('sys.stderr.write')
-    def test__features_spec_error(self, stderr_mock):
+    def test_features_spec_error(self):
         os.makedirs(self.features_dir)
-        doc_ok = test_stories.NewGame.test_odd_boards.__doc__
-        test_stories.NewGame.test_odd_boards.__doc__ = doc_ok + 'And start board'
+        process = self.call('_cyclical', overwrite=True)
 
-        assert self.call(overwrite=True) == 1
-        stderr_mock.assert_called_once_with(
+        assert process.returncode == 5
+        assert process.stderr.decode() == (
             'FeaturesSpecError: Cyclical inheritance between NewGame and ClearBoard\n')
+        assert process.stdout.decode() == 'Specification files generated in tmp\n'
 
-        test_stories.NewGame.test_odd_boards.__doc__ = doc_ok
-
-    @mock.patch('bdd_coder.tester.tester.BddTester.validate_bases',
-                side_effect=InconsistentClassStructure(
-                    class_bases_text=['class NewGame', 'class ClearBoard(NewGame)'],
-                    error='FAKE'))
-    @mock.patch('sys.stderr.write')
-    def test__class_bases_error(self, stderr_mock, validate_bases_mock):
+    def test_class_bases_error(self):
         os.makedirs(self.features_dir)
+        process = self.call('_not_inherited', overwrite=True)
 
-        assert self.call(overwrite=True) == 1
-        stderr_mock.assert_called_once_with(
-            'InconsistentClassStructure: Expected class structure from docs '
-            'does not match the defined one: FAKE\n')
+        assert process.returncode == 6
+        assert process.stderr.decode() == (
+            'InconsistentClassStructure: Expected class structure from docs does not '
+            'match the defined one: Expected one BaseTestCase subclass in NewGame\n')
 
 
 SPECS_ERROR = ("FeaturesSpecError: Duplicate titles are not supported, ['FakeFoo']\n"
@@ -116,51 +126,43 @@ SPECS_ERROR = ("FeaturesSpecError: Duplicate titles are not supported, ['FakeFoo
                "{'scen_one': ['FakeFoo', 'FakeFoo']}\n")
 
 
-class MakeBlueprintTests(unittest.TestCase):
-    command = commands.MakeBlueprint(test_mode=True)
+class MakeBlueprintTests(CommandsE2ETestCase):
+    command_name = 'bdd-blueprint'
 
-    @mock.patch('bdd_coder.coder.coders.PackageCoder.__init__', return_value=None)
-    @mock.patch('bdd_coder.coder.coders.PackageCoder.create_tester_package',
-                return_value='Output')
-    def test_create_package_call(self, create_package_mock, PackageCoderMock):
-        kwargs = {'foo': None, 'bar': 100, 'qux': 'hello'}
-        assert self.command(**kwargs) == 0
-        kwargs.pop('foo')
-        PackageCoderMock.assert_called_once_with(**kwargs)
-        create_package_mock.assert_called_once_with()
+    def test_create_package_call(self):
+        process = self.call('--specs-path', 'example/specs', '--overwrite')
 
-    @mock.patch('sys.stderr.write')
-    def test_inconsistent_specs(self, stderr_mock):
-        assert self.command(specs_path='tests/specs_wrong') == 1
-        stderr_mock.assert_called_once_with(SPECS_ERROR)
+        assert process.returncode == 0
+
+    def test_inconsistent_specs(self):
+        process = self.call('--specs-path', 'tests/specs_wrong')
+
+        assert process.returncode == 4
+        assert process.stderr.decode() == SPECS_ERROR
+        assert process.stdout.decode() == ''
 
 
-class PatchBlueprintTests(unittest.TestCase):
-    command = commands.PatchBlueprint(test_mode=True)
+class PatchBlueprintTests(CommandsE2ETestCase):
+    command_name = 'bdd-patch'
 
-    @mock.patch('bdd_coder.coder.coders.PackagePatcher.__init__', return_value=None)
-    @mock.patch('bdd_coder.coder.coders.PackagePatcher.patch',
-                return_value='Output')
-    def test_patch_package_call(self, patch_package_mock, PackagePatcherMock):
-        kwargs = {'foo': None, 'bar': 100, 'qux': 'hello'}
-        assert self.command(**kwargs) == 0
-        kwargs.pop('foo')
-        PackagePatcherMock.assert_called_once_with(**kwargs)
-        patch_package_mock.assert_called_once_with()
+    def test_patch_package_call(self):
+        process = self.call('example.tests.test_stories', 'example/specs')
 
-    @mock.patch('sys.stderr.write')
-    def test_inconsistent_specs(self, stderr_mock):
-        assert self.command(
-            specs_path='tests/specs_wrong', test_module='example.tests.test_stories'
-        ) == 1
-        stderr_mock.assert_called_once_with(SPECS_ERROR)
+        assert process.returncode == 0
+
+    def test_inconsistent_specs(self):
+        process = self.call('example.tests.test_stories', 'tests/specs_wrong')
+
+        assert process.returncode == 4
+        assert process.stdout.decode() == 'Specification files generated in .tmp-specs\n'
+        assert process.stderr.decode() == SPECS_ERROR
 
 
 SUCCESS_MSG = f'{COMPLETION_MSG} ▌ 3 {OK}'
 
 
-class CheckPendingScenariosTests(unittest.TestCase):
-    command = commands.CheckPendingScenarios(test_mode=True)
+class CheckPendingScenariosTests(CommandsE2ETestCase):
+    command_name = 'bdd-pending-scenarios'
 
     def setUp(self):
         self.tmp_dir = 'tmp'
@@ -178,10 +180,13 @@ class CheckPendingScenariosTests(unittest.TestCase):
             log01.write(SUCCESS_MSG + '\n\n')
             log02.write('Foo OK\n\n')
 
-    @mock.patch('sys.stdout.write')
-    def assert_when_no_logs(self, stdout_mock):
-        assert self.command(logs_parent=self.tmp_dir) == 2
-        stdout_mock.assert_called_once_with('No logs found\n')
+    def assert_when_no_logs(self):
+        process = self.call(self.tmp_dir)
+
+        assert process.returncode == 4
+        assert process.stdout.decode() == ''
+        assert process.stderr.decode() == (
+            'LogsNotFoundError: No logs found in tmp/.bdd-run-logs\n')
 
     def test_no_logs_dir(self):
         self.assert_when_no_logs()
@@ -190,20 +195,24 @@ class CheckPendingScenariosTests(unittest.TestCase):
         os.makedirs(os.path.join(self.tmp_dir, LOGS_DIR_NAME))
         self.assert_when_no_logs()
 
-    @mock.patch('sys.stderr.write')
-    def test_no_success(self, stderr_mock):
+    def test_no_success(self):
         self.make_fake_logs()
+        process = self.call(self.tmp_dir)
 
-        assert self.command(logs_parent=self.tmp_dir) == 1
-        stderr_mock.assert_called_once_with(
-            f'{FAIL} Some scenarios did not run! Check the logs in {self.logs_dir}\n')
+        assert process.returncode == 3
+        assert process.stdout.decode() == ''
+        assert process.stderr.decode() == (
+            'PendingScenariosError: Some scenarios did not run! '
+            f'Check the logs in {self.logs_dir}\n')
 
-    @mock.patch('sys.stdout.write')
-    def test_success(self, stdout_mock):
+    def test_success(self):
         self.make_fake_logs()
 
         with open(os.path.join(self.logs_dir, '2019-03-02.log'), 'w') as log02:
             log02.write(SUCCESS_MSG + '\n\n')
 
-        assert self.command(logs_parent=self.tmp_dir) == 0
-        stdout_mock.assert_called_once_with(SUCCESS_MSG + '\n')
+        process = self.call(self.tmp_dir)
+
+        assert process.returncode == 0
+        assert process.stdout.decode() == SUCCESS_MSG + '\n'
+        assert process.stderr.decode() == ''

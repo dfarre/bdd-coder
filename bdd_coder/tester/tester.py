@@ -100,7 +100,7 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
                               f'match the specified ones {spec_bases[name]}')
 
         if errors:
-            raise InconsistentClassStructure(error=''.join(errors))
+            raise InconsistentClassStructure(error='. '.join(errors))
 
         sys.stdout.write('Test case hierarchy validated\n')
 

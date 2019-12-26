@@ -1,5 +1,4 @@
 import collections
-import inspect
 import itertools
 import subprocess
 import sys
@@ -26,12 +25,6 @@ class SubclassesMixin:
             subclasses.extend(clss)
 
         return collections.OrderedDict([(sc, list(sc.__bases__)) for sc in subclasses])
-
-
-class ParametersMixin:
-    @classmethod
-    def get_parameters(cls):
-        return inspect.signature(cls).parameters
 
 
 class Process(subprocess.Popen):

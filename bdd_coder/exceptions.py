@@ -14,6 +14,10 @@ class DocException(Exception):
         return self.text
 
 
+class Flake8Error(Exception):
+    """Some required flake8 tests failed"""
+
+
 class OverwriteError(DocException):
     """
     Cannot overwrite {path} (--overwrite not set). {error}

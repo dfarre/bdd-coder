@@ -10,10 +10,11 @@ from bdd_coder import features
 
 class StepTests(unittest.TestCase):
     def test_parse_error(self):
-        self.assertRaisesRegex(
-            exceptions.FeaturesSpecError,
-            r'Inputs \(by "\) or outputs \(by `\) from I `say" `hello" not understood',
-            Step, 'Given I `say" `hello"')
+        with self.assertRaises(exceptions.FeaturesSpecError) as cm:
+            Step('Given I `say" `hello"')
+
+        assert str(cm.exception) == (
+            'Inputs (by ") or outputs (by `) from I `say" `hello" not understood')
 
 
 class FeaturesSpecTests(unittest.TestCase):
@@ -33,7 +34,7 @@ class FeaturesSpecTests(unittest.TestCase):
         self.assertRaisesRegex(
             exceptions.FeaturesSpecError,
             r'^Cyclical inheritance between [a-zA-Z]+ and [a-zA-Z]+$',
-            lambda: features.FeaturesSpec(self.specs_path))
+            features.FeaturesSpec, self.specs_path)
 
         shutil.move(to_path, from_path)
 
