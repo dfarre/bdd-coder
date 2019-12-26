@@ -21,7 +21,6 @@ class CommandsE2ETestCase(unittest.TestCase):
 
 class ValidateBasesTests(unittest.TestCase):
     fake_specs = collections.namedtuple('FakeSpecs', ('class_bases', 'features'))
-    fake_specs.get_class_bases_text = lambda: ['class NewGame', 'class ClearBoard(NewGame)']
 
     def init_specs(self):
         self.fake_specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]
@@ -116,7 +115,8 @@ class MakeYamlSpecsTests(CommandsE2ETestCase):
         assert process.returncode == 6
         assert process.stderr.decode() == (
             'InconsistentClassStructure: Expected class structure from docs does not '
-            'match the defined one: expected one BaseTestCase subclass in NewGame\n')
+            'match the defined one: bases set() declared in ClearBoard do not match '
+            "the specified ones {'NewGame'}\n")
 
 
 SPECS_ERROR = ("FeaturesSpecError: Duplicate titles are not supported, ['FakeFoo']\n"
