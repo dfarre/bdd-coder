@@ -3,14 +3,12 @@ import os
 import shutil
 import subprocess
 import unittest
-import unittest.mock as mock
 
-from bdd_coder import LOGS_DIR_NAME, FAIL, OK, COMPLETION_MSG
+from bdd_coder import LOGS_DIR_NAME, OK, COMPLETION_MSG
 
 from bdd_coder.exceptions import InconsistentClassStructure
 
 from example.tests import base
-from example.tests import test_stories
 
 
 class CommandsE2ETestCase(unittest.TestCase):
@@ -29,7 +27,7 @@ class ValidateBasesTests(unittest.TestCase):
         self.fake_specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]
         self.fake_specs.features = collections.OrderedDict([
             ('NewGame', {'inherited': True}), ('ClearBoard', {'inherited': False})])
-        self.wrong_bases_error = ("Bases {'NewGame'} declared in ClearBoard do not "
+        self.wrong_bases_error = ("bases {'NewGame'} declared in ClearBoard do not "
                                   'match the specified ones set()')
 
     def assert_error(self, error):
@@ -48,14 +46,14 @@ class ValidateBasesTests(unittest.TestCase):
         self.init_specs()
         self.fake_specs.features['NewGame']['inherited'] = False
 
-        self.assert_error('Expected one BaseTestCase subclass in NewGame. '
+        self.assert_error('expected one BaseTestCase subclass in NewGame, '
                           + self.wrong_bases_error)
 
     def test_unexpected_test_case(self):
         self.init_specs()
         self.fake_specs.features['ClearBoard']['inherited'] = True
 
-        self.assert_error('Unexpected BaseTestCase subclass in ClearBoard. '
+        self.assert_error('unexpected BaseTestCase subclass in ClearBoard, '
                           + self.wrong_bases_error)
 
     def test_sets_differ(self):
@@ -118,7 +116,7 @@ class MakeYamlSpecsTests(CommandsE2ETestCase):
         assert process.returncode == 6
         assert process.stderr.decode() == (
             'InconsistentClassStructure: Expected class structure from docs does not '
-            'match the defined one: Expected one BaseTestCase subclass in NewGame\n')
+            'match the defined one: expected one BaseTestCase subclass in NewGame\n')
 
 
 SPECS_ERROR = ("FeaturesSpecError: Duplicate titles are not supported, ['FakeFoo']\n"

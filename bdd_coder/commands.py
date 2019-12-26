@@ -16,8 +16,8 @@ from bdd_coder.coder import coders
 @decorators.ErrorsCommand(FileNotFoundError, FeaturesSpecError, OverwriteError)
 def make_blueprint(
     *, base_class=coders.DEFAULT_BASE_TEST_CASE,
-    specs_path: 'Directory containing the YAML specs'='behaviour/specs',
-    tests_path: 'Default: next to specs'='', test_module_name='stories', overwrite=False
+    specs_path: 'Directory containing the YAML specs' = 'behaviour/specs',
+    tests_path: 'Default: next to specs' = '', test_module_name='stories', overwrite=False
 ):
     coders.PackageCoder(
         base_class=base_class, specs_path=specs_path, tests_path=tests_path,
@@ -30,7 +30,7 @@ def patch_blueprint(
     test_module: 'Passed to `importlib.import_module`',
     specs_path: 'Directory to take new specs from. '
     f'Default: {coders.PackagePatcher.default_specs_dir_name}/ '
-    'next to test package'='', *, scenario_delimiter=coders.DEFAULT_SCENARIO_DELIMITER
+    'next to test package' = '', *, scenario_delimiter=coders.DEFAULT_SCENARIO_DELIMITER
 ):
     coders.PackagePatcher(test_module, specs_path, scenario_delimiter).patch()
 

@@ -88,19 +88,19 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
             base_test_cases = [b for b in own_bases if issubclass(b, BaseTestCase)]
 
             if features_spec.features[name]['inherited'] and len(base_test_cases) != 0:
-                errors.append(f'\nUnexpected {BaseTestCase.__name__} subclass in {name}')
+                errors.append(f'unexpected {BaseTestCase.__name__} subclass in {name}')
 
             if not features_spec.features[name]['inherited'] and len(base_test_cases) != 1:
-                errors.append(f'\nExpected one {BaseTestCase.__name__} subclass in {name}')
+                errors.append(f'expected one {BaseTestCase.__name__} subclass in {name}')
 
             own_bases_names = {b.__name__ for b in own_bases if b not in base_test_cases}
 
             if own_bases_names != spec_bases[name]:
-                errors.append(f'\nBases {own_bases_names} declared in {name} do not '
+                errors.append(f'bases {own_bases_names} declared in {name} do not '
                               f'match the specified ones {spec_bases[name]}')
 
         if errors:
-            raise InconsistentClassStructure(error='. '.join(errors))
+            raise InconsistentClassStructure(error=', '.join(errors))
 
         sys.stdout.write('Test case hierarchy validated\n')
 
