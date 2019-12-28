@@ -1,13 +1,11 @@
 {
     "top_piece": {
         "top_piece": [
-            "",
-            "from bdd_coder.tester import decorators\nfrom bdd_coder.tester import tester\n\nfrom . import aliases\n\nsteps = decorators.Steps(aliases.MAP, 'example/tests')\n\nscenario = decorators.Scenario(steps)\n\n\n@steps\nclass BddTester(tester.BddTester):\n    pass"
+            "from bdd_coder.tester import decorators\nfrom bdd_coder.tester import tester\n\nfrom . import aliases\n\nsteps = decorators.Steps(aliases.MAP, 'example/tests')\nscenario = decorators.Scenario(steps)\n\n\n@steps\nclass BddTester(tester.BddTester):\n    pass"
         ]
     },
     "BaseTestCase": {
         "BaseTestCase": [
-            "",
             "class BaseTestCase(tester.BaseTestCase):\n\n    def board__is_added_to_the_game(self, *args):\n        pass\n\n    def user_is_welcome(self, *args):\n        pass"
         ]
     }

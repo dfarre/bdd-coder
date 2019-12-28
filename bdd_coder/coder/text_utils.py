@@ -32,9 +32,8 @@ def make_class(name, *doc_lines, bases=(), decorators=(), body=''):
 
 
 def make_method(name, *doc_lines, args_text='', decorators=(), body=''):
-    head = decorate(f'def {name}(self{args_text}):', decorators)
-
-    return f'\n{head}\n' + make_def_content(*doc_lines, body=body)
+    return '\n'.join([decorate(f'def {name}(self{args_text}):', decorators),
+                      make_def_content(*doc_lines, body=body)])
 
 
 def rstrip(text):

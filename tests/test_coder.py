@@ -68,7 +68,10 @@ class CoderTests(BlueprintTester):
             'bdd-pending-scenarios', self.coder.logs_parent]).returncode == 0
 
     def test_pass_flake8(self):
-        subprocess.check_output(['flake8', self.coder.tests_path])
+        try:
+            subprocess.check_output(['flake8', self.coder.tests_path])
+        except subprocess.CalledProcessError as error:
+            self.fail(error.stdout.decode())
 
     def test_example_test_files_match(self):
         self.assert_test_files_match('example/tests')

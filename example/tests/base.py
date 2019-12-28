@@ -13,6 +13,5 @@ class BddTester(tester.BddTester):
 
 
 class BaseTestCase(tester.BaseTestCase):
-
     def board__is_added_to_the_game(self, *args):
         pass

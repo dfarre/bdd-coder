@@ -28,29 +28,36 @@ class FeatureClassCoder:
     def __init__(self, class_name, spec):
         self.class_name, self.spec = class_name, spec
 
-    def make_scenario_method_defs(self):
+    @property
+    def scenario_method_defs(self):
         return [self.make_scenario_method_def(name, scenario_spec)
                 for name, scenario_spec in self.spec['scenarios'].items()]
 
-    def make_step_method_defs(self):
+    @property
+    def step_method_defs(self):
         steps = features.FeaturesSpec.get_all_steps(self.spec)
 
         return self.make_step_method_defs_for({
             s.name: (s.inputs, s.output_names) for s in steps if s.own})
 
-    def make_class_body(self):
-        return '\n'.join(self.make_extra_class_attrs() +
-                         self.make_scenario_method_defs() + self.make_step_method_defs())
+    @property
+    def class_body(self):
+        head = '\n'.join(self.extra_class_attrs)
 
-    def make_extra_class_attrs(self):
+        return ('' if head else '\n') + '\n\n'.join(
+            ([head] if head else []) + self.scenario_method_defs + self.step_method_defs)
+
+    @property
+    def extra_class_attrs(self):
         return [f'{name} = {value}' for name, value in self.spec['extra_class_attrs'].items()]
 
-    def make(self):
+    @property
+    def source(self):
         return text_utils.make_class(
-            self.class_name, self.spec['doc'], body=self.make_class_body(),
-            bases=self.get_bases())
+            self.class_name, self.spec['doc'], body=self.class_body, bases=self.bases)
 
-    def get_bases(self):
+    @property
+    def bases(self):
         return (self.spec['bases'] or [f'base.{BASE_TESTER_NAME}']) + (
             [] if self.spec['inherited'] else [f'base.{BASE_TEST_CASE_NAME}'])
 
@@ -94,7 +101,7 @@ class PackageCoder:
 
     @property
     def story_class_defs(self):
-        return [FeatureClassCoder(class_name, spec).make()
+        return [FeatureClassCoder(class_name, spec).source
                 for class_name, spec in self.features_spec.features.items()]
 
     @property
@@ -107,16 +114,16 @@ class PackageCoder:
 
     @property
     def base_method_defs(self):
-        return '\n'.join([text_utils.make_method(name, args_text=', *args')
-                          for name in self.features_spec.base_methods])
+        return [text_utils.make_method(name, args_text=', *args')
+                for name in self.features_spec.base_methods]
 
     @property
     def base_class_defs(self):
-        return '\n'.join([
-            text_utils.make_class(BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,),
-                                  decorators=('steps',)),
-            text_utils.make_class(BASE_TEST_CASE_NAME, bases=self.base_test_case_bases,
-                                  body=self.base_method_defs)])
+        return [text_utils.make_class(
+            BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,), decorators=('steps',)
+        ), text_utils.make_class(
+            BASE_TEST_CASE_NAME, bases=self.base_test_case_bases,
+            body='\n\n'.join(self.base_method_defs))]
 
     def pytest(self):
         stock.Process('pytest', '-vv', self.tests_path).write()
@@ -157,7 +164,8 @@ class PackageCoder:
 
 class TestModule(stock.Repr):
     class_delimiter = '\n\n\nclass '
-    required_flake8_codes = ['E111', 'E301', 'E302', 'E303', 'E701', 'E702', 'F999']
+    required_flake8_codes = [
+        'E111', 'E301', 'E302', 'E303', 'E304', 'E701', 'E702', 'F999', 'W293']
     scenario_delimiter = '@base.scenario'
 
     def __init__(self, filename):
@@ -324,8 +332,8 @@ class PackagePatcher(PackageCoder):
 
     def yield_sorted_pieces(self, pieces):
         for name, bases in self.new_specs.class_bases:
-            bases_code = ', '.join(FeatureClassCoder(
-                name, self.new_specs.features[name]).get_bases())
+            bases_code = ', '.join(
+                FeatureClassCoder(name, self.new_specs.features[name]).bases)
             self.update_bases(name, bases_code, pieces)
 
             yield name, pieces[name]
@@ -339,15 +347,14 @@ class PackagePatcher(PackageCoder):
     def add_new_steps(self, class_name, pieces):
         tester = self.get_tester(class_name)
         steps = self.new_specs.get_all_steps(self.new_specs.features[class_name])
-        name, (_, tail) = next(reversed(pieces[class_name].items()))
-        pieces[class_name][name][1] = tail + '\n' + text_utils.indent('\n'.join(
-            FeatureClassCoder.make_step_method_defs_for({
-                s.name: (s.inputs, s.output_names) for s in steps
-                if s.own and not hasattr(tester, s.name)})))
+        parts = next(reversed(pieces[class_name].values()))
+        parts.extend(map(text_utils.indent, FeatureClassCoder.make_step_method_defs_for({
+            s.name: (s.inputs, s.output_names) for s in steps
+            if s.own and not hasattr(tester, s.name)})))
 
     def add_base_methods(self, pieces):
-        pieces[BASE_TEST_CASE_NAME][BASE_TEST_CASE_NAME][0] += '\n' + text_utils.indent(
-            self.base_method_defs)
+        pieces[BASE_TEST_CASE_NAME][BASE_TEST_CASE_NAME].extend(
+            map(text_utils.indent, self.base_method_defs))
 
     def patch(self):
         self.patch_module(
