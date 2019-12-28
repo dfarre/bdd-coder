@@ -104,7 +104,7 @@ class PatcherTester(BlueprintTester):
 class PatcherTests(PatcherTester):
     def test_split_str(self):
         with open('tests/base_split.json') as json_file:
-            assert str(self.patcher.split('base')) == json_file.read().strip()
+            assert str(self.patcher.splits['base']) == json_file.read().strip()
 
     def test_new_example_test_files_match(self):
         self.patcher.patch()

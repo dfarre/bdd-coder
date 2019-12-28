@@ -1,5 +1,3 @@
-from bdd_coder.tester import decorators
-
 from ..tests import base
 
 
@@ -11,7 +9,7 @@ class NewGame(base.BddTester):
     """
     fixtures = ['player-alice']
 
-    @decorators.Scenario(base.steps)
+    @base.scenario
     def test_odd_boards(self):
         """
         When I request a new `game` with an odd number of boards
@@ -19,7 +17,7 @@ class NewGame(base.BddTester):
         And start board
         """
 
-    @decorators.Scenario(base.steps)
+    @base.scenario
     def even_boards(self):
         """
         When I request a new `game` with an even number of boards
@@ -50,7 +48,7 @@ class ClearBoard(NewGame, base.BaseTestCase):
     In order to start making guesses on it
     """
 
-    @decorators.Scenario(base.steps)
+    @base.scenario
     def test_start_board(self):
         """
         Given a new game

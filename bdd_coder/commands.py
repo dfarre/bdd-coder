@@ -8,7 +8,7 @@ from bdd_coder import OK, FAIL
 
 from bdd_coder.exceptions import (
     BaseTesterRetrievalError, FeaturesSpecError, InconsistentClassStructure,
-    OverwriteError, Flake8Error)
+    OverwriteError, Flake8Error, PendingScenariosError, LogsNotFoundError)
 
 from bdd_coder.coder import coders
 
@@ -29,10 +29,9 @@ def make_blueprint(
 def patch_blueprint(
     test_module: 'Passed to `importlib.import_module`',
     specs_path: 'Directory to take new specs from. '
-    f'Default: {coders.PackagePatcher.default_specs_dir_name}/ '
-    'next to test package' = '', *, scenario_delimiter=coders.DEFAULT_SCENARIO_DELIMITER
-):
-    coders.PackagePatcher(test_module, specs_path, scenario_delimiter).patch()
+        f'Default: {coders.PackagePatcher.default_specs_dir_name}/ '
+        'next to test package' = ''):
+    coders.PackagePatcher(test_module, specs_path).patch()
 
 
 @decorators.ErrorsCommand(
@@ -44,14 +43,6 @@ def make_yaml_specs(
     base_tester = coders.get_base_tester(test_module)
     features_spec = base_tester.features_spec(specs_path, overwrite)
     base_tester.validate_bases(features_spec)
-
-
-class PendingScenariosError(Exception):
-    pass
-
-
-class LogsNotFoundError(Exception):
-    pass
 
 
 @decorators.ErrorsCommand(PendingScenariosError, LogsNotFoundError)
@@ -71,7 +62,6 @@ def check_pending_scenarios(logs_parent: f'Parent directory of {LOGS_DIR_NAME}/'
                 sys.stdout.write(message + '\n')
                 return
 
-            raise PendingScenariosError(
-                f'Some scenarios did not run! Check the logs in {logs_dir}')
+            raise PendingScenariosError(logs_dir=logs_dir)
 
-    raise LogsNotFoundError(f'No logs found in {logs_dir}')
+    raise LogsNotFoundError(logs_dir=logs_dir)

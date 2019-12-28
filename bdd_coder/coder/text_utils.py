@@ -27,7 +27,7 @@ def make_class_head(name, bases=(), decorators=()):
 
 
 def make_class(name, *doc_lines, bases=(), decorators=(), body=''):
-    return '\n'.join([f'\n\n{make_class_head(name, bases, decorators)}:',
+    return '\n'.join([f'{make_class_head(name, bases, decorators)}:',
                       make_def_content(*doc_lines, body=body)])
 
 

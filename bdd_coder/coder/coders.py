@@ -19,7 +19,6 @@ from bdd_coder.coder import text_utils
 
 from bdd_coder.tester import tester
 
-DEFAULT_SCENARIO_DELIMITER = '@decorators.Scenario(base.steps)\n'
 DEFAULT_BASE_TEST_CASE = 'unittest.TestCase'
 BDD_TEST_CASE_PATH = 'tester.BaseTestCase'
 BDD_TESTER_PATH = 'tester.BddTester'
@@ -66,7 +65,7 @@ class FeatureClassCoder:
     def make_scenario_method_def(name, scenario_spec):
         return text_utils.make_method(
             ('' if scenario_spec['inherited'] else 'test_') + name,
-            *scenario_spec['doc_lines'], decorators=('decorators.Scenario(base.steps)',))
+            *scenario_spec['doc_lines'], decorators=('base.scenario',))
 
     @staticmethod
     def make_method_body(inputs, output_names):
@@ -93,44 +92,50 @@ class PackageCoder:
         self.test_module_name = test_module_name
         self.overwrite = overwrite
 
-    def make_story_class_defs(self):
+    @property
+    def story_class_defs(self):
         return [FeatureClassCoder(class_name, spec).make()
                 for class_name, spec in self.features_spec.features.items()]
 
-    def make_aliases_def(self):
+    @property
+    def aliases_def(self):
         dict_text = text_utils.indent(
             '\n'.join([f"'{k}': '{v}'," for k, v in sorted(
                 self.features_spec.aliases.items(), key=lambda it: it[0])]))
 
         return f'MAP = {{\n{dict_text}\n}}'
 
-    def make_base_method_defs(self):
+    @property
+    def base_method_defs(self):
         return '\n'.join([text_utils.make_method(name, args_text=', *args')
                           for name in self.features_spec.base_methods])
 
-    def make_base_class_defs(self):
+    @property
+    def base_class_defs(self):
         return '\n'.join([
             text_utils.make_class(BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,),
                                   decorators=('steps',)),
             text_utils.make_class(BASE_TEST_CASE_NAME, bases=self.base_test_case_bases,
-                                  body=self.make_base_method_defs())])
+                                  body=self.base_method_defs)])
 
     def pytest(self):
         stock.Process('pytest', '-vv', self.tests_path).write()
 
     def write_aliases_module(self):
         with open(os.path.join(self.tests_path, 'aliases.py'), 'w') as aliases_py:
-            aliases_py.write(text_utils.rstrip(self.make_aliases_def()))
+            aliases_py.write(text_utils.rstrip(self.aliases_def))
 
-    def make_base_module_source(self):
-        return (
-            (f'from {self.module_or_package_path} import {self.base_class_name}'
-             '\n\n') if self.base_class_name else '') + (
-            'from bdd_coder.tester import decorators\n'
-            'from bdd_coder.tester import tester\n\n'
-            'from . import aliases\n\n'
-            f"steps = decorators.Steps(aliases.MAP, '{self.logs_parent}')\n"
-            + self.make_base_class_defs())
+    @property
+    def base_module_source(self):
+        return '\n\n\n'.join([
+            (f'from {self.module_or_package_path} import {self.base_class_name}\n\n'
+             if self.base_class_name else '') + (
+                'from bdd_coder.tester import decorators\n'
+                'from bdd_coder.tester import tester\n\n'
+                'from . import aliases\n\n'
+                f"steps = decorators.Steps(aliases.MAP, '{self.logs_parent}')\n"
+                "scenario = decorators.Scenario(steps)")
+        ] + self.base_class_defs)
 
     def create_tester_package(self):
         exceptions.makedirs(self.tests_path, exist_ok=self.overwrite)
@@ -139,98 +144,115 @@ class PackageCoder:
             init_py.write('')
 
         with open(os.path.join(self.tests_path, 'base.py'), 'w') as base_py:
-            base_py.write(text_utils.rstrip(self.make_base_module_source()))
+            base_py.write(text_utils.rstrip(self.base_module_source))
 
         with open(os.path.join(self.tests_path, f'test_{self.test_module_name}.py'),
                   'w') as test_py:
-            test_py.write(text_utils.rstrip(
-                'from bdd_coder.tester import decorators'
-                '\n\nfrom . import base\n' + '\n'.join(self.make_story_class_defs())))
+            test_py.write(text_utils.rstrip('\n\n\n'.join(
+                ['from . import base'] + self.story_class_defs)))
 
         self.write_aliases_module()
         self.pytest()
 
 
-class Split(stock.Repr):
+class TestModule(stock.Repr):
     class_delimiter = '\n\n\nclass '
+    required_flake8_codes = ['E111', 'E301', 'E302', 'E303', 'E701', 'E702', 'F999']
+    scenario_delimiter = '@base.scenario'
 
-    def __init__(self, source, scenario_delimiter=DEFAULT_SCENARIO_DELIMITER):
-        self.scenario_delimiter = scenario_delimiter
-        source = text_utils.rstrip(source)
-        self.pieces = self._split(source)
+    def __init__(self, filename):
+        self.flake8(filename)
+        self.filename = filename
+        self.tmp_filename = f'tmp_split_{id(self)}.py'
 
-        if not self.source == source:
-            raise AssertionError(f'Cannot rejoin {self} into\n\n{self.source}')
+        with open(filename) as py_file:
+            self.pieces = self.split_module(text_utils.rstrip(py_file.read()))
 
     def __str__(self):
-        return json.dumps(self.pieces, indent=4, ensure_ascii=False)
+        return json.dumps(getattr(self, 'pieces', {}), indent=4, ensure_ascii=False)
 
-    @property
-    def source(self):
-        return text_utils.rstrip(self.class_delimiter.join([
-            '\n\n'.join(filter(None, itertools.chain(*(
-                (f'    {self.scenario_delimiter}    {s}' if s else '',
-                 f'    {r}' if r else '') for s, r in texts.values())))).strip()
-            for n, texts in self.pieces.items()]))
+    def __del__(self):
+        if os.path.exists(self.tmp_filename):
+            os.remove(self.tmp_filename)
 
-    def _split(self, source):
-        return self._split_scenarios(self._get_piece_texts(source))
+    @staticmethod
+    def match_scenario_piece(text):
+        match = re.match(
+            r'^(    @base\.scenario\n    def (test_)?([^(]+)\(self\):\n'
+            rf'{" "*8}"""\n.+?\n{" "*8}""")(.*)$', text, flags=re.DOTALL)
 
-    def _get_piece_texts(self, source):
-        texts = map(str.strip, source.split(self.class_delimiter))
-        top_item = ('top_piece', {'top_piece': next(texts)})
+        if match is None:
+            raise
 
-        return collections.OrderedDict([top_item] + [(
-            self.get_class_name(txt), collections.OrderedDict([
-                (self.get_scenario_name(text), text)
-                for text in map(str.strip, txt.split(self.scenario_delimiter))]))
-            for txt in texts])
-
-    def _split_scenarios(self, piece_texts):
-        piece_texts['top_piece']['top_piece'] = ['', piece_texts['top_piece']['top_piece']]
-
-        for class_name, piece in list(piece_texts.items())[1:]:
-            piece_texts[class_name][class_name] = ['', piece_texts[class_name][class_name]]
-
-            for name, text in list(piece.items())[1:]:
-                regex, flags = self.scenario_regex(name)
-                match = re.match(regex, text, flags=flags)
-                piece_texts[class_name][name] = [
-                    match.group() if match else '',
-                    re.sub(regex, '', text, flags=flags).strip()]
-
-        return piece_texts
+        return match.groups()
 
     def transform(self, *mutations):
         for mutate in mutations:
             mutate(self.pieces)
 
-    @staticmethod
-    def scenario_regex(name):
-        return (rf'^(def (test_)?{name}\(self\):\n{" "*8}"""\n.+?\n{" "*8}""")',
-                re.DOTALL)
+        self.validate()
+
+    def validate(self):
+        with open(self.tmp_filename, 'w') as tmp_file:
+            tmp_file.write(self.source)
+
+        self.flake8(self.tmp_filename)
+
+    def write(self):
+        with open(self.filename, 'w') as py_file:
+            py_file.write(self.source)
+
+    @property
+    def source(self):
+        return text_utils.rstrip('\n\n\n'.join(['\n\n'.join(list(filter(
+            None, itertools.chain(*piece.values())))) for piece in self.pieces.values()]))
+
+    @classmethod
+    def flake8(cls, filename):
+        try:
+            subprocess.check_output([
+                'flake8', '--select=' + ','.join(cls.required_flake8_codes), filename])
+        except subprocess.CalledProcessError as error:
+            raise exceptions.Flake8Error(error.stdout.decode())
+
+    @classmethod
+    def split_module(cls, source):
+        pieces = map(str.strip, source.split(cls.class_delimiter))
+        top_item = ('top_piece', {'top_piece': [next(pieces)]})
+
+        return collections.OrderedDict([top_item] + [
+            cls.split_class(f'class {text}') for text in pieces])
+
+    @classmethod
+    def split_class(cls, text):
+        name = cls.get_class_name(text)
+        pieces = map(str.strip, text.split(cls.scenario_delimiter))
+        top_item = (name, [next(pieces)])
+
+        return name, collections.OrderedDict([top_item] + [
+            cls.split_scenario(f'    {cls.scenario_delimiter}\n    {s}') for s in pieces])
+
+    @classmethod
+    def split_scenario(cls, text):
+        scenario_text, _, name, tail = cls.match_scenario_piece(text)
+
+        return name, [scenario_text, tail]
 
     @staticmethod
     def get_class_name(class_text):
-        return re.match(r'^([A-Za-z]+)', class_text).group()
-
-    @staticmethod
-    def get_scenario_name(text):
-        return re.sub(r'^def (test_)?', '', re.sub(r'\(.*\)', '', text.split(':', 1)[0]), 1)
+        return re.match(r'^class ([A-Za-z]+)', class_text).groups()[0]
 
 
 class PackagePatcher(PackageCoder):
     default_specs_dir_name = 'specs'
-    required_flake8_codes = ['E302', 'E303']
 
-    def __init__(self, test_module='behaviour.tests.test_stories', specs_path='',
-                 scenario_delimiter=DEFAULT_SCENARIO_DELIMITER):
+    def __init__(self, test_module='behaviour.tests.test_stories', specs_path=''):
         """May raise `Flake8Error`"""
-        self.scenario_delimiter = scenario_delimiter
         self.tests_path = os.path.dirname(test_module.replace('.', '/'))
-        self._flake8_validate()
         self.test_module_name = test_module.rsplit('.', 1)[-1]
         self.test_module = test_module
+        self.splits = {name: TestModule(os.path.join(self.tests_path, f'{name}.py'))
+                       for name in ['base', self.test_module_name]}
         self.old_specs = self.base_tester.features_spec()
         self.new_specs = features.FeaturesSpec(specs_path or os.path.join(
             os.path.dirname(self.tests_path), self.default_specs_dir_name))
@@ -250,20 +272,14 @@ class PackagePatcher(PackageCoder):
             if class_name not in new_classes}
         self.removed_scenarios = {
             n: old_scenarios[n] for n in set(old_scenarios) - set(new_scenarios)}
+        self.updated_scenarios = {
+            n: new_scenarios[n] for n in set(old_scenarios) & set(new_scenarios)}
         self.features_spec = collections.namedtuple('features_spec', [
             'features', 'aliases', 'base_methods'])
         self.features_spec.features = new_features
         self.features_spec.aliases = {**self.old_specs.aliases, **self.new_specs.aliases}
         self.features_spec.base_methods = (
             set(self.new_specs.base_methods) - set(self.old_specs.base_methods))
-
-    def _flake8_validate(self):
-        codes = ','.join(self.required_flake8_codes)
-
-        try:
-            subprocess.check_output(['flake8', f'--select={codes}', self.tests_path])
-        except subprocess.CalledProcessError as error:
-            raise exceptions.Flake8Error(error.stdout.decode())
 
     @property
     def base_tester(self):
@@ -273,42 +289,30 @@ class PackagePatcher(PackageCoder):
         return getattr(importlib.import_module(self.test_module), class_name)
 
     def patch_module(self, module_name, *mutations):
-        split = self.split(module_name)
-        split.transform(*mutations)
-
-        with open(os.path.join(self.tests_path, f'{module_name}.py'), 'w') as py_file:
-            py_file.write(text_utils.rstrip(split.source))
-
-    def split(self, module_name):
-        with open(os.path.join(self.tests_path, f'{module_name}.py')) as py_file:
-            return Split(py_file.read(), self.scenario_delimiter)
+        self.splits[module_name].transform(*mutations)
+        self.splits[module_name].write()
 
     def remove_scenarios(self, pieces):
         for name, class_name in self.removed_scenarios.items():
             pieces[class_name][name][0] = ''
 
     def update_scenarios(self, pieces):
-        for class_name, piece in list(pieces.items())[1:]:
-            for name in filter(lambda n: n not in self.removed_scenarios, list(piece)[1:]):
-                spec = self.new_specs.features[class_name]['scenarios'][name]
-                piece[name][0] = text_utils.indent(
-                    FeatureClassCoder.make_scenario_method_def(
-                        name, spec).strip()[len(self.scenario_delimiter):]).strip()
+        for name, class_name in self.updated_scenarios.items():
+            spec = self.new_specs.features[class_name]['scenarios'][name]
+            pieces[class_name][name][0] = text_utils.indent(
+                FeatureClassCoder.make_scenario_method_def(name, spec).strip())
 
     def add_scenarios(self, pieces):
         for class_name, scenarios in self.added_scenarios.items():
             codes = [(name, [text_utils.indent(
-                FeatureClassCoder.make_scenario_method_def(
-                    name, spec).strip()[len(self.scenario_delimiter):]).strip(),
+                FeatureClassCoder.make_scenario_method_def(name, spec).strip()),
                 '']) for name, spec in scenarios.items()]
             items = iter(pieces[class_name].items())
             pieces[class_name] = collections.OrderedDict([next(items)] + codes + list(items))
 
     def add_new_stories(self, pieces):
-        new_classes = Split('\n' + '\n'.join(self.make_story_class_defs()),
-                            self.scenario_delimiter).pieces
-        new_classes.pop('top_piece')
-        pieces.update(new_classes)
+        pieces.update(dict([
+            TestModule.split_class(text) for text in self.story_class_defs]))
 
     def sort_hierarchy(self, pieces):
         for class_name, piece in self.yield_sorted_pieces(pieces):
@@ -328,8 +332,9 @@ class PackagePatcher(PackageCoder):
 
     @staticmethod
     def update_bases(name, bases_code, pieces):
-        pieces[name][name][1] = re.sub(
-            r'\([A-Za-z., ]+\):', f'({bases_code}):', pieces[name][name][1], 1)
+        pieces[name][name][0] = re.sub(
+            fr'class {name}\([A-Za-z., ]+\):', f'class {name}({bases_code}):',
+            pieces[name][name][0], 1)
 
     def add_new_steps(self, class_name, pieces):
         tester = self.get_tester(class_name)
@@ -341,8 +346,8 @@ class PackagePatcher(PackageCoder):
                 if s.own and not hasattr(tester, s.name)})))
 
     def add_base_methods(self, pieces):
-        pieces[BASE_TEST_CASE_NAME][BASE_TEST_CASE_NAME][1] += '\n' + text_utils.indent(
-            self.make_base_method_defs())
+        pieces[BASE_TEST_CASE_NAME][BASE_TEST_CASE_NAME][0] += '\n' + text_utils.indent(
+            self.base_method_defs)
 
     def patch(self):
         self.patch_module(

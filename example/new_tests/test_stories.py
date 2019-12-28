@@ -1,5 +1,3 @@
-from bdd_coder.tester import decorators
-
 from . import base
 
 
@@ -23,7 +21,7 @@ class NewPlayer(base.BddTester):
     In order to play
     """
 
-    @decorators.Scenario(base.steps)
+    @base.scenario
     def new_player_joins(self):
         """
         When a user signs in
@@ -45,21 +43,21 @@ class NewGame(NewPlayer, base.BaseTestCase):
     """
     fixtures = ['player-alice']
 
-    @decorators.Scenario(base.steps)
+    @base.scenario
     def test_funny_boards(self):
         """
         Given new player joins
         Then class hierarchy has changed
         """
 
-    @decorators.Scenario(base.steps)
+    @base.scenario
     def test_more_boards(self):
         """
         Given new player joins
         Then she is welcome
         """
 
-    @decorators.Scenario(base.steps)
+    @base.scenario
     def test_even_boards(self):
         """
         Given new player joins

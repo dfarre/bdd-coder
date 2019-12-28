@@ -19,9 +19,15 @@ class Flake8Error(Exception):
 
 
 class OverwriteError(DocException):
-    """
-    Cannot overwrite {path} (--overwrite not set). {error}
-    """
+    """Cannot overwrite {path} (--overwrite not set). {error}"""
+
+
+class PendingScenariosError(DocException):
+    """Some scenarios did not run! Check the logs in {logs_dir}"""
+
+
+class LogsNotFoundError(Exception):
+    """No logs found in {logs_dir}"""
 
 
 def makedirs(path, exist_ok):
