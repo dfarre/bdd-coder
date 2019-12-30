@@ -1,3 +1,4 @@
+***** Head *****
 from bdd_coder.tester import decorators
 from bdd_coder.tester import tester
 
@@ -11,7 +12,8 @@ scenario = decorators.Scenario(steps)
 class BddTester(tester.BddTester):
     pass
 
-
+***** Pieces *****
+*** Head ***
 class BaseTestCase(tester.BaseTestCase):
     def board__is_added_to_the_game(self, *args):
         pass

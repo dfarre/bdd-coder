@@ -106,8 +106,8 @@ class PatcherTester(BlueprintTester):
 
 class PatcherTests(PatcherTester):
     def test_split_str(self):
-        with open('tests/base_split.json') as json_file:
-            assert str(self.patcher.splits['base']) == json_file.read().strip()
+        with open('tests/base_split.txt') as txt_file:
+            assert str(self.patcher.splits['base']) == txt_file.read().strip('\n')
 
     def test_new_example_test_files_match(self):
         self.patcher.patch()
@@ -130,8 +130,7 @@ class Flake8ErrorRaiseTest(PatcherTester):
             self.patcher
 
         assert str(cm.exception) == (
-            'tmp/generated/test_stories.py:7:1: E303 too many blank lines (3)\n'
-            'tmp/generated/test_stories.py:23:5: E303 too many blank lines (2)\n')
+            'tmp/generated/test_stories.py:5:1: E303 too many blank lines (3)\n')
 
 
 MODULE_TEXT = ("<module 'tmp.generated.test_stories' from "

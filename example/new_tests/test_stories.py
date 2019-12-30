@@ -44,6 +44,14 @@ class NewGame(NewPlayer, base.BaseTestCase):
     fixtures = ['player-alice']
 
     @base.scenario
+    def test_even_boards(self):
+        """
+        Given new player joins
+        When I request a new `game` with an even number of boards
+        Then a game is created with boards of "12" guesses
+        """
+
+    @base.scenario
     def test_funny_boards(self):
         """
         Given new player joins
@@ -55,14 +63,6 @@ class NewGame(NewPlayer, base.BaseTestCase):
         """
         Given new player joins
         Then she is welcome
-        """
-
-    @base.scenario
-    def test_even_boards(self):
-        """
-        Given new player joins
-        When I request a new `game` with an even number of boards
-        Then a game is created with boards of "12" guesses
         """
 
     def i_request_a_new_game_with_an_odd_number_of_boards(self, *args):

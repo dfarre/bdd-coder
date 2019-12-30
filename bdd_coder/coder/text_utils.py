@@ -37,4 +37,4 @@ def make_method(name, *doc_lines, args_text='', decorators=(), body=''):
 
 
 def rstrip(text):
-    return '\n'.join(list(map(str.rstrip, text.splitlines()))) + '\n'
+    return '\n'.join(list(map(str.rstrip, text.splitlines()))).lstrip('\n')
