@@ -213,9 +213,9 @@ class TestModule(stock.Repr):
         'E111', 'E301', 'E302', 'E303', 'E304', 'E701', 'E702', 'F999', 'W291', 'W293']
 
     def __init__(self, filename):
-        self.flake8(filename)
         self.filename = filename
         self.tmp_filename = f'tmp_split_{id(self)}.py'
+        self.flake8(filename)
 
         with open(filename) as py_file:
             self.head, self.pieces = self.split_module(text_utils.rstrip(py_file.read()))

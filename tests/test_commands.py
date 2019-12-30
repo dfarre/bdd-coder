@@ -14,9 +14,19 @@ from example.tests import base
 class CommandsE2ETestCase(unittest.TestCase):
     command_name = ''
 
-    def call(self, *args):
-        return subprocess.run((self.command_name,) + args,
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    def assert_call(self, *args, exit=0, stdout=None, stderr=None):
+        process = subprocess.run((self.command_name,) + args,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        assert process.returncode == exit, \
+            f'returned {process.returncode}:\nStdout: {process.stdout.decode()}\n' \
+            f'Stderr: {process.stderr.decode()}'
+
+        if stdout:
+            assert process.stdout.decode() == stdout
+
+        if stderr:
+            assert process.stderr.decode() == stderr
 
 
 class ValidateBasesTests(unittest.TestCase):
@@ -74,47 +84,36 @@ class MakeYamlSpecsTests(CommandsE2ETestCase):
     def tearDown(self):
         shutil.rmtree(self.specs_path)
 
-    def call(self, suff='', overwrite=False):
+    def assert_call(self, suff='', overwrite=False, **kwargs):
         pref = 'wrong_' if suff else ''
         args = [f'example.{pref}tests.test_stories{suff}', self.specs_path] + (
             ['--overwrite'] if overwrite else [])
 
-        return super().call(*args)
+        return super().assert_call(*args, **kwargs)
 
     def test_overwrite_error(self):
-        process = self.call(overwrite=False)
-
-        assert process.returncode == 4
-        assert process.stderr.decode() == (
-            "OverwriteError: Cannot overwrite tmp (--overwrite not set). "
-            "[Errno 17] File exists: 'tmp'\n")
-        assert process.stdout.decode() == ''
+        self.assert_call(
+            overwrite=False, exit=4, stderr="OverwriteError: Cannot overwrite tmp"
+            " (--overwrite not set). [Errno 17] File exists: 'tmp'\n", stdout='')
 
     def test_validated_ok(self):
         os.makedirs(self.features_dir)
-        process = self.call(overwrite=True)
-
-        assert process.returncode == 0
-        assert process.stdout.decode() == (
-            self.files_made_msg + 'Test case hierarchy validated\n')
-        assert process.stderr.decode() == ''
+        self.assert_call(
+            overwrite=True, exit=0, stderr='',
+            stdout=self.files_made_msg + 'Test case hierarchy validated\n')
 
     def test_features_spec_error(self):
         os.makedirs(self.features_dir)
-        process = self.call('_cyclical', overwrite=True)
-
-        assert process.returncode == 5
-        assert process.stderr.decode() == (
-            'FeaturesSpecError: Cyclical inheritance between NewGame and ClearBoard\n')
-        assert process.stdout.decode() == 'Specification files generated in tmp\n'
+        self.assert_call(
+            '_cyclical', overwrite=True, exit=5,
+            stderr='FeaturesSpecError: Cyclical inheritance between NewGame and ClearBoard\n',
+            stdout='Specification files generated in tmp\n')
 
     def test_class_bases_error(self):
         os.makedirs(self.features_dir)
-        process = self.call('_not_inherited', overwrite=True)
-
-        assert process.returncode == 6
-        assert process.stderr.decode() == (
-            'InconsistentClassStructure: Expected class structure from docs does not '
+        self.assert_call(
+            '_not_inherited', overwrite=True, exit=6,
+            stderr='InconsistentClassStructure: Expected class structure from docs does not '
             'match the defined one: bases set() declared in ClearBoard do not match '
             "the specified ones {'NewGame'}\n")
 
@@ -128,32 +127,24 @@ class MakeBlueprintTests(CommandsE2ETestCase):
     command_name = 'bdd-blueprint'
 
     def test_create_package_call(self):
-        process = self.call('--specs-path', 'example/specs', '--overwrite')
-
-        assert process.returncode == 0
+        self.assert_call('--specs-path', 'example/specs', '--overwrite', exit=0)
 
     def test_inconsistent_specs(self):
-        process = self.call('--specs-path', 'tests/specs_wrong')
-
-        assert process.returncode == 4
-        assert process.stderr.decode() == SPECS_ERROR
-        assert process.stdout.decode() == ''
+        self.assert_call(
+            '--specs-path', 'tests/specs_wrong', exit=4, stdout='', stderr=SPECS_ERROR)
 
 
 class PatchBlueprintTests(CommandsE2ETestCase):
     command_name = 'bdd-patch'
 
     def test_patch_package_call(self):
-        process = self.call('example.tests.test_stories', 'example/specs')
-
-        assert process.returncode == 0
+        self.assert_call('example.tests.test_stories', 'example/specs', exit=0)
 
     def test_inconsistent_specs(self):
-        process = self.call('example.tests.test_stories', 'tests/specs_wrong')
-
-        assert process.returncode == 4
-        assert process.stdout.decode() == 'Specification files generated in .tmp-specs\n'
-        assert process.stderr.decode() == SPECS_ERROR
+        self.assert_call(
+            'example.tests.test_stories', 'tests/specs_wrong', exit=4,
+            stdout='Specification files generated in .tmp-specs\n',
+            stderr=SPECS_ERROR)
 
 
 SUCCESS_MSG = f'{COMPLETION_MSG} ▌ 3 {OK}'
@@ -179,12 +170,9 @@ class CheckPendingScenariosTests(CommandsE2ETestCase):
             log02.write('Foo OK\n\n')
 
     def assert_when_no_logs(self):
-        process = self.call(self.tmp_dir)
-
-        assert process.returncode == 4
-        assert process.stdout.decode() == ''
-        assert process.stderr.decode() == (
-            'LogsNotFoundError: No logs found in tmp/.bdd-run-logs\n')
+        self.assert_call(
+            self.tmp_dir, exit=4, stdout='',
+            stderr='LogsNotFoundError: No logs found in tmp/.bdd-run-logs\n')
 
     def test_no_logs_dir(self):
         self.assert_when_no_logs()
@@ -195,12 +183,9 @@ class CheckPendingScenariosTests(CommandsE2ETestCase):
 
     def test_no_success(self):
         self.make_fake_logs()
-        process = self.call(self.tmp_dir)
-
-        assert process.returncode == 3
-        assert process.stdout.decode() == ''
-        assert process.stderr.decode() == (
-            'PendingScenariosError: Some scenarios did not run! '
+        self.assert_call(
+            self.tmp_dir, exit=3, stdout='',
+            stderr='PendingScenariosError: Some scenarios did not run! '
             f'Check the logs in {self.logs_dir}\n')
 
     def test_success(self):
@@ -209,8 +194,4 @@ class CheckPendingScenariosTests(CommandsE2ETestCase):
         with open(os.path.join(self.logs_dir, '2019-03-02.log'), 'w') as log02:
             log02.write(SUCCESS_MSG + '\n\n')
 
-        process = self.call(self.tmp_dir)
-
-        assert process.returncode == 0
-        assert process.stdout.decode() == SUCCESS_MSG + '\n'
-        assert process.stderr.decode() == ''
+        self.assert_call(self.tmp_dir, exit=0, stdout=SUCCESS_MSG + '\n', stderr='')

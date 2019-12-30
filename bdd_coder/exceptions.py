@@ -26,7 +26,7 @@ class PendingScenariosError(DocException):
     """Some scenarios did not run! Check the logs in {logs_dir}"""
 
 
-class LogsNotFoundError(Exception):
+class LogsNotFoundError(DocException):
     """No logs found in {logs_dir}"""
 
 
