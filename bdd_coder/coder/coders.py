@@ -173,7 +173,7 @@ class ModulePiece(stock.Repr):
         if match:
             decorators, _, self.name, bases, _, doc, body = match.groups()
             self.decorators, self.bases = (decorators or '', bases or '')
-            self.doc = strip_lines(doc.splitlines()) if doc else []
+            self.doc = '\n'.join(strip_lines(doc.splitlines())) if doc else None
             self.body_head, self.scenarios, self.tail = self.split_class_body(body)
             self.match = True
         else:
@@ -199,7 +199,8 @@ class ModulePiece(stock.Repr):
 
     @property
     def head(self):
-        doc = [text_utils.indent(text_utils.make_doc(*self.doc))] if self.doc else []
+        doc = [text_utils.indent(text_utils.make_doc(
+            *self.doc.splitlines()))] if self.doc else []
         body_head = [self.body_head] if self.body_head else []
 
         return '\n'.join([
@@ -375,6 +376,10 @@ class PackagePatcher(PackageCoder):
     def update_bases(name, bases_code, pieces):
         pieces[name].bases = f'({bases_code})'
 
+    def update_docs(self, pieces):
+        for name in self.new_specs.features.keys() - self.features_spec.features.keys():
+            pieces[name].doc = self.new_specs.features[name]['doc']
+
     def add_new_steps(self, class_name, pieces):
         tester = self.get_tester(class_name)
         steps = self.new_specs.get_all_steps(self.new_specs.features[class_name])
@@ -388,8 +393,8 @@ class PackagePatcher(PackageCoder):
     def patch(self):
         self.patch_module(
             self.test_module_name,
-            self.remove_scenarios, self.update_scenarios, self.add_scenarios,
-            self.add_new_stories, self.sort_hierarchy, *[
+            self.remove_scenarios, self.update_docs, self.update_scenarios,
+            self.add_scenarios, self.add_new_stories, self.sort_hierarchy, *[
                 functools.partial(self.add_new_steps, subclass.__name__)
                 for subclass in self.base_tester.subclasses_down()
                 if subclass.__name__ in self.new_specs.features])

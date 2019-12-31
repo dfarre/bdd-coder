@@ -39,7 +39,7 @@ class NewGame(NewPlayer, base.BaseTestCase):
     """
     As a codebreaker
     I want to start a new Mastermind game of B boards of G guesses
-    In order to play
+    In order to play and have fun
     """
     fixtures = ['player-alice']
 
