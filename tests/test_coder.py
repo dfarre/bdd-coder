@@ -70,7 +70,7 @@ class CoderTests(BlueprintTester):
     def test_pass_flake8(self):
         try:
             subprocess.check_output(['flake8', self.coder.tests_path])
-        except subprocess.CalledProcessError as error:
+        except subprocess.CalledProcessError as error:  # NO COVER
             self.fail(error.stdout.decode())
 
     def test_example_test_files_match(self):
