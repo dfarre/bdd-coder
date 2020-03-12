@@ -1,6 +1,7 @@
 import datetime
 import os
 import shutil
+import sys
 import unittest
 import unittest.mock as mock
 
@@ -50,17 +51,10 @@ Pending []
 
 """.lstrip('\n')  # noqa
 TRACEBACK = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):
-  File "/usr/lib/python3.6/unittest/mock.py", line 939, in __call__
-    return _mock_self._mock_call(*args, **kwargs)
-  File "/usr/lib/python3.6/unittest/mock.py", line 999, in _mock_call
-    raise effect
-AssertionError: FAKE
-"""  # noqa
+  File "/usr/lib/python3.{sys.version_info.minor}/unittest/mock.py", line """  # noqa
 FAIL_LOG = f"""
 4 {FAIL} ClearBoard.test_odd_boards:
-  4.1 - {TRACEBACK}
-
-""".lstrip('\n')  # noqa
+  4.1 - {TRACEBACK}""".lstrip('\n')  # noqa
 
 
 class DecoratorTests(unittest.TestCase):
@@ -128,14 +122,14 @@ class DecoratorTests(unittest.TestCase):
 
     def assert_log(self, log_text):
         with open(os.path.join(base.steps.logs_dir, f'{FROZEN_TIME.date()}.log')) as log:
-            assert log.read() == log_text
+            assert log.read().startswith(log_text)
 
     @freezegun.freeze_time(FROZEN_TIME)
     def test_fail_traceback(self):
         with self.assertRaises(AssertionError) as cm:
             self.assert_odd_boards__fail()
 
-        assert str(cm.exception) == TRACEBACK
+        assert str(cm.exception).startswith(TRACEBACK)
         self.assert_log(FAIL_LOG)
 
     @freezegun.freeze_time(FROZEN_TIME)

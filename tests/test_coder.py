@@ -133,8 +133,9 @@ class Flake8ErrorRaiseTest(PatcherTester):
             'tmp/generated/test_stories.py:5:1: E303 too many blank lines (3)\n')
 
 
-MODULE_TEXT = ("<module 'tmp.generated.test_stories' from "
-               "'/home/coleopter/src/bdd-coder/tmp/generated/test_stories.py'>")
+MODULE_TEXT = ("<module 'tmp.generated.test_stories' from '" +
+               os.path.dirname(os.path.dirname(os.path.abspath(__file__))) +
+               "/tmp/generated/test_stories.py'>")
 
 
 class BaseTesterNotFoundErrorRaiseTest(PatcherTester):

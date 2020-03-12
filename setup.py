@@ -5,7 +5,7 @@ import setuptools
 ini = configparser.ConfigParser()
 ini.read('version.ini')
 
-with open('README.md') as readme:
+with open('README.md', encoding='utf-8') as readme:
     long_description = readme.read()
 
 tests_require = ['pytest-cov', 'freezegun']
@@ -22,13 +22,15 @@ setuptools.setup(
     classifiers=[
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Environment :: Console',
         'Intended Audience :: Developers'],
     packages=setuptools.find_packages(),
-    install_requires=['pyyaml', 'argparse', 'pytest', 'flake8',
-                      'simple-cmd@git+file://localhost/home/coleopter/src/simple-cmd'],
+    install_requires=['pyyaml', 'argparse', 'pytest', 'flake8', 'simple-cmd'],
     setup_requires=['setuptools', 'configparser'],
     tests_require=tests_require,
     extras_require={'dev': ['ipdb', 'ipython'], 'test': tests_require},
