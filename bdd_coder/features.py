@@ -126,7 +126,8 @@ class FeaturesSpec(stock.Repr):
             for base_class_name in feature_spec['mro_bases']:
                 if class_name in features[base_class_name]['mro_bases']:
                     raise exceptions.FeaturesSpecError(
-                        f'Cyclical inheritance between {class_name} and {base_class_name}')
+                        'Cyclical inheritance between {0} and {1}'.format(*sorted([
+                            class_name, base_class_name])))
 
         return features
 

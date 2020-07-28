@@ -106,7 +106,7 @@ class MakeYamlSpecsTests(CommandsE2ETestCase):
         os.makedirs(self.features_dir)
         self.assert_call(
             '_cyclical', overwrite=True, exit=5,
-            stderr='FeaturesSpecError: Cyclical inheritance between NewGame and ClearBoard\n',
+            stderr='FeaturesSpecError: Cyclical inheritance between ClearBoard and NewGame\n',
             stdout='Specification files generated in tmp\n')
 
     def test_class_bases_error(self):
