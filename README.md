@@ -175,14 +175,6 @@ All scenarios ran ▌ 2 ✅ ▌ 1 ❌
 ```
 into `$logs_parent/.bdd-run-logs/` (git-ignored), split by date into files `YYYY-MM-DD.log`, with the `logs_parent` value passed to `bdd_coder.tester.decorators.Steps`, which also has a `max_history_length` parameter - in days, older history is removed.
 
-In Ubuntu I use the bash function
-```
-function bdd-log-tab() {
-  gnome-terminal --tab -- tail -f $(pwd)/$1/.bdd-run-logs/$(ls $(pwd)/$1/.bdd-run-logs | tail -1)
-}
-```
-to open a terminal tab that will output the log stream as tests run (if the `.bdd-run-logs` directory exists).
-
 ### Commands
 #### Check if pending scenarios
 It may happen that all steps - and so all tests - that ran succeeded, but some scenarios were not reached. Run `bdd-pending-scenarios` after `pytest` to treat this as an error (recommended)
