@@ -1,5 +1,5 @@
 # BDD Coder
-[![PyPI version](https://badge.fury.io/py/bdd-coder.svg)](https://badge.fury.io/py/bdd-coder) [![PyPI downloads](https://img.shields.io/pypi/dm/bdd-coder.svg)](https://img.shields.io/pypi/dm/bdd-coder)
+[![PyPI version](https://badge.fury.io/py/bdd-coder.svg)](https://badge.fury.io/py/bdd-coder) [![PyPI downloads](https://img.shields.io/pypi/dm/bdd-coder.svg)](https://img.shields.io/pypi/dm/bdd-coder) [![Build Status](http://eleuteriostuart.com:8080/buildStatus/icon?job=bdd-coder)](http://eleuteriostuart.com:8080/job/bdd-coder)
 
 A package devoted to agile implementation of **class-based behavioral tests**. It consists of:
 
