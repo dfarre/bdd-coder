@@ -1,5 +1,4 @@
 """To be employed with `BddTester` and `BaseTestCase`"""
-
 import collections
 import functools
 import json
@@ -54,25 +53,52 @@ class Steps(stock.Repr):
         self.outputs = collections.defaultdict(list)
 
 
-class Scenario:
-    def __init__(self, steps):
-        self.steps = steps
+try:
+    import pytest_twisted
+except ImportError:
+    class Scenario:
+        def __init__(self, steps):
+            self.steps = steps
 
-    def __call__(self, method):
-        self.steps.scenarios[method.__name__] = []
+        def __call__(self, method):
+            self.steps.scenarios[method.__name__] = []
 
-        @functools.wraps(method)
-        def wrapper(test_case, *args, **kwargs):
-            step_logs = list(test_case.run_steps(method.__doc__))
-            symbol, message = step_logs[-1]
-            test_case.log_scenario_run(method.__name__, step_logs, symbol)
+            @functools.wraps(method)
+            def wrapper(test_case, *args, **kwargs):
+                step_logs = test_case.run_steps(method.__doc__)
+                symbol, message = step_logs[-1]
+                test_case.log_scenario_run(method.__name__, step_logs, symbol)
 
-            if symbol == FAIL:
-                self.steps.failed += 1
-                self.steps.exceptions[method.__name__].append(message)
-                __tracebackhide__ = True
-                pytest.fail(message)
-            else:
-                self.steps.passed += 1
+                if symbol == FAIL:
+                    self.steps.failed += 1
+                    self.steps.exceptions[method.__name__].append(message)
+                    __tracebackhide__ = True
+                    pytest.fail(message)
+                else:
+                    self.steps.passed += 1
 
-        return wrapper
+            return wrapper
+else:
+    class Scenario:
+        def __init__(self, steps):
+            self.steps = steps
+
+        def __call__(self, method):
+            self.steps.scenarios[method.__name__] = []
+
+            @functools.wraps(method)
+            @pytest_twisted.inlineCallbacks
+            def wrapper(test_case, *args, **kwargs):
+                step_logs = yield test_case.run_steps(method.__doc__)
+                symbol, message = step_logs[-1]
+                test_case.log_scenario_run(method.__name__, step_logs, symbol)
+
+                if symbol == FAIL:
+                    self.steps.failed += 1
+                    self.steps.exceptions[method.__name__].append(message)
+                    __tracebackhide__ = True
+                    pytest.fail(message)
+                else:
+                    self.steps.passed += 1
+
+            return wrapper

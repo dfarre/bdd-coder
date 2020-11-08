@@ -9,11 +9,14 @@ build
 .pytest_cache
 .coverage
 .coverage.*
+.coverage-*
 htmlcov
 .tox
 
 *.log
 *.log.*
+
+tmp
 
 .msg
 .secrets.ini

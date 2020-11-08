@@ -1,4 +1,6 @@
 import os
+import sys
+import traceback
 
 
 class FeaturesSpecError(Exception):
@@ -35,6 +37,14 @@ def makedirs(path, exist_ok):
         os.makedirs(path, exist_ok=exist_ok)
     except OSError as error:
         raise OverwriteError(path=path, error=error)
+
+
+def format_next_traceback():
+    exc_type, exc_value, tb = sys.exc_info()
+    tb_text = ''.join(traceback.format_list(traceback.extract_tb(tb.tb_next)))
+
+    return ('Traceback (most recent call last):\n'
+            f'{tb_text}{exc_type.__qualname__}: {exc_value}\n')
 
 
 class InconsistentClassStructure(DocException):

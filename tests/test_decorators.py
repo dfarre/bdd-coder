@@ -42,11 +42,25 @@ Scenario runs {{
 Pending []
 {COMPLETION_MSG} ▌ 3 {OK}
 """  # noqa: E501
-TRACEBACK = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):
-  File "/usr/lib/python3.{sys.version_info.minor}/unittest/mock.py", line """  # noqa: E501
-FAIL_LOG = f"""
-1 {FAIL} NewGame.test_odd_boards:
-  1.1 - {TRACEBACK}""".lstrip('\n')  # noqa: E501
+FAILURE_LOG_PY36 = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):
+  File "/usr/lib/python3.6/unittest/mock.py", line 939, in __call__
+    return _mock_self._mock_call(*args, **kwargs)
+  File "/usr/lib/python3.6/unittest/mock.py", line 999, in _mock_call
+    raise effect
+Exception: FAKE
+"""  # noqa: E501
+FAILURE_LOG_PY38 = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):
+  File "/usr/lib/python3.8/unittest/mock.py", line 1081, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/usr/lib/python3.8/unittest/mock.py", line 1085, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/usr/lib/python3.8/unittest/mock.py", line 1140, in _execute_mock_call
+    raise effect
+Exception: FAKE
+"""  # noqa: E501
+FAILURE_LOG = {6: FAILURE_LOG_PY36, 8: FAILURE_LOG_PY38}[sys.version_info.minor]
+SCENARIO_FAIL_LOG = f"""1 {FAIL} NewGame.test_odd_boards:
+  1.1 - {FAILURE_LOG}"""
 
 
 class DecoratorTests(unittest.TestCase):
@@ -114,15 +128,16 @@ class DecoratorTests(unittest.TestCase):
     def assert_log(self, log_text):
         with open(self.logs_path) as log:
             text = log.read()
-            assert text.startswith(log_text), text
+
+        assert text.startswith(log_text), text
 
     @mock.patch('pytest.fail')
     @freezegun.freeze_time(FROZEN_TIME)
     def test_fail_traceback(self, fail_mock):
         self.assert_odd_boards__fail()
 
-        assert fail_mock.call_args_list[0][0][0].startswith(TRACEBACK)
-        self.assert_log(FAIL_LOG)
+        fail_mock.assert_called_once_with(FAILURE_LOG)
+        self.assert_log(SCENARIO_FAIL_LOG)
 
     @freezegun.freeze_time(FROZEN_TIME)
     def test_calls(self):
