@@ -1,5 +1,4 @@
 import datetime
-import sys
 import unittest
 from unittest import mock
 
@@ -42,11 +41,9 @@ Scenario runs {{
 Pending []
 {COMPLETION_MSG} ▌ 3 {OK}
 """  # noqa: E501
-TRACEBACK = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):
-  File "/usr/lib/python3.{sys.version_info.minor}/unittest/mock.py", line """  # noqa: E501
 FAIL_LOG = f"""
 1 {FAIL} NewGame.test_odd_boards:
-  1.1 - {TRACEBACK}""".lstrip('\n')  # noqa: E501
+  1.1 - {FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):""".lstrip('\n')  # noqa: E501
 
 
 class DecoratorTests(unittest.TestCase):
@@ -114,14 +111,19 @@ class DecoratorTests(unittest.TestCase):
     def assert_log(self, log_text):
         with open(self.logs_path) as log:
             text = log.read()
-            assert text.startswith(log_text), text
+
+        assert text.startswith(log_text), text
 
     @freezegun.freeze_time(FROZEN_TIME)
     def test_fail_traceback(self):
-        with self.assertRaises(AssertionError) as cm:
+        try:
+            import pytest_twisted  # noqa
+        except ImportError:
+            with self.assertRaises(AssertionError):
+                self.assert_odd_boards__fail()
+        else:
             self.assert_odd_boards__fail()
 
-        assert str(cm.exception).startswith(TRACEBACK)
         self.assert_log(FAIL_LOG)
 
     @freezegun.freeze_time(FROZEN_TIME)

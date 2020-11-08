@@ -1,3 +1,4 @@
+import abc
 import collections
 import datetime
 import inspect
@@ -47,7 +48,7 @@ class YamlDumper:
         cls.dump_yaml(dict(alias_lists), os.path.join(parent_dir, 'aliases.yml'))
 
 
-class BddTester(YamlDumper, stock.SubclassesMixin):
+class BddTesterABC(YamlDumper, stock.SubclassesMixin, metaclass=abc.ABCMeta):
     """
     To be decorated with `Steps`, and employed with methods decorated with
     `scenario` - mixes with a subclass of `BaseTestCase` to run test methods
@@ -157,24 +158,57 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
             + ''.join([f'\n  {cls.steps.run_number}.{n + 1} - {text}'
                        for n, (o, text) in enumerate(step_logs)]))
 
+    @abc.abstractmethod
     def run_steps(self, method_doc):
-        for step in Step.steps(method_doc.splitlines(), self.steps.aliases):
-            try:
-                symbol, output = OK, getattr(self, step.name)(*step.inputs) or ()
-            except Exception:
-                extracts = traceback.extract_tb(sys.exc_info()[2])
-                symbol, output = FAIL, traceback.format_exc(1 - len(extracts) if (
-                    extracts[0].filename.endswith('/bdd_coder/tester/tester.py') and
-                    extracts[0].name == 'run_steps') else None)
-            else:
-                for name, value in zip(step.output_names, output):
-                    self.steps.outputs[name].append(value)
+        """Run scenario steps from `method_doc` and return logs list"""
 
-            yield symbol, (f'{datetime.datetime.utcnow()} {symbol} '
-                           f'{step.name} {step.inputs} {TO} {output}')
 
-            if symbol == FAIL:
-                break
+try:
+    import pytest_twisted
+except ImportError:
+    class BddTester(BddTesterABC):
+        def run_steps(self, method_doc):
+            logs = []
+            for step in Step.steps(method_doc.splitlines(), self.steps.aliases):
+                try:
+                    result = getattr(self, step.name)(*step.inputs)
+                    symbol = OK
+                except Exception:
+                    symbol, result = FAIL, traceback.format_exc()
+
+                logs.append((symbol, f'{datetime.datetime.utcnow()} {symbol} '
+                                     f'{step.name} {step.inputs} {TO} {result or ()}'))
+
+                if symbol == OK and isinstance(result, tuple):
+                    for name, value in zip(step.output_names, result):
+                        self.steps.outputs[name].append(value)
+
+                if symbol == FAIL:
+                    break
+            return logs
+
+else:
+    class BddTester(BddTesterABC):
+        @pytest_twisted.inlineCallbacks
+        def run_steps(self, method_doc):
+            logs = []
+            for step in Step.steps(method_doc.splitlines(), self.steps.aliases):
+                try:
+                    result = yield getattr(self, step.name)(*step.inputs)
+                    symbol = OK
+                except Exception:
+                    symbol, result = FAIL, traceback.format_exc()
+
+                logs.append((symbol, f'{datetime.datetime.utcnow()} {symbol} '
+                                     f'{step.name} {step.inputs} {TO} {result or ()}'))
+
+                if symbol == OK and isinstance(result, tuple):
+                    for name, value in zip(step.output_names, result):
+                        self.steps.outputs[name].append(value)
+
+                if symbol == FAIL:
+                    break
+            return logs
 
 
 class BaseTestCase(unittest.TestCase):

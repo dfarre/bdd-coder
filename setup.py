@@ -33,7 +33,8 @@ setuptools.setup(
     install_requires=['pyyaml', 'argparse', 'pytest', 'flake8', 'simple-cmd'],
     setup_requires=['setuptools', 'configparser'],
     tests_require=tests_require,
-    extras_require={'dev': ['ipdb', 'ipython'], 'test': tests_require},
+    extras_require={'dev': ['ipdb', 'ipython'], 'test': tests_require,
+                    'twisted': ['pytest-twisted', 'Twisted']},
     entry_points={'console_scripts': [
         'bdd-blueprint=bdd_coder.commands:make_blueprint',
         'bdd-patch=bdd_coder.commands:patch_blueprint',
