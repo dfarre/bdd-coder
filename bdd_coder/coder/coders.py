@@ -289,9 +289,7 @@ class PackagePatcher(PackageCoder):
 
     def __init__(self, test_module='behaviour.tests.test_stories', specs_path=''):
         """May raise `Flake8Error`"""
-        self.tests_path = os.path.dirname(test_module.replace('.', '/'))
-        self.test_module_name = test_module.rsplit('.', 1)[-1]
-        self.test_module = test_module
+        self.base_tester, self.test_module = get_base_tester(test_module)
         self.old_specs = self.base_tester.features_spec()
         self.new_specs = features.FeaturesSpec(specs_path or os.path.join(
             os.path.dirname(self.tests_path), self.default_specs_dir_name))
@@ -326,11 +324,15 @@ class PackagePatcher(PackageCoder):
             set(self.new_specs.base_methods) - set(self.old_specs.base_methods))
 
     @property
-    def base_tester(self):
-        return get_base_tester(self.test_module)
+    def tests_path(self):
+        return os.path.dirname(self.test_module.__file__)
+
+    @property
+    def test_module_name(self):
+        return self.test_module.__name__.rsplit('.', 1)[-1]
 
     def get_tester(self, class_name):
-        return getattr(importlib.import_module(self.test_module), class_name)
+        return getattr(self.test_module, class_name)
 
     def patch_module(self, module_name, *mutations):
         self.splits[module_name].transform(*mutations)
@@ -418,4 +420,4 @@ def get_base_tester(test_module_path):
     if not len(base_tester) == 1:
         raise exceptions.BaseTesterNotFoundError(test_module=test_module, set=base_tester)
 
-    return base_tester.pop()
+    return base_tester.pop(), test_module

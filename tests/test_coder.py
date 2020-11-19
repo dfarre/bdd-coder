@@ -117,10 +117,12 @@ class PatcherTests(PatcherTester):
 
 class Flake8ErrorRaiseTest(PatcherTester):
     def test_flake8_error(self):
-        with open('tmp/generated/test_stories.py') as py_file:
+        abspath = os.path.abspath('tmp/generated/test_stories.py')
+
+        with open(abspath) as py_file:
             source = py_file.read()
 
-        with open('tmp/generated/test_stories.py', 'w') as py_file:
+        with open(abspath, 'w') as py_file:
             py_file.write(re.sub(
                 r'    @decorators.Scenario\(base.steps\)\n    def even_boards',
                 lambda m: '\n' + m.group(), re.sub(
@@ -129,8 +131,7 @@ class Flake8ErrorRaiseTest(PatcherTester):
         with self.assertRaises(Flake8Error) as cm:
             self.patcher
 
-        assert str(cm.exception) == (
-            'tmp/generated/test_stories.py:5:1: E303 too many blank lines (3)\n')
+        assert str(cm.exception) == (f'{abspath}:5:1: E303 too many blank lines (3)\n')
 
 
 MODULE_TEXT = ("<module 'tmp.generated.test_stories' from '" +

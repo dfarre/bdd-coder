@@ -37,7 +37,7 @@ def patch_blueprint(test_module: 'Passed to `importlib.import_module`',
 def make_yaml_specs(test_module: 'Passed to `importlib.import_module`',
                     specs_path: 'Will try to write the YAML files in here',
                     *, overwrite=False):
-    base_tester = coders.get_base_tester(test_module)
+    base_tester, _ = coders.get_base_tester(test_module)
     features_spec = base_tester.features_spec(specs_path, overwrite)
     base_tester.validate_bases(features_spec)
 
