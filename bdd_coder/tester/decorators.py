@@ -1,21 +1,18 @@
 """To be employed with `BddTester` and `BaseTestCase`"""
 
 import collections
-import datetime
 import functools
 import json
-import os
+import logging
+from logging.handlers import RotatingFileHandler
 
-from bdd_coder import LOGS_DIR_NAME, FAIL
-
+from bdd_coder import FAIL
 from bdd_coder import stock
 
 
 class Steps(stock.Repr):
-    def __init__(self, aliases, logs_parent, max_history_length=5, validate=True):
-        self.logs_dir = os.path.join(logs_parent, LOGS_DIR_NAME)
-        os.makedirs(self.logs_dir, exist_ok=True)
-        self.max_history_length = max_history_length
+    def __init__(self, aliases, validate=True, **logging_kwds):
+        self.reset_logger(**logging_kwds)
         self.reset_outputs()
         self.run_number, self.passed, self.failed, self.scenarios = 0, 0, 0, {}
         self.exceptions = collections.defaultdict(list)
@@ -24,7 +21,7 @@ class Steps(stock.Repr):
 
     def __call__(self, BddTester):
         BddTester.steps = self
-        self.tester = BddTester  # TODO Many testers? One is supported
+        self.tester = BddTester
 
         return BddTester
 
@@ -34,6 +31,14 @@ class Steps(stock.Repr):
 
         return f'Scenario runs {runs}\nPending {pending}'
 
+    def reset_logger(self, logs_path, maxBytes=100000, backupCount=10):
+        self.logger = logging.getLogger('bdd_test_runs')
+        self.logger.setLevel(level=logging.INFO)
+        handler = RotatingFileHandler(logs_path, maxBytes=maxBytes, backupCount=backupCount)
+        handler.setFormatter(logging.Formatter('%(message)s'))
+        self.logger.handlers.clear()
+        self.logger.addHandler(handler)
+
     def get_runs(self):
         return collections.OrderedDict([
             ('-'.join(map(lambda r: f'{r[0]}{r[1]}', runs)), name)
@@ -42,18 +47,6 @@ class Steps(stock.Repr):
 
     def get_pending_runs(self):
         return [method for method, runs in self.scenarios.items() if not runs]
-
-    def clear_old_history(self):
-        for log in sorted(os.listdir(self.logs_dir))[:-self.max_history_length]:
-            os.remove(os.path.join(self.logs_dir, log))
-
-    def write_to_history(self, text):
-        log_path = os.path.join(self.logs_dir, f'{datetime.datetime.utcnow().date()}.log')
-
-        with open(log_path, 'a' if os.path.isfile(log_path) else 'w') as history:
-            history.write(text + '\n\n')
-
-        self.clear_old_history()
 
     def reset_outputs(self):
         self.outputs = collections.defaultdict(list)

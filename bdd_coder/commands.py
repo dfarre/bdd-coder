@@ -3,8 +3,7 @@ import sys
 
 from simple_cmd.decorators import ErrorsCommand
 
-from bdd_coder import LOGS_DIR_NAME
-from bdd_coder import OK, FAIL
+from bdd_coder import OK, FAIL, COMPLETION_MSG
 
 from bdd_coder.exceptions import (
     BaseTesterRetrievalError, FeaturesSpecError, InconsistentClassStructure,
@@ -16,7 +15,8 @@ from bdd_coder.coder import coders
 @ErrorsCommand(FileNotFoundError, FeaturesSpecError, OverwriteError)
 def make_blueprint(*, base_class=coders.DEFAULT_BASE_TEST_CASE,
                    specs_path: 'Directory containing the YAML specs' = 'behaviour/specs',
-                   tests_path: 'Default: next to specs' = '', test_module_name='stories',
+                   tests_path: 'Default: next to specs' = '',
+                   test_module_name: 'Name for test_<name>.py' = 'stories',
                    overwrite=False):
     coders.PackageCoder(
         base_class=base_class, specs_path=specs_path, tests_path=tests_path,
@@ -43,22 +43,16 @@ def make_yaml_specs(test_module: 'Passed to `importlib.import_module`',
 
 
 @ErrorsCommand(PendingScenariosError, LogsNotFoundError)
-def check_pending_scenarios(logs_parent: f'Parent directory of {LOGS_DIR_NAME}/'):
-    logs_dir = os.path.join(logs_parent, LOGS_DIR_NAME)
+def check_pending_scenarios(logs_path: 'Path to BDD run logs file'):
+    if os.path.isfile(logs_path):
+        with open(logs_path, 'rb') as log:
+            log.seek(-4, os.SEEK_END)  # 4 are the bytes of OK/FAIL (3) + \n (1)
+            symbol = log.read().decode().strip()
 
-    if os.path.isdir(logs_dir):
-        log_names = sorted(os.listdir(logs_dir))
+        if symbol in (OK, FAIL):
+            sys.stdout.write(f'{COMPLETION_MSG}. Check the logs in {logs_path}\n')
+            return 0
 
-        if log_names:
-            with open(os.path.join(logs_dir, log_names[-1])) as log:
-                lines = reversed(list(log))
-                next(lines)
-                message = next(lines).strip('\n')
+        raise PendingScenariosError(logs_path=logs_path)
 
-            if message.endswith(OK) or message.endswith(FAIL):
-                sys.stdout.write(message + '\n')
-                return
-
-            raise PendingScenariosError(logs_dir=logs_dir)
-
-    raise LogsNotFoundError(logs_dir=logs_dir)
+    raise LogsNotFoundError(logs_path=logs_path)

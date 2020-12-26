@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import unittest
 
-from bdd_coder import LOGS_DIR_NAME, OK, COMPLETION_MSG
+from bdd_coder import OK, COMPLETION_MSG
 
 from bdd_coder.exceptions import InconsistentClassStructure
 
@@ -156,42 +156,31 @@ class CheckPendingScenariosTests(CommandsE2ETestCase):
     def setUp(self):
         self.tmp_dir = 'tmp'
         os.makedirs(self.tmp_dir)
-        self.logs_dir = os.path.join(self.tmp_dir, LOGS_DIR_NAME)
+        self.ok_logs = os.path.join(self.tmp_dir, 'fake_ok_bdd_runs.log')
+        self.wrong_logs = os.path.join(self.tmp_dir, 'fake_wrong_bdd_runs.log')
 
     def tearDown(self):
         shutil.rmtree(self.tmp_dir)
 
     def make_fake_logs(self):
-        os.makedirs(self.logs_dir)
-
-        with open(os.path.join(self.logs_dir, '2019-03-01.log'), 'w') as log01, \
-                open(os.path.join(self.logs_dir, '2019-03-02.log'), 'w') as log02:
-            log01.write(SUCCESS_MSG + '\n\n')
-            log02.write('Foo OK\n\n')
-
-    def assert_when_no_logs(self):
-        self.assert_call(
-            self.tmp_dir, exit=4, stdout='',
-            stderr='LogsNotFoundError: No logs found in tmp/.bdd-run-logs\n')
-
-    def test_no_logs_dir(self):
-        self.assert_when_no_logs()
+        with open(self.ok_logs, 'w') as ok_log, open(self.wrong_logs, 'w') as wrong_log:
+            ok_log.write(SUCCESS_MSG)
+            wrong_log.write('Foo OK\n\n')
 
     def test_no_log_files(self):
-        os.makedirs(os.path.join(self.tmp_dir, LOGS_DIR_NAME))
-        self.assert_when_no_logs()
+        self.assert_call(
+            self.ok_logs, exit=4, stdout='',
+            stderr=f'LogsNotFoundError: No logs found in {self.ok_logs}\n')
 
     def test_no_success(self):
         self.make_fake_logs()
         self.assert_call(
-            self.tmp_dir, exit=3, stdout='',
+            self.wrong_logs, exit=3, stdout='',
             stderr='PendingScenariosError: Some scenarios did not run! '
-            f'Check the logs in {self.logs_dir}\n')
+            f'Check the logs in {self.wrong_logs}\n')
 
     def test_success(self):
         self.make_fake_logs()
-
-        with open(os.path.join(self.logs_dir, '2019-03-02.log'), 'w') as log02:
-            log02.write(SUCCESS_MSG + '\n\n')
-
-        self.assert_call(self.tmp_dir, exit=0, stdout=SUCCESS_MSG + '\n', stderr='')
+        self.assert_call(self.ok_logs, exit=0,
+                         stdout=f'{COMPLETION_MSG}. Check the logs in {self.ok_logs}\n',
+                         stderr='')

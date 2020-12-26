@@ -31,7 +31,7 @@ tmp/generated/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
 
 class BlueprintTester(unittest.TestCase):
     kwargs = dict(specs_path='example/specs/', tests_path='tmp/generated/',
-                  logs_parent='example/tests/')
+                  logs_path='example/tests/bdd_runs.log')
     base_class = None
 
     @classmethod
@@ -65,7 +65,7 @@ class CoderTests(BlueprintTester):
 
     def test_no_pending(self):
         assert subprocess.run([
-            'bdd-pending-scenarios', self.coder.logs_parent]).returncode == 0
+            'bdd-pending-scenarios', self.coder.logs_path]).returncode == 0
 
     def test_pass_flake8(self):
         try:

@@ -12,7 +12,8 @@ build
 htmlcov
 .tox
 
-.bdd-run-logs
+*.log
+*.log.*
 
 .msg
 .secrets.ini

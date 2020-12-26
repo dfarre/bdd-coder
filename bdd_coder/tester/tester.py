@@ -152,9 +152,10 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
     def log_scenario_run(cls, name, step_logs, symbol):
         cls.steps.run_number += 1
         cls.steps.scenarios[name].append((cls.steps.run_number, symbol))
-        cls.steps.write_to_history(f'{cls.steps.run_number} {symbol} {cls.__name__}.{name}:'
-                                   + ''.join([f'\n  {cls.steps.run_number}.{n+1} - {text}'
-                                              for n, (o, text) in enumerate(step_logs)]))
+        cls.steps.logger.info(
+            f'{cls.steps.run_number} {symbol} {getattr(cls, name).__qualname__}:'
+            + ''.join([f'\n  {cls.steps.run_number}.{n + 1} - {text}'
+                       for n, (o, text) in enumerate(step_logs)]))
 
     def run_steps(self, method_doc):
         for step in Step.steps(method_doc.splitlines(), self.steps.aliases):
@@ -182,6 +183,8 @@ class BaseTestCase(unittest.TestCase):
         if cls.steps.validate:
             cls.steps.tester.validate()
 
+        cls.steps.logger.info('_'*80)
+
     @classmethod
     def tearDownClass(cls):
         if cls.steps.get_pending_runs():
@@ -189,9 +192,9 @@ class BaseTestCase(unittest.TestCase):
         else:
             passed = f' ▌ {cls.steps.passed} {OK}' if cls.steps.passed else ''
             failed = f' ▌ {cls.steps.failed} {FAIL}' if cls.steps.failed else ''
-            end_note = '\n\n' + COMPLETION_MSG + passed + failed
+            end_note = '\n' + COMPLETION_MSG + passed + failed
 
-        cls.steps.write_to_history(f'{cls.steps}{end_note}')
+        cls.steps.logger.info(f'{cls.steps}{end_note}')
 
     def tearDown(self):
         self.steps.reset_outputs()

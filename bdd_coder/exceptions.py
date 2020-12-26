@@ -23,11 +23,11 @@ class OverwriteError(DocException):
 
 
 class PendingScenariosError(DocException):
-    """Some scenarios did not run! Check the logs in {logs_dir}"""
+    """Some scenarios did not run! Check the logs in {logs_path}"""
 
 
 class LogsNotFoundError(DocException):
-    """No logs found in {logs_dir}"""
+    """No logs found in {logs_path}"""
 
 
 def makedirs(path, exist_ok):

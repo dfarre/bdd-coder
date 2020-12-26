@@ -8,7 +8,6 @@ from . import stock
 BASE_TEST_CASE_NAME = 'BaseTestCase'
 BASE_TESTER_NAME = 'BddTester'
 
-LOGS_DIR_NAME = '.bdd-run-logs'
 COMPLETION_MSG = 'All scenarios ran'
 OK, FAIL, TO = '✅', '❌', '↦'
 

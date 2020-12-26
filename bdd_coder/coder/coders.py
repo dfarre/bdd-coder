@@ -83,8 +83,10 @@ class FeatureClassCoder:
 
 
 class PackageCoder:
+    logs_file_name = 'bdd_runs.log'
+
     def __init__(self, base_class=DEFAULT_BASE_TEST_CASE, specs_path='behaviour/specs',
-                 tests_path='', test_module_name='stories', overwrite=False, logs_parent=''):
+                 tests_path='', test_module_name='stories', overwrite=False, logs_path=''):
         if base_class == DEFAULT_BASE_TEST_CASE:
             self.base_test_case_bases = (BDD_TEST_CASE_PATH,)
             self.base_class_name = ''
@@ -94,7 +96,8 @@ class PackageCoder:
 
         self.features_spec = features.FeaturesSpec(specs_path)
         self.tests_path = tests_path or os.path.join(os.path.dirname(specs_path), 'tests')
-        self.logs_parent = (logs_parent or self.tests_path).rstrip('/')
+        self.logs_path = (
+            logs_path or os.path.join(self.tests_path, self.logs_file_name)).rstrip('/')
         self.test_module_name = test_module_name
         self.overwrite = overwrite
 
@@ -139,7 +142,7 @@ class PackageCoder:
                 'from bdd_coder.tester import decorators\n'
                 'from bdd_coder.tester import tester\n\n'
                 'from . import aliases\n\n'
-                f"steps = decorators.Steps(aliases.MAP, '{self.logs_parent}')\n"
+                f"steps = decorators.Steps(aliases.MAP, logs_path='{self.logs_path}')\n"
                 "scenario = decorators.Scenario(steps)")
         ] + self.base_class_defs)
 

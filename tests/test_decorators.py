@@ -1,13 +1,11 @@
 import datetime
-import os
-import shutil
 import sys
 import unittest
-import unittest.mock as mock
+from unittest import mock
 
 import freezegun
 
-from bdd_coder import LOGS_DIR_NAME, OK, FAIL, TO, COMPLETION_MSG
+from bdd_coder import OK, FAIL, TO, COMPLETION_MSG
 
 from example.tests import base
 from example.tests import test_stories
@@ -16,16 +14,14 @@ NEW_GAME = 'example.tests.test_stories.NewGame'
 CLEAR_BOARD = 'example.tests.test_stories.ClearBoard'
 
 FROZEN_TIME = datetime.datetime(2019, 3, 18, 17, 30, 13, 71420)
-FIRST_LOG = f"""
-1 {OK} ClearBoard.even_boards:
+FIRST_LOG = f"""________________________________________________________________________________
+1 {OK} NewGame.even_boards:
   1.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_even_number_of_boards [] {TO} ('Even Game',)
   1.2 - {FROZEN_TIME} {OK} a_game_is_created_with_boards_of__guesses ['12'] {TO} ()
-
 2 {OK} ClearBoard.test_start_board:
   2.1 - {FROZEN_TIME} {OK} even_boards [] {TO} ()
   2.2 - {FROZEN_TIME} {OK} i_request_a_clear_board_in_my_new_game [] {TO} ('Board',)
   2.3 - {FROZEN_TIME} {OK} board__is_added_to_the_game [] {TO} ()
-
 Scenario runs {{
     "1{OK}": "even_boards",
     "2{OK}": "test_start_board"
@@ -33,52 +29,45 @@ Scenario runs {{
 Pending [
     "test_odd_boards"
 ]
-
-""".lstrip('\n')  # noqa
-SECOND_LOG = f"""
-3 {OK} ClearBoard.test_odd_boards:
+"""  # noqa: E501
+SECOND_LOG = f"""________________________________________________________________________________
+3 {OK} NewGame.test_odd_boards:
   3.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} ('Odd Game',)
   3.2 - {FROZEN_TIME} {OK} i_get_a_400_response_saying_it_must_be_even [] {TO} ()
-
 Scenario runs {{
     "1{OK}": "even_boards",
     "2{OK}": "test_start_board",
     "3{OK}": "test_odd_boards"
 }}
 Pending []
-
 {COMPLETION_MSG} ▌ 3 {OK}
-
-""".lstrip('\n')  # noqa
+"""  # noqa: E501
 TRACEBACK = f"""{FROZEN_TIME} {FAIL} i_request_a_new_game_with_an_odd_number_of_boards [] {TO} Traceback (most recent call last):
-  File "/usr/lib/python3.{sys.version_info.minor}/unittest/mock.py", line """  # noqa
+  File "/usr/lib/python3.{sys.version_info.minor}/unittest/mock.py", line """  # noqa: E501
 FAIL_LOG = f"""
-4 {FAIL} ClearBoard.test_odd_boards:
-  4.1 - {TRACEBACK}""".lstrip('\n')  # noqa
+1 {FAIL} NewGame.test_odd_boards:
+  1.1 - {TRACEBACK}""".lstrip('\n')  # noqa: E501
 
 
 class DecoratorTests(unittest.TestCase):
-    logs_dir = f'example/tests/{LOGS_DIR_NAME}'
+    logs_path = 'example/tests/bdd_runs.log'
 
     @classmethod
-    @freezegun.freeze_time(FROZEN_TIME)
-    def setUpClass(cls):
-        for day in range(11, 11 + base.steps.max_history_length + 1):
-            with open(os.path.join(cls.logs_dir, f'2019-03-{day}.log'), 'w') as log:
-                log.write('This is a fake log')
+    def clean_logs(cls):
+        with open(cls.logs_path, 'w'):
+            pass
 
+    @classmethod
+    def setUpClass(cls):
         assert base.steps.scenarios == {
             'test_odd_boards': [], 'even_boards': [], 'test_start_board': []}
 
-    @classmethod
-    def tearDownClass(cls):
-        assert len(os.listdir(cls.logs_dir)) <= base.steps.max_history_length
-
-        shutil.rmtree(cls.logs_dir)
-
     def setUp(self):
-        with open(os.path.join(base.steps.logs_dir, f'{FROZEN_TIME.date()}.log'), 'w'):
-            pass
+        base.steps.run_number = 0
+        self.clean_logs()
+
+    def tearDown(self):
+        self.clean_logs()
 
     @mock.patch(f'{NEW_GAME}.i_get_a_400_response_saying_it_must_be_even',
                 return_value=None)
@@ -86,6 +75,7 @@ class DecoratorTests(unittest.TestCase):
                 return_value=('Odd Game',))
     def assert_odd_boards(self, odd_mock, error_mock):
         tester = test_stories.ClearBoard()
+        tester.setUpClass()
         tester.test_odd_boards()
 
         odd_mock.assert_called_once_with()
@@ -111,6 +101,7 @@ class DecoratorTests(unittest.TestCase):
                 return_value=('Even Game',))
     def assert_start_board(self, even_mock, created_mock, clear_board_mock, added_board_mock):
         tester = test_stories.ClearBoard()
+        tester.setUpClass()
         tester.test_start_board()
 
         even_mock.assert_called_once_with()
@@ -121,8 +112,9 @@ class DecoratorTests(unittest.TestCase):
         tester.tearDownClass()
 
     def assert_log(self, log_text):
-        with open(os.path.join(base.steps.logs_dir, f'{FROZEN_TIME.date()}.log')) as log:
-            assert log.read().startswith(log_text)
+        with open(self.logs_path) as log:
+            text = log.read()
+            assert text.startswith(log_text), text
 
     @freezegun.freeze_time(FROZEN_TIME)
     def test_fail_traceback(self):
