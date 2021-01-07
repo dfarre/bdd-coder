@@ -17,3 +17,5 @@ htmlcov
 
 .msg
 .secrets.ini
+
+version.ini_bk
