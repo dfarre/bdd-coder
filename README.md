@@ -7,9 +7,9 @@ A package devoted to agile implementation of **class-based behavior tests**. It 
     - patch such tester package with new YAML specifications - see [example/new_specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_specs) and [example/new_tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_tests)
 * [tester](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/tester) package employed to run such blueprint tests, which also has the ability to export their docs as YAML specifications
 
-Test with [tox](https://tox.readthedocs.io/en/latest/) - see tox.ini.
+Although this package is intended to be used with [pytest](https://docs.pytest.org/en/stable/contents.html), until version 2.0.0 the base test case class for all test suits `bdd_coder.tester.tester.BaseTestCase` was a `unittest.TestCase` subclass. From version 2.0.0 `unittest.TestCase` is no longer supported, so that `pytest`'s setup and teardown functions - see [pytest-xunit_setup](https://docs.pytest.org/en/latest/xunit_setup.html) - should be implemented instead. See [pytest-unittest](https://docs.pytest.org/en/stable/unittest.html#pytest-features-in-unittest-testcase-subclasses) on the benefits of dropping `unittest.TestCase`.
 
-See [mastermind](https://bitbucket.org/coleopter/mastermind) for an application.
+Test this package with [tox](https://tox.readthedocs.io/en/latest/) - see tox.ini.
 
 ## Story
 This package was born as a study of Behavior Driven Development; and from the wish of having a handy implementation of Gherkin language in class-based tests, to be employed so that development cycles start with coding a behavior test suite containing the scenario specifications in test case method `__doc__`s - as `bdd_coder.tester` achieves.
@@ -140,7 +140,7 @@ ________________________________________________________________________________
 1 ✅ NewGame.even_boards:
   1.1 - 2020-12-26 13:53:59.291959 ✅ i_request_a_new_game_with_an_even_number_of_boards [] ↦ ('Even Game',)
   1.2 - 2020-12-26 13:53:59.292028 ✅ a_game_is_created_with_boards_of__guesses ['12'] ↦ ()
-2 ✅ ClearBoard.test_start_board:
+2 ✅ TestClearBoard.test_start_board:
   2.1 - 2020-12-26 13:53:59.292238 ✅ even_boards [] ↦ ()
   2.2 - 2020-12-26 13:53:59.292316 ✅ i_request_a_clear_board_in_my_new_game [] ↦ ('Board',)
   2.3 - 2020-12-26 13:53:59.292374 ✅ board__is_added_to_the_game [] ↦ ()
@@ -197,7 +197,7 @@ usage: bdd-blueprint [-h] [--base-class BASE_CLASS]
 
 keyword arguments:
   --base-class BASE_CLASS, -b BASE_CLASS
-                        str. Default: unittest.TestCase
+                        str. Base test case class
   --specs-path SPECS_PATH, -s SPECS_PATH
                         str. Default: behaviour/specs. Directory containing the YAML specs
   --tests-path TESTS_PATH, -t TESTS_PATH
@@ -216,8 +216,8 @@ will rewrite [example/tests](https://bitbucket.org/coleopter/bdd-coder/src/maste
 platform [...]
 collecting ... collected 2 items
 
-example/tests/test_stories.py::ClearBoard::test_odd_boards PASSED        [ 50%]
-example/tests/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
+example/tests/test_stories.py::TestClearBoard::test_odd_boards PASSED    [ 50%]
+example/tests/test_stories.py::TestClearBoard::test_start_board PASSED   [100%]
 
 =========================== 2 passed in 0.04 seconds ===========================
 ```
@@ -241,32 +241,32 @@ will turn [example/tests](https://bitbucket.org/coleopter/bdd-coder/src/master/e
 platform [...]
 collecting ... collected 3 items
 
-example/tests/test_stories.py::NewGame::test_even_boards PASSED          [ 33%]
-example/tests/test_stories.py::NewGame::test_funny_boards PASSED         [ 66%]
-example/tests/test_stories.py::NewGame::test_more_boards PASSED          [100%]
+example/tests/test_stories.py::TestNewGame::test_even_boards PASSED      [ 33%]
+example/tests/test_stories.py::TestNewGame::test_funny_boards PASSED     [ 66%]
+example/tests/test_stories.py::TestNewGame::test_more_boards PASSED      [100%]
 
 =========================== 3 passed in 0.04 seconds ===========================
 ```
 and a log
 ```
 ________________________________________________________________________________
-1 ✅ NewGame.new_player_joins:
+1 ✅ TestNewGame.new_player_joins:
   1.1 - 2019-04-01 00:30:50.164042 ✅ a_user_signs_in [] ↦ ()
   1.2 - 2019-04-01 00:30:50.164059 ✅ a_new_player_is_added [] ↦ ()
-2 ✅ NewGame.test_even_boards:
+2 ✅ TestNewGame.test_even_boards:
   2.1 - 2019-04-01 00:30:50.164178 ✅ new_player_joins [] ↦ ()
   2.2 - 2019-04-01 00:30:50.164188 ✅ i_request_a_new_game_with_an_even_number_of_boards [] ↦ ('game',)
   2.3 - 2019-04-01 00:30:50.164193 ✅ a_game_is_created_with_boards_of__guesses ['12'] ↦ ()
-3 ✅ NewGame.new_player_joins:
+3 ✅ TestNewGame.new_player_joins:
   3.1 - 2019-04-01 00:30:50.165339 ✅ a_user_signs_in [] ↦ ()
   3.2 - 2019-04-01 00:30:50.165348 ✅ a_new_player_is_added [] ↦ ()
-4 ✅ NewGame.test_funny_boards:
+4 ✅ TestNewGame.test_funny_boards:
   4.1 - 2019-04-01 00:30:50.165422 ✅ new_player_joins [] ↦ ()
   4.2 - 2019-04-01 00:30:50.165429 ✅ class_hierarchy_has_changed [] ↦ ()
-5 ✅ NewGame.new_player_joins:
+5 ✅ TestNewGame.new_player_joins:
   5.1 - 2019-04-01 00:30:50.166458 ✅ a_user_signs_in [] ↦ ()
   5.2 - 2019-04-01 00:30:50.166466 ✅ a_new_player_is_added [] ↦ ()
-6 ✅ NewGame.test_more_boards:
+6 ✅ TestNewGame.test_more_boards:
   6.1 - 2019-04-01 00:30:50.166535 ✅ new_player_joins [] ↦ ()
   6.2 - 2019-04-01 00:30:50.166541 ✅ user_is_welcome [] ↦ ()
 Scenario runs {

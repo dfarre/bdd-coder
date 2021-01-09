@@ -22,30 +22,28 @@ PYTEST_OUTPUT = """
 platform linux -- Python [L1-4]
 collecting ... collected 2 items
 
-tmp/generated/test_stories.py::ClearBoard::test_odd_boards PASSED        [ 50%]
-tmp/generated/test_stories.py::ClearBoard::test_start_board PASSED       [100%]
+tmp/generated/test_stories.py::TestClearBoard::test_odd_boards PASSED    [ 50%]
+tmp/generated/test_stories.py::TestClearBoard::test_start_board PASSED   [100%]
 
 ============================== 2 passed in 0.05s ===============================
 """.strip('\n')
 
 
 class BlueprintTester(unittest.TestCase):
-    kwargs = dict(specs_path='example/specs/', tests_path='tmp/generated/',
+    kwargs = dict(specs_path='example/specs', tests_path='tmp/generated',
                   logs_path='example/tests/bdd_runs.log')
-    base_class = None
+    base_class = ''
 
-    @classmethod
-    def setUpClass(cls):
-        cls.coder = coders.PackageCoder(**{
-            **cls.kwargs, **({'base_class': cls.base_class} if cls.base_class else {})})
+    def setUp(self):
+        self.coder = coders.PackageCoder(**{
+            **self.kwargs, **({'base_class': self.base_class} if self.base_class else {})})
 
         with mock.patch('sys.stdout.write') as stdout_mock:
-            cls.coder.create_tester_package()
-            cls.coder_output = ''.join([
+            self.coder.create_tester_package()
+            self.coder_output = ''.join([
                 line for (line,), kw in stdout_mock.call_args_list])
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(cls):
         shutil.rmtree('tmp')
 
     def assert_test_files_match(self, path):
@@ -98,20 +96,22 @@ class StoriesModuleNotFoundErrorRaiseTest(unittest.TestCase):
 
 
 class PatcherTester(BlueprintTester):
-    @property
-    def patcher(self):
+    def get_patcher(self):
         return coders.PackagePatcher(
             specs_path='example/new_specs', test_module='tmp.generated.test_stories')
 
 
 class PatcherTests(PatcherTester):
+    def setUp(self):
+        super().setUp()
+        self.patcher = self.get_patcher()
+        self.patcher.patch()
+
     def test_split_str(self):
         with open('tests/base_split.txt') as txt_file:
             assert str(self.patcher.splits['base']) == txt_file.read().strip('\n')
 
     def test_new_example_test_files_match(self):
-        self.patcher.patch()
-
         self.assert_test_files_match('example/new_tests')
 
 
@@ -124,14 +124,11 @@ class Flake8ErrorRaiseTest(PatcherTester):
 
         with open(abspath, 'w') as py_file:
             py_file.write(re.sub(
-                r'    @decorators.Scenario\(base.steps\)\n    def even_boards',
-                lambda m: '\n' + m.group(), re.sub(
+                r'    @base.scenario\n    def even_boards', lambda m: '\n' + m.group(), re.sub(
                     'class NewGame', lambda m: '\n' + m.group(), source, 1), 1))
 
-        with self.assertRaises(Flake8Error) as cm:
-            self.patcher
-
-        assert str(cm.exception) == (f'{abspath}:5:1: E303 too many blank lines (3)\n')
+        with self.assertRaises(Flake8Error):
+            self.get_patcher()
 
 
 MODULE_TEXT = ("<module 'tmp.generated.test_stories' from '" +

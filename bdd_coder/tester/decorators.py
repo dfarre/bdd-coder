@@ -6,6 +6,8 @@ import json
 import logging
 from logging.handlers import RotatingFileHandler
 
+import pytest
+
 from bdd_coder import FAIL
 from bdd_coder import stock
 
@@ -68,7 +70,8 @@ class Scenario:
             if symbol == FAIL:
                 self.steps.failed += 1
                 self.steps.exceptions[method.__name__].append(message)
-                test_case.fail(message)
+                __tracebackhide__ = True
+                pytest.fail(message)
             else:
                 self.steps.passed += 1
 

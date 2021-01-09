@@ -35,7 +35,7 @@ class NewPlayer(base.BddTester):
         assert len(args) == 0
 
 
-class NewGame(NewPlayer, base.BaseTestCase):
+class TestNewGame(NewPlayer, base.BaseTestCase):
     """
     As a codebreaker
     I want to start a new Mastermind game of B boards of G guesses

@@ -33,7 +33,7 @@ class YamlDumpTests(unittest.TestCase):
             'tmp/new-game.yml', 'example/specs/features/new-game.yml')
 
     def test_feature_yamls__clearboard(self):
-        test_stories.ClearBoard.dump_yaml_feature('tmp')
+        test_stories.TestClearBoard.dump_yaml_feature('tmp')
 
         self.assert_equal_yamls(
             'tmp/clear-board.yml', 'example/specs/features/clear-board.yml')

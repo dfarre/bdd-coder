@@ -19,3 +19,6 @@ htmlcov
 .secrets.ini
 
 version.ini_bk
+
+tmp*
+.tmp-specs

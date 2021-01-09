@@ -20,7 +20,7 @@ class StepTests(unittest.TestCase):
 class FeaturesSpecTests(unittest.TestCase):
     def setUp(self):
         self.specs_path = 'tests/specs_ok'
-        self.specs = features.FeaturesSpec(self.specs_path)
+        self.specs = features.FeaturesSpec.from_specs_dir(self.specs_path)
 
     def test_str(self):
         with open(os.path.join(self.specs_path, 'repr.txt')) as repr_file:
@@ -34,7 +34,7 @@ class FeaturesSpecTests(unittest.TestCase):
         self.assertRaisesRegex(
             exceptions.FeaturesSpecError,
             r'^Cyclical inheritance between [a-zA-Z]+ and [a-zA-Z]+$',
-            features.FeaturesSpec, self.specs_path)
+            features.FeaturesSpec.from_specs_dir, self.specs_path)
 
         shutil.move(to_path, from_path)
 

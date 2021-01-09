@@ -13,7 +13,7 @@ from bdd_coder.coder import coders
 
 
 @ErrorsCommand(FileNotFoundError, FeaturesSpecError, OverwriteError)
-def make_blueprint(*, base_class=coders.DEFAULT_BASE_TEST_CASE,
+def make_blueprint(*, base_class: 'Base test case class' = '',
                    specs_path: 'Directory containing the YAML specs' = 'behaviour/specs',
                    tests_path: 'Default: next to specs' = '',
                    test_module_name: 'Name for test_<name>.py' = 'stories',

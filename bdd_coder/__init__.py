@@ -75,3 +75,7 @@ def sentence_to_name(text):
 
 def strip_lines(lines):
     return list(filter(None, map(str.strip, lines)))
+
+
+def extract_name(test_class_name):
+    return test_class_name[4:] if test_class_name.startswith('Test') else test_class_name

@@ -11,14 +11,14 @@ from example.tests import base
 from example.tests import test_stories
 
 NEW_GAME = 'example.tests.test_stories.NewGame'
-CLEAR_BOARD = 'example.tests.test_stories.ClearBoard'
+CLEAR_BOARD = 'example.tests.test_stories.TestClearBoard'
 
 FROZEN_TIME = datetime.datetime(2019, 3, 18, 17, 30, 13, 71420)
 FIRST_LOG = f"""________________________________________________________________________________
 1 {OK} NewGame.even_boards:
   1.1 - {FROZEN_TIME} {OK} i_request_a_new_game_with_an_even_number_of_boards [] {TO} ('Even Game',)
   1.2 - {FROZEN_TIME} {OK} a_game_is_created_with_boards_of__guesses ['12'] {TO} ()
-2 {OK} ClearBoard.test_start_board:
+2 {OK} TestClearBoard.test_start_board:
   2.1 - {FROZEN_TIME} {OK} even_boards [] {TO} ()
   2.2 - {FROZEN_TIME} {OK} i_request_a_clear_board_in_my_new_game [] {TO} ('Board',)
   2.3 - {FROZEN_TIME} {OK} board__is_added_to_the_game [] {TO} ()
@@ -74,21 +74,21 @@ class DecoratorTests(unittest.TestCase):
     @mock.patch(f'{NEW_GAME}.i_request_a_new_game_with_an_odd_number_of_boards',
                 return_value=('Odd Game',))
     def assert_odd_boards(self, odd_mock, error_mock):
-        tester = test_stories.ClearBoard()
-        tester.setUpClass()
+        tester = test_stories.TestClearBoard()
+        tester.setup_class()
         tester.test_odd_boards()
 
         odd_mock.assert_called_once_with()
         error_mock.assert_called_once_with()
 
-        tester.tearDownClass()
+        tester.teardown_class()
 
     @mock.patch(f'{NEW_GAME}.i_get_a_400_response_saying_it_must_be_even',
                 return_value=None)
     @mock.patch(f'{NEW_GAME}.i_request_a_new_game_with_an_odd_number_of_boards',
-                return_value=('Odd Game',), side_effect=AssertionError('FAKE'))
+                return_value=('Odd Game',), side_effect=Exception('FAKE'))
     def assert_odd_boards__fail(self, odd_mock, error_mock):
-        tester = test_stories.ClearBoard()
+        tester = test_stories.TestClearBoard()
         tester.test_odd_boards()
 
     @mock.patch(f'{CLEAR_BOARD}.board__is_added_to_the_game',
@@ -100,8 +100,8 @@ class DecoratorTests(unittest.TestCase):
     @mock.patch(f'{NEW_GAME}.i_request_a_new_game_with_an_even_number_of_boards',
                 return_value=('Even Game',))
     def assert_start_board(self, even_mock, created_mock, clear_board_mock, added_board_mock):
-        tester = test_stories.ClearBoard()
-        tester.setUpClass()
+        tester = test_stories.TestClearBoard()
+        tester.setup_class()
         tester.test_start_board()
 
         even_mock.assert_called_once_with()
@@ -109,19 +109,19 @@ class DecoratorTests(unittest.TestCase):
         clear_board_mock.assert_called_once_with()
         added_board_mock.assert_called_once_with()
 
-        tester.tearDownClass()
+        tester.teardown_class()
 
     def assert_log(self, log_text):
         with open(self.logs_path) as log:
             text = log.read()
             assert text.startswith(log_text), text
 
+    @mock.patch('pytest.fail')
     @freezegun.freeze_time(FROZEN_TIME)
-    def test_fail_traceback(self):
-        with self.assertRaises(AssertionError) as cm:
-            self.assert_odd_boards__fail()
+    def test_fail_traceback(self, fail_mock):
+        self.assert_odd_boards__fail()
 
-        assert str(cm.exception).startswith(TRACEBACK)
+        assert fail_mock.call_args_list[0][0][0].startswith(TRACEBACK)
         self.assert_log(FAIL_LOG)
 
     @freezegun.freeze_time(FROZEN_TIME)

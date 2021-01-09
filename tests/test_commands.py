@@ -32,7 +32,7 @@ class CommandsE2ETestCase(unittest.TestCase):
 class ValidateBasesTests(unittest.TestCase):
     fake_specs = collections.namedtuple('FakeSpecs', ('class_bases', 'features'))
 
-    def init_specs(self):
+    def setUp(self):
         self.fake_specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]
         self.fake_specs.features = collections.OrderedDict([
             ('NewGame', {'inherited': True}), ('ClearBoard', {'inherited': False})])
@@ -47,19 +47,15 @@ class ValidateBasesTests(unittest.TestCase):
             f'Expected class structure from docs does not match the defined one: {error}')
 
     def test_wrong_bases(self):
-        self.init_specs()
-
         self.assert_error(self.wrong_bases_error)
 
     def test_missing_test_case(self):
-        self.init_specs()
         self.fake_specs.features['NewGame']['inherited'] = False
 
         self.assert_error('expected one BaseTestCase subclass in NewGame, '
                           + self.wrong_bases_error)
 
     def test_unexpected_test_case(self):
-        self.init_specs()
         self.fake_specs.features['ClearBoard']['inherited'] = True
 
         self.assert_error('unexpected BaseTestCase subclass in ClearBoard, '
@@ -143,8 +139,7 @@ class PatchBlueprintTests(CommandsE2ETestCase):
     def test_inconsistent_specs(self):
         self.assert_call(
             'example.tests.test_stories', 'tests/specs_wrong', exit=4,
-            stdout='Specification files generated in .tmp-specs\n',
-            stderr=SPECS_ERROR)
+            stdout='', stderr=SPECS_ERROR)
 
 
 SUCCESS_MSG = f'{COMPLETION_MSG} ▌ 3 {OK}'

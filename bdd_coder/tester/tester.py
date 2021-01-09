@@ -6,9 +6,9 @@ import re
 import shutil
 import sys
 import traceback
-import unittest
 import yaml
 
+from bdd_coder import extract_name
 from bdd_coder import strip_lines
 from bdd_coder import to_sentence
 from bdd_coder import FAIL, OK, TO, COMPLETION_MSG
@@ -59,12 +59,12 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         cls.validate_bases(cls.features_spec())
 
     @classmethod
-    def features_spec(cls, parent_dir=None, overwrite=False):
+    def features_spec(cls, parent_dir=None, overwrite=True):
         directory = parent_dir or cls.tmp_dir
         cls.dump_yaml_specs(directory, overwrite)
 
         try:
-            return features.FeaturesSpec(directory)
+            return features.FeaturesSpec.from_specs_dir(directory)
         except exceptions.FeaturesSpecError as error:
             raise error
         finally:
@@ -75,7 +75,7 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
     def validate_bases(cls, features_spec):
         spec_bases = collections.OrderedDict(features_spec.class_bases)
         cls_bases = collections.OrderedDict(
-            (c.__name__, b) for c, b in cls.subclasses_down().items())
+            (extract_name(c.__name__), b) for c, b in cls.subclasses_down().items())
         pair = stock.SetPair(spec_bases, cls_bases, lname='doc', rname='code')
         errors = []
 
@@ -135,7 +135,7 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
 
     @classmethod
     def get_title(cls):
-        return re.sub(r'[A-Z]', lambda m: f' {m.group()}', cls.__name__).strip()
+        return re.sub(r'[A-Z]', lambda m: f' {m.group()}', extract_name(cls.__name__)).strip()
 
     @classmethod
     def get_own_scenario_names(cls):
@@ -177,16 +177,16 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
                 break
 
 
-class BaseTestCase(unittest.TestCase):
+class BaseTestCase:
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         if cls.steps.validate:
             cls.steps.tester.validate()
 
         cls.steps.logger.info('_'*80)
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         if cls.steps.get_pending_runs():
             end_note = ''
         else:
@@ -196,5 +196,5 @@ class BaseTestCase(unittest.TestCase):
 
         cls.steps.logger.info(f'{cls.steps}{end_note}')
 
-    def tearDown(self):
+    def teardown_method(self):
         self.steps.reset_outputs()
