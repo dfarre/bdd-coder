@@ -9,6 +9,8 @@ A package devoted to agile implementation of **class-based behavior tests**. It 
 
 Although this package is intended to be used with [pytest](https://docs.pytest.org/en/stable/contents.html), until version 2.0.0 the base test case class for all test suits `bdd_coder.tester.tester.BaseTestCase` was a `unittest.TestCase` subclass. From version 2.0.0 `unittest.TestCase` is no longer supported, so that `pytest`'s setup and teardown functions - see [pytest-xunit_setup](https://docs.pytest.org/en/latest/xunit_setup.html) - should be implemented instead. See [pytest-unittest](https://docs.pytest.org/en/stable/unittest.html#pytest-features-in-unittest-testcase-subclasses) on the benefits of dropping `unittest.TestCase`.
 
+See [mastermind](https://bitbucket.org/coleopter/mastermind) for an example testing a Django REST Framework API.
+
 Test this package with [tox](https://tox.readthedocs.io/en/latest/) - see tox.ini.
 
 ## Story

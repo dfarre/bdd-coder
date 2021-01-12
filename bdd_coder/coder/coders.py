@@ -150,7 +150,8 @@ class PackageCoder:
         exceptions.makedirs(self.tests_path, exist_ok=self.overwrite)
 
         with open(os.path.join(self.tests_path, '__init__.py'), 'w') as init_py:
-            init_py.write('')
+            init_py.write("import pytest\n\n"
+                          "pytest.register_assert_rewrite(f'{__name__}.base')\n")
 
         with open(os.path.join(self.tests_path, 'base.py'), 'w') as base_py:
             base_py.write(text_utils.rstrip(self.base_module_source) + '\n')
