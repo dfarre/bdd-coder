@@ -47,6 +47,10 @@ def format_next_traceback():
             f'{tb_text}{exc_type.__qualname__}: {exc_value}\n')
 
 
+class ScenarioMismatchError(DocException):
+    """Scenario code not understood: {code}..."""
+
+
 class InconsistentClassStructure(DocException):
     """
     Expected class structure from docs does not match the defined one: {error}

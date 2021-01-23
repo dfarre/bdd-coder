@@ -219,8 +219,7 @@ class ModulePiece(stock.Repr):
         scenarios, tail_pieces = collections.OrderedDict(), []
 
         for s in pieces:
-            text = f'    {cls.scenario_delimiter}\n    {s.strip()}'
-            scenario_text, _, scenario_name, tail = cls.match_scenario_piece(text)
+            scenario_text, _, scenario_name, tail = cls.match_scenario_piece(s.strip())
             scenarios[scenario_name] = scenario_text
 
             if tail.strip():
@@ -228,11 +227,15 @@ class ModulePiece(stock.Repr):
 
         return body_head, scenarios, tail_pieces
 
-    @staticmethod
-    def match_scenario_piece(text):
+    @classmethod
+    def match_scenario_piece(cls, text):
         match = re.match(
             r'^(    @base\.scenario\n    def (test_)?([^(]+)\(self\):\n'
-            rf'{" "*8}"""\n.+?\n{" "*8}""")(.*)$', text, flags=re.DOTALL)
+            rf'{" "*8}"""\n.+?\n{" "*8}""")(.*)$',
+            f'    {cls.scenario_delimiter}\n    {text}', flags=re.DOTALL)
+
+        if match is None:
+            raise exceptions.ScenarioMismatchError(code=text.split('\n', 1)[0].strip(':'))
 
         return match.groups()
 

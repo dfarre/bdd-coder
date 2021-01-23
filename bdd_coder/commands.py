@@ -7,7 +7,8 @@ from bdd_coder import OK, FAIL, COMPLETION_MSG
 
 from bdd_coder.exceptions import (
     BaseTesterRetrievalError, FeaturesSpecError, InconsistentClassStructure,
-    OverwriteError, Flake8Error, PendingScenariosError, LogsNotFoundError)
+    OverwriteError, Flake8Error, PendingScenariosError, LogsNotFoundError,
+    ScenarioMismatchError)
 
 from bdd_coder.coder import coders
 
@@ -24,7 +25,7 @@ def make_blueprint(*, base_class: 'Base test case class' = '',
     ).create_tester_package()
 
 
-@ErrorsCommand(BaseTesterRetrievalError, FeaturesSpecError, Flake8Error)
+@ErrorsCommand(BaseTesterRetrievalError, FeaturesSpecError, Flake8Error, ScenarioMismatchError)
 def patch_blueprint(test_module: 'Passed to `importlib.import_module`',
                     specs_path: 'Directory to take new specs from. '
                     f'Default: {coders.PackagePatcher.default_specs_dir_name}/ '

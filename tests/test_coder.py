@@ -13,7 +13,7 @@ from bdd_coder import stock
 
 from bdd_coder.exceptions import (
     BaseModuleNotFoundError, BaseTesterNotFoundError, StoriesModuleNotFoundError,
-    Flake8Error)
+    Flake8Error, ScenarioMismatchError)
 
 from bdd_coder.coder import coders
 
@@ -96,9 +96,9 @@ class StoriesModuleNotFoundErrorRaiseTest(unittest.TestCase):
 
 
 class PatcherTester(BlueprintTester):
-    def get_patcher(self):
-        return coders.PackagePatcher(
-            specs_path='example/new_specs', test_module='tmp.generated.test_stories')
+    def get_patcher(self, test_module='tmp.generated.test_stories',
+                    specs_path='example/new_specs'):
+        return coders.PackagePatcher(test_module=test_module, specs_path=specs_path)
 
 
 class PatcherTests(PatcherTester):
@@ -129,6 +129,15 @@ class Flake8ErrorRaiseTest(PatcherTester):
 
         with self.assertRaises(Flake8Error):
             self.get_patcher()
+
+
+class ScenarioMismatchErrorRaiseTest(PatcherTester):
+    def test_scenario_mismatch_error(self):
+        with self.assertRaises(ScenarioMismatchError) as cm:
+            self.get_patcher('example.wrong_tests.test_stories_odd_scenario')
+
+        assert str(cm.exception) == (
+            'Scenario code not understood: def test_odd_boards(self, *args)...')
 
 
 MODULE_TEXT = ("<module 'tmp.generated.test_stories' from '" +
