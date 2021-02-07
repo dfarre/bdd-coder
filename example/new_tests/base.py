@@ -3,11 +3,10 @@ from bdd_coder.tester import tester
 
 from . import aliases
 
-steps = decorators.Steps(aliases.MAP, logs_path='example/tests/bdd_runs.log')
-scenario = decorators.Scenario(steps)
+gherkin = decorators.Gherkin(aliases.MAP, logs_path='example/tests/bdd_runs.log')
 
 
-@steps
+@gherkin
 class BddTester(tester.BddTester):
     pass
 

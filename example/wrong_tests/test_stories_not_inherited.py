@@ -9,14 +9,14 @@ class NewGame(base.BddTester):
     """
     fixtures = ['player-alice']
 
-    @base.scenario
+    @base.gherkin.scenario
     def test_odd_boards(self):
         """
         When I request a new `game` with an odd number of boards
         Then I get a 400 response saying it must be even
         """
 
-    @base.scenario
+    @base.gherkin.scenario
     def even_boards(self):
         """
         When I request a new `game` with an even number of boards
@@ -47,7 +47,7 @@ class ClearBoard(base.BddTester, base.BaseTestCase):
     In order to start making guesses on it
     """
 
-    @base.scenario
+    @base.gherkin.scenario
     def test_start_board(self):
         """
         Given a new game

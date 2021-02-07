@@ -9,7 +9,7 @@ class NewGame(base.BddTester):
     """
     fixtures = ['player-alice']
 
-    @base.scenario
+    @base.gherkin.scenario
     def test_odd_boards(self):
         """
         When I request a new `game` with an odd number of boards
@@ -17,7 +17,7 @@ class NewGame(base.BddTester):
         And start board
         """
 
-    @base.scenario
+    @base.gherkin.scenario
     def even_boards(self):
         """
         When I request a new `game` with an even number of boards
@@ -48,7 +48,7 @@ class ClearBoard(NewGame, base.BaseTestCase):
     In order to start making guesses on it
     """
 
-    @base.scenario
+    @base.gherkin.scenario
     def test_start_board(self):
         """
         Given a new game

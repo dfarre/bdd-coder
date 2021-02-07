@@ -73,11 +73,11 @@ class DecoratorTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        assert base.steps.scenarios == {
-            'test_odd_boards': [], 'even_boards': [], 'test_start_board': []}
+        assert list(base.gherkin.scenarios) == [
+            'test_odd_boards', 'even_boards', 'test_start_board']
 
     def setUp(self):
-        base.steps.run_number = 0
+        base.gherkin.run_number = 0
         self.clean_logs()
 
     def tearDown(self):
@@ -142,13 +142,13 @@ class DecoratorTests(unittest.TestCase):
     @freezegun.freeze_time(FROZEN_TIME)
     def test_calls(self):
         self.assert_start_board()
-        assert base.steps.outputs['game'] == ['Even Game']
-        assert base.steps.outputs['board'] == ['Board']
+        assert base.gherkin.outputs['game'] == ['Even Game']
+        assert base.gherkin.outputs['board'] == ['Board']
         self.assert_log(FIRST_LOG)
         self.assert_odd_boards()
-        assert base.steps.outputs['game'] == ['Even Game', 'Odd Game']
+        assert base.gherkin.outputs['game'] == ['Even Game', 'Odd Game']
         self.assert_log(FIRST_LOG + SECOND_LOG)
-        assert list(map(len, base.steps.scenarios.values())) == [1]*len(base.steps.scenarios)
-        assert base.steps.scenarios == {
+        assert list(map(len, base.gherkin.scenarios.values())) == [1]*len(base.gherkin.scenarios)
+        assert base.gherkin.scenarios == {
             'even_boards': [(1, OK)], 'test_start_board': [(2, OK)],
             'test_odd_boards': [(3, OK)]}

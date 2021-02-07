@@ -1,6 +1,5 @@
-import abc
 import collections
-import datetime
+import functools
 import inspect
 import os
 import re
@@ -8,15 +7,18 @@ import shutil
 import sys
 import yaml
 
+import pytest
+
 from bdd_coder import extract_name
 from bdd_coder import strip_lines
 from bdd_coder import to_sentence
-from bdd_coder import FAIL, OK, TO, COMPLETION_MSG
-from bdd_coder import Step
+from bdd_coder import FAIL, OK, COMPLETION_MSG
 
 from bdd_coder import exceptions
 from bdd_coder import features
 from bdd_coder import stock
+
+from bdd_coder.tester.decorators import Step
 
 from bdd_coder.exceptions import InconsistentClassStructure
 
@@ -47,12 +49,42 @@ class YamlDumper:
         cls.dump_yaml(dict(alias_lists), os.path.join(parent_dir, 'aliases.yml'))
 
 
-class BddTesterABC(YamlDumper, stock.SubclassesMixin, metaclass=abc.ABCMeta):
+class BddTester(YamlDumper, stock.SubclassesMixin):
     """
-    To be decorated with `Steps`, and employed with methods decorated with
-    `scenario` - mixes with a subclass of `BaseTestCase` to run test methods
+    To be decorated with `Gherkin`
     """
     tmp_dir = '.tmp-specs'
+
+    @classmethod
+    def __init_subclass__(cls):
+        if not hasattr(cls, 'gherkin'):
+            return
+
+        for name, method in cls.gherkin.scenarios.get(cls.__name__).items():
+            for step in filter(lambda step: not step.ready, method.steps):
+                setattr(cls, step.name, step(getattr(cls, step.name)))
+
+            steps = list(Step.refine_steps(method.steps))
+
+            @functools.wraps(method)
+            @pytest.mark.usefixtures(*(step.name for step in steps))
+            def scenario_test_method(tester, *args, **kwargs):
+                cls.gherkin.run_number += 1
+                last_step = Step.last_step(steps)
+                symbol, message = last_step.symbol, last_step.result
+                cls.gherkin[method.__qualname__].runs.append((cls.gherkin.run_number, symbol))
+
+                if symbol == FAIL:
+                    cls.gherkin.failed += 1
+                    cls.gherkin.exceptions[method.__qualname__].append(message)
+                    __tracebackhide__ = True
+                    pytest.fail(message)
+                else:
+                    cls.gherkin.passed += 1
+
+                method(tester, *args, **kwargs)
+
+            setattr(cls, method.__name__, scenario_test_method)
 
     @classmethod
     def validate(cls):
@@ -110,7 +142,7 @@ class BddTesterABC(YamlDumper, stock.SubclassesMixin, metaclass=abc.ABCMeta):
         features_path = os.path.join(parent_dir, 'features')
         exceptions.makedirs(features_path, exist_ok=overwrite)
 
-        cls.dump_yaml_aliases(cls.steps.aliases, parent_dir)
+        cls.dump_yaml_aliases(cls.gherkin.aliases, parent_dir)
 
         for tester_subclass in cls.subclasses_down():
             tester_subclass.dump_yaml_feature(features_path)
@@ -140,7 +172,7 @@ class BddTesterABC(YamlDumper, stock.SubclassesMixin, metaclass=abc.ABCMeta):
     @classmethod
     def get_own_scenario_names(cls):
         return [n for n, v in inspect.getmembers(
-            cls, lambda x: getattr(x, '__name__', None) in cls.steps.scenarios
+            cls, lambda x: getattr(x, '__name__', None) in cls.gherkin.scenarios
             and f'\n    def {x.__name__}' in inspect.getsource(cls))]
 
     @classmethod
@@ -148,86 +180,25 @@ class BddTesterABC(YamlDumper, stock.SubclassesMixin, metaclass=abc.ABCMeta):
         return dict(filter(lambda it: f'\n    {it[0]} = ' in inspect.getsource(cls),
                            inspect.getmembers(cls)))
 
-    @classmethod
-    def log_scenario_run(cls, name, step_logs, symbol):
-        cls.steps.run_number += 1
-        cls.steps.scenarios[name].append((cls.steps.run_number, symbol))
-        cls.steps.logger.info(
-            f'{cls.steps.run_number} {symbol} {getattr(cls, name).__qualname__}:'
-            + ''.join([f'\n  {cls.steps.run_number}.{n + 1} - {text}'
-                       for n, (o, text) in enumerate(step_logs)]))
-
-    @abc.abstractmethod
-    def run_steps(self, method_doc):
-        """Run scenario steps from `method_doc` and return logs list"""
-
-    def log_step_result(self, symbol, result, logs, step):
-        logs.append((symbol, f'{datetime.datetime.utcnow()} {symbol} '
-                             f'{step.name} {step.inputs} {TO} {result or ()}'))
-
-        if symbol == OK and isinstance(result, tuple):
-            for name, value in zip(step.output_names, result):
-                self.steps.outputs[name].append(value)
-
-
-try:
-    import pytest_twisted
-except ImportError:
-    class BddTester(BddTesterABC):
-        def run_steps(self, method_doc):
-            logs = []
-            for step in Step.steps(method_doc.splitlines(), self.steps.aliases):
-                try:
-                    result = getattr(self, step.name)(*step.inputs)
-                    symbol = OK
-                except Exception:
-                    symbol = FAIL
-                    result = exceptions.format_next_traceback()
-
-                self.log_step_result(symbol, result, logs, step)
-
-                if symbol == FAIL:
-                    break
-            return logs
-
-else:
-    class BddTester(BddTesterABC):
-        @pytest_twisted.inlineCallbacks
-        def run_steps(self, method_doc):
-            logs = []
-            for step in Step.steps(method_doc.splitlines(), self.steps.aliases):
-                try:
-                    result = yield getattr(self, step.name)(*step.inputs)
-                    symbol = OK
-                except Exception:
-                    symbol = FAIL
-                    result = exceptions.format_next_traceback()
-
-                self.log_step_result(symbol, result, logs, step)
-
-                if symbol == FAIL:
-                    break
-            return logs
-
 
 class BaseTestCase:
     @classmethod
     def setup_class(cls):
-        if cls.steps.validate:
-            cls.steps.tester.validate()
+        if cls.gherkin.validate:
+            cls.gherkin.BddTester.validate()
 
-        cls.steps.logger.info('_'*80)
+        cls.gherkin.logger.info('_'*80)
 
     @classmethod
     def teardown_class(cls):
-        if cls.steps.get_pending_runs():
+        if cls.gherkin.get_pending_runs():
             end_note = ''
         else:
-            passed = f' ▌ {cls.steps.passed} {OK}' if cls.steps.passed else ''
-            failed = f' ▌ {cls.steps.failed} {FAIL}' if cls.steps.failed else ''
+            passed = f' ▌ {cls.gherkin.passed} {OK}' if cls.gherkin.passed else ''
+            failed = f' ▌ {cls.gherkin.failed} {FAIL}' if cls.gherkin.failed else ''
             end_note = '\n' + COMPLETION_MSG + passed + failed
 
-        cls.steps.logger.info(f'{cls.steps}{end_note}')
+        cls.gherkin.logger.info(f'{cls.gherkin}{end_note}')
 
     def teardown_method(self):
-        self.steps.reset_outputs()
+        self.gherkin.reset_outputs()

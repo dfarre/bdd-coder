@@ -21,7 +21,7 @@ class NewPlayer(base.BddTester):
     In order to play
     """
 
-    @base.scenario
+    @base.gherkin.scenario
     def new_player_joins(self):
         """
         When a user signs in
@@ -43,7 +43,7 @@ class TestNewGame(NewPlayer, base.BaseTestCase):
     """
     fixtures = ['player-alice']
 
-    @base.scenario
+    @base.gherkin.scenario
     def test_even_boards(self):
         """
         Given new player joins
@@ -51,14 +51,14 @@ class TestNewGame(NewPlayer, base.BaseTestCase):
         Then a game is created with boards of "12" guesses
         """
 
-    @base.scenario
+    @base.gherkin.scenario
     def test_funny_boards(self):
         """
         Given new player joins
         Then class hierarchy has changed
         """
 
-    @base.scenario
+    @base.gherkin.scenario
     def test_more_boards(self):
         """
         Given new player joins

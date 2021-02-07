@@ -2,7 +2,7 @@ import os
 import shutil
 import unittest
 
-from bdd_coder import Step
+from bdd_coder.tester.decorators import Step
 
 from bdd_coder import exceptions
 from bdd_coder import features

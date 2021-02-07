@@ -5,7 +5,6 @@ import json
 import os
 import yaml
 
-from bdd_coder import Step
 from bdd_coder import sentence_to_name
 from bdd_coder import sentence_to_method_name
 
@@ -14,6 +13,8 @@ from bdd_coder import stock
 
 from bdd_coder.coder import MAX_INHERITANCE_LEVEL
 from bdd_coder.coder import text_utils
+
+from bdd_coder.tester.decorators import Step
 
 
 class FeaturesSpec(stock.Repr):

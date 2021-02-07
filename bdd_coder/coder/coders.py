@@ -64,14 +64,14 @@ class FeatureClassCoder:
     @staticmethod
     def make_step_method_defs_for(steps_to_code):
         return [text_utils.make_method(
-                    s.name, body=FeatureClassCoder.make_method_body(s.inputs, s.output_names),
-                    args_text=', *args') for s in steps_to_code]
+            s.name, body=FeatureClassCoder.make_method_body(s.inputs, s.output_names),
+            args_text=', *args') for s in steps_to_code]
 
     @staticmethod
     def make_scenario_method_def(name, scenario_spec):
         return text_utils.make_method(
             ('' if scenario_spec['inherited'] else 'test_') + name,
-            *scenario_spec['doc_lines'], decorators=('base.scenario',))
+            *scenario_spec['doc_lines'], decorators=('base.gherkin.scenario',))
 
     @staticmethod
     def make_method_body(inputs, output_names):
@@ -122,7 +122,7 @@ class PackageCoder:
     @property
     def base_class_defs(self):
         return [text_utils.make_class(
-            BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,), decorators=('steps',)
+            BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,), decorators=('gherkin',)
         ), text_utils.make_class(
             BASE_TEST_CASE_NAME, bases=self.base_test_case_bases,
             body='\n\n'.join(self.base_method_defs))]
@@ -142,8 +142,7 @@ class PackageCoder:
                 'from bdd_coder.tester import decorators\n'
                 'from bdd_coder.tester import tester\n\n'
                 'from . import aliases\n\n'
-                f"steps = decorators.Steps(aliases.MAP, logs_path='{self.logs_path}')\n"
-                "scenario = decorators.Scenario(steps)")
+                f"gherkin = decorators.Gherkin(aliases.MAP, logs_path='{self.logs_path}')")
         ] + self.base_class_defs)
 
     def create_tester_package(self):
@@ -166,7 +165,7 @@ class PackageCoder:
 
 
 class ModulePiece(stock.Repr):
-    scenario_delimiter = '@base.scenario'
+    scenario_delimiter = '@base.gherkin.scenario'
 
     def __init__(self, text, name_regex=r'[A-Za-z0-9]+'):
         rtext = text_utils.rstrip(text)
@@ -230,7 +229,7 @@ class ModulePiece(stock.Repr):
     @classmethod
     def match_scenario_piece(cls, text):
         match = re.match(
-            r'^(    @base\.scenario\n    def (test_)?([^(]+)\(self\):\n'
+            r'^(    @base\.gherkin\.scenario\n    def (test_)?([^(]+)\(self\):\n'
             rf'{" "*8}"""\n.+?\n{" "*8}""")(.*)$',
             f'    {cls.scenario_delimiter}\n    {text}', flags=re.DOTALL)
 
