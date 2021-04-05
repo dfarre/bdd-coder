@@ -4,14 +4,6 @@ import subprocess
 import sys
 
 
-class TieDecorator:
-    def __call__(self, other):
-        setattr(self, other.__name__, other)
-        setattr(other, self.__class__.__name__.lower(), self)
-
-        return other
-
-
 class Repr:
     def __str__(self):
         raise NotImplementedError

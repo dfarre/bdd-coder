@@ -10,6 +10,3 @@ gherkin = decorators.Gherkin(aliases.MAP, logs_path='example/tests/bdd_runs.log'
 class BddTester(tester.BddTester):
     def board__is_added_to_the_game(self, *args):
         pass
-
-    def board__is_added_to_the_game(self, *args):
-        pass

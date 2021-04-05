@@ -1,7 +1,7 @@
 from . import base
 
 
-class TestNewGame(base.BddTester):
+class NewGame(base.BddTester):
     """
     As a codebreaker
     I want to start a new Mastermind game of B boards of G guesses
@@ -9,14 +9,14 @@ class TestNewGame(base.BddTester):
     """
     fixtures = ['player-alice']
 
-    @base.gherkin.scenario
+    @base.gherkin.scenario()
     def test_odd_boards(self, *args):
         """
         When I request a new `game` with an odd number of boards
         Then I get a 400 response saying it must be even
         """
 
-    @base.gherkin.scenario
+    @base.gherkin.scenario()
     def even_boards(self):
         """
         When I request a new `game` with an even number of boards
@@ -40,14 +40,14 @@ class TestNewGame(base.BddTester):
         assert len(args) == 1
 
 
-class TestClearBoard(TestNewGame):
+class TestClearBoard(NewGame):
     """
     As a codebreaker
     I want a clear board with a new code
     In order to start making guesses on it
     """
 
-    @base.gherkin.scenario
+    @base.gherkin.scenario()
     def test_start_board(self):
         """
         Given a new game

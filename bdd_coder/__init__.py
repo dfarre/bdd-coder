@@ -3,8 +3,8 @@ import re
 
 BASE_TESTER_NAME = 'BddTester'
 
-COMPLETION_MSG = 'All scenarios ran'
-OK, FAIL, TO = '✅', '❌', '↦'
+COMPLETION_MSG = 'All scenarios ran!'
+OK, FAIL, PENDING, TO = '✅', '❌', '❓', '↦'
 
 I_REGEX = r'"([^"`\$]+)"'
 O_REGEX = r'`([^"`\$]+)`'

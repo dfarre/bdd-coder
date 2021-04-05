@@ -2,8 +2,6 @@ import os
 import shutil
 import unittest
 
-from bdd_coder.decorators import Step
-
 from bdd_coder import exceptions
 from bdd_coder import features
 
@@ -11,7 +9,7 @@ from bdd_coder import features
 class StepTests(unittest.TestCase):
     def test_parse_error(self):
         with self.assertRaises(exceptions.FeaturesSpecError) as cm:
-            Step('Given I `say" `hello"',  0)
+            features.StepSpec('Given I `say" `hello"',  0, {})
 
         assert str(cm.exception) == (
             'Inputs (by ") or outputs (by `) from I `say" `hello" not understood')

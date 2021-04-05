@@ -76,7 +76,7 @@ class FeatureClassCoder:
     def make_scenario_method_def(name, scenario_spec):
         return text_utils.make_method(
             ('' if scenario_spec['inherited'] else 'test_') + name,
-            *scenario_spec['doc_lines'], decorators=('base.gherkin.scenario',))
+            *scenario_spec['doc_lines'], decorators=('base.gherkin.scenario()',))
 
     @staticmethod
     def make_method_body(inputs, output_names):
@@ -159,7 +159,7 @@ class PackageCoder:
 
 
 class ModulePiece(stock.Repr):
-    scenario_delimiter = '@base.gherkin.scenario'
+    scenario_delimiter = '@base.gherkin.scenario()'
 
     def __init__(self, text, name_regex=r'[A-Za-z0-9]+'):
         rtext = text_utils.rstrip(text)
@@ -223,7 +223,7 @@ class ModulePiece(stock.Repr):
     @classmethod
     def match_scenario_piece(cls, text):
         match = re.match(
-            r'^(    @base\.gherkin\.scenario\n    def (test_)?([^(]+)\(self\):\n'
+            r'^(    @base\.gherkin\.scenario\(\)\n    def (test_)?([^(]+)\(self\):\n'
             rf'{" "*8}"""\n.+?\n{" "*8}""")(.*)$',
             f'    {cls.scenario_delimiter}\n    {text}', flags=re.DOTALL)
 
@@ -372,7 +372,7 @@ class PackagePatcher(PackageCoder):
     def yield_sorted_pieces(self, pieces):
         for name, bases in self.new_specs.class_bases:
             class_coder = self.get_class_coder(name)
-            class_head = f'{class_coder.class_name}({", ".join(class_coder.bases)})'
+            class_head = f'{class_coder.test_class_name}({", ".join(class_coder.bases)})'
             self.update_class_head(name, class_head, pieces)
 
             yield name, pieces[name]

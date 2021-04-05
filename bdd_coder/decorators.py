@@ -3,62 +3,60 @@ import collections
 import datetime
 import functools
 from itertools import chain
-import json
 import logging
 from logging.handlers import RotatingFileHandler
-import re
 
 import pytest
 
 from bdd_coder import exceptions
+from bdd_coder.features import StepSpec
 from bdd_coder import stock
-from bdd_coder import I_REGEX, O_REGEX, OK, FAIL, TO
-from bdd_coder import strip_lines, sentence_to_name, sentence_to_method_name
+from bdd_coder import OK, FAIL, PENDING, TO, COMPLETION_MSG
 
 
-class Step:
-    def __init__(self, text, ordinal, aliases=None, gherkin=None):
-        self.gherkin = gherkin
-        self.text = text.strip().split(maxsplit=1)[1].strip()
-        self.validate()
-        self.aliases = aliases or {}
-        self.own = False
-        self.result, self.symbol = '', ''
+class Step(StepSpec):
+    def __init__(self, text, ordinal, scenario):
+        super().__init__(text, ordinal, scenario.gherkin.aliases)
+        self.scenario = scenario
+        self.result = ''
         self.ready = False
-        self.scenario = None
-        self.ordinal = ordinal
+        self.doc_scenario = None
+
+    @property
+    def gherkin(self):
+        return self.scenario.gherkin
+
+    @property
+    def symbol(self):
+        return (getattr(self, '_Step__symbol', PENDING) if self.doc_scenario is None
+                else self.doc_scenario.symbol)
+
+    @symbol.setter
+    def symbol(self, value):
+        assert self.doc_scenario is None, 'Cannot set doc scenario symbol'
+        self.__symbol = value
 
     def __str__(self):
-        own = 'i' if self.own else 'o'
-
-        if self.scenario is not None:
-            return f'Scenario ({own}) {self.name}'
-
-        output_names = ', '.join(self.output_names)
-
-        return f'({own}) {self.name} {self.inputs} {TO} ({output_names})'
+        return (f'Doc doc_scenario {self.name}' if self.doc_scenario is not None
+                else super().__str__())
 
     def __call__(self, step_method):
-        if step_method.__qualname__ in self.gherkin:
-            self.scenario = self.gherkin[step_method.__qualname__]
-            self.ready = True
-            return step_method
-
         @functools.wraps(step_method)
         def logger_step_method(tester, *args, **kwargs):
             try:
                 self.result = step_method(tester, *self.inputs, *args, **kwargs)
+            except Exception:
+                self.symbol = FAIL
+                self.result = exceptions.format_next_traceback()
+            else:
                 self.symbol = OK
 
                 if isinstance(self.result, tuple):
                     for name, value in zip(self.output_names, self.result):
                         self.gherkin.outputs[name].append(value)
-            except Exception:
-                self.symbol = FAIL
-                self.result = exceptions.format_next_traceback()
 
             self.gherkin.logger.info(
-                f'{datetime.datetime.utcnow()} {self.gherkin.run_number}.{self.ordinal} '
+                f'{datetime.datetime.utcnow()} {self.gherkin.test_number}.{self.ordinal} '
                 f'{self.symbol} {step_method.__qualname__} {self.inputs} '
                 f'{TO} {self.result or ()}')
 
@@ -66,68 +64,92 @@ class Step:
 
         return pytest.fixture(name=self.name)(logger_step_method)
 
-    @classmethod
-    def generate_steps(cls, lines, *args, **kwargs):
-        return (cls(line, i, *args, **kwargs) for i, line in enumerate(strip_lines(lines)))
-
     @staticmethod
     def refine_steps(steps):
         for i, step in enumerate(chain(*(
-                [s] if s.scenario is None else s.scenario.steps for s in steps))):
+                [s] if s.doc_scenario is None else s.doc_scenario.steps for s in steps))):
             step.ordinal = i
             yield step
 
     @staticmethod
     def last_step(steps):
         for step in steps:
-            if step.symbol == FAIL:
+            if step.symbol in [FAIL, PENDING]:
                 return step
         return step
 
-    def validate(self):
-        inputs_ok = self.inputs == self.get_inputs_by(r'"([^"]+)"')
-        outputs_ok = self.output_names == self.get_output_names_by(r'`([^`]+)`')
 
-        if not (inputs_ok and outputs_ok):
-            raise exceptions.FeaturesSpecError(
-                f'Inputs (by ") or outputs (by `) from {self.text} not understood')
-
-    def get_inputs_by(self, regex):
-        return re.findall(regex, self.text)
-
-    def get_output_names_by(self, regex):
-        return tuple(sentence_to_name(s) for s in re.findall(regex, self.text))
+class Scenario:
+    def __init__(self, gherkin, parameters=()):
+        self.gherkin = gherkin
+        self.parameters = parameters
+        self.marked, self.ready = False, False
 
     @property
-    def name(self):
-        method = sentence_to_method_name(self.text)
+    def symbol(self):
+        return Step.last_step(self.steps).symbol
 
-        return self.aliases.get(method, method)
+    def __call__(self, method):
+        if self.marked is False:
+            self.name = method.__name__
+            self.steps = list(Step.generate_steps(method.__doc__.splitlines(), self))
+            self.is_test = self.name.startswith('test_')
+            self.marked = True
+            self.gherkin[method.__qualname__] = self
 
-    @property
-    def inputs(self):
-        return self.get_inputs_by(I_REGEX)
+            if self.is_test:
+                return method
 
-    @property
-    def output_names(self):
-        return self.get_output_names_by(O_REGEX)
+            @functools.wraps(method)
+            def scenario_doc_method(tester, *args, **kwargs):
+                raise AssertionError('Doc scenario method called')
+
+            return scenario_doc_method
+
+        if self.is_test and self.ready is False:
+            steps = list(Step.refine_steps(self.steps))
+
+            @functools.wraps(method)
+            @pytest.mark.usefixtures(*(step.name for step in steps))
+            def scenario_test_method(tester, *args, **kwargs):
+                __tracebackhide__ = True
+                self.gherkin.test_number += 1
+                last_step = Step.last_step(steps)
+
+                if last_step.symbol == FAIL:
+                    pytest.fail(last_step.result)
+                elif last_step.symbol == PENDING:
+                    pytest.fail('Test did not complete!')
+
+            self.ready = True
+
+            return scenario_test_method
+
+        return method
 
 
-class Gherkin(stock.Repr, stock.TieDecorator):
+class Gherkin(stock.Repr):
     def __init__(self, aliases, validate=True, **logging_kwds):
         self.reset_logger(**logging_kwds)
         self.reset_outputs()
-        self.run_number, self.passed, self.failed = 0, 0, 0
+        self.test_number, self.passed, self.failed = 0, 0, 0
         self.scenarios = collections.defaultdict(dict)
-        self.exceptions = collections.defaultdict(list)
         self.aliases = aliases
         self.validate = validate
 
-    def __str__(self):
-        runs = json.dumps(self.get_runs(), ensure_ascii=False, indent=4)
-        pending = json.dumps(self.get_pending_runs(), ensure_ascii=False, indent=4)
+    def __call__(self, BddTester):
+        self.BddTester = BddTester
+        BddTester.gherkin = self
 
-        return f'Scenario runs {runs}\nPending {pending}'
+        return BddTester
+
+    def __str__(self):
+        passed = len(self.passed_scenarios)
+        failed = len(self.failed_scenarios)
+        pending = len(self.pending_scenarios)
+        return ''.join([f'{passed}{OK}' if passed else '',
+                        f'  {failed}{FAIL}' if failed else '',
+                        f'  {pending}{PENDING}' if pending else f'   {COMPLETION_MSG}'])
 
     def __contains__(self, scenario_qualname):
         class_name, method_name = scenario_qualname.split('.')
@@ -155,21 +177,20 @@ class Gherkin(stock.Repr, stock.TieDecorator):
         self.logger.handlers.clear()
         self.logger.addHandler(handler)
 
-    def get_runs(self):
-        return collections.OrderedDict([
-            ('-'.join(map(lambda r: f'{r[0]}{r[1]}', method.runs)), method.__qualname__)
-            for method in sorted(filter(lambda m: m.runs, self), key=lambda m: m.runs[0][0])])
+    @property
+    def passed_scenarios(self):
+        return list(filter(lambda s: s.symbol == OK, self))
 
-    def get_pending_runs(self):
-        return [method.__qualname__ for method in self if not method.runs]
+    @property
+    def failed_scenarios(self):
+        return list(filter(lambda s: s.symbol == FAIL, self))
+
+    @property
+    def pending_scenarios(self):
+        return list(filter(lambda s: s.symbol == PENDING, self))
 
     def reset_outputs(self):
         self.outputs = collections.defaultdict(list)
 
-    def scenario(self, method):
-        method.steps = list(Step.generate_steps(
-            method.__doc__.splitlines(), self.aliases, self))
-        method.runs = []
-        self[method.__qualname__] = method
-
-        return method
+    def scenario(self, parameters=()):
+        return Scenario(self, parameters)

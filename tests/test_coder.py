@@ -59,11 +59,6 @@ class CoderTests(BlueprintTester):
 
         assert re.sub(r'[0-9]{2}s', '05s', output) == PYTEST_OUTPUT
 
-    def test_no_pending(self):
-        import ipdb; ipdb.set_trace()
-        assert subprocess.run([
-            'bdd-pending-scenarios', self.coder.logs_path]).returncode == 0
-
     def test_pass_flake8(self):
         try:
             subprocess.check_output(['flake8', self.coder.tests_path])
@@ -111,8 +106,8 @@ class Flake8ErrorRaiseTest(PatcherTester):
 
         with open(abspath, 'w') as py_file:
             py_file.write(re.sub(
-                r'    @base.scenario\n    def even_boards', lambda m: '\n' + m.group(), re.sub(
-                    'class NewGame', lambda m: '\n' + m.group(), source, 1), 1))
+                r'    @base.scenario()\n    def even_boards', lambda m: '\n' + m.group(),
+                re.sub('class NewGame', lambda m: '\n' + m.group(), source, 1), 1))
 
         with self.assertRaises(Flake8Error):
             self.get_patcher()

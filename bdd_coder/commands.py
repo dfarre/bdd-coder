@@ -1,14 +1,8 @@
-import os
-import sys
-
 from simple_cmd.decorators import ErrorsCommand
-
-from bdd_coder import OK, FAIL, COMPLETION_MSG
 
 from bdd_coder.exceptions import (
     BaseTesterRetrievalError, FeaturesSpecError, InconsistentClassStructure,
-    OverwriteError, Flake8Error, PendingScenariosError, LogsNotFoundError,
-    ScenarioMismatchError)
+    OverwriteError, Flake8Error, ScenarioMismatchError)
 
 from bdd_coder import coders
 
@@ -41,19 +35,3 @@ def make_yaml_specs(test_module: 'Passed to `importlib.import_module`',
     base_tester, _ = coders.get_base_tester(test_module)
     features_spec = base_tester.features_spec(specs_path, overwrite)
     base_tester.validate_bases(features_spec)
-
-
-@ErrorsCommand(PendingScenariosError, LogsNotFoundError)
-def check_pending_scenarios(logs_path: 'Path to BDD run logs file'):
-    if os.path.isfile(logs_path):
-        with open(logs_path, 'rb') as log:
-            log.seek(-4, os.SEEK_END)  # 4 are the bytes of OK/FAIL (3) + \n (1)
-            symbol = log.read().decode().strip()
-
-        if symbol in (OK, FAIL):
-            sys.stdout.write(f'{COMPLETION_MSG}. Check the logs in {logs_path}\n')
-            return 0
-
-        raise PendingScenariosError(logs_path=logs_path)
-
-    raise LogsNotFoundError(logs_path=logs_path)

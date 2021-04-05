@@ -4,8 +4,6 @@ import shutil
 import subprocess
 import unittest
 
-from bdd_coder import OK, COMPLETION_MSG
-
 from bdd_coder.exceptions import InconsistentClassStructure
 
 from example.tests import base
@@ -86,20 +84,12 @@ class MakeYamlSpecsTests(CommandsE2ETestCase):
             overwrite=True, exit=0, stderr='',
             stdout=self.files_made_msg + 'Test case hierarchy validated\n')
 
-    def test_features_spec_error(self):
-        os.makedirs(self.features_dir)
-        self.assert_call(
-            '_cyclical', overwrite=True, exit=5,
-            stderr='FeaturesSpecError: Cyclical inheritance between ClearBoard and NewGame\n',
-            stdout='Specification files generated in tmp\n')
-
     def test_class_bases_error(self):
         os.makedirs(self.features_dir)
         self.assert_call(
             '_not_inherited', overwrite=True, exit=6,
             stderr='InconsistentClassStructure: Expected class structure from docs does not '
-            'match the defined one: bases set() declared in ClearBoard do not match '
-            "the specified ones {'NewGame'}\n")
+            'match the defined one: method even_boards not found\n')
 
 
 SPECS_ERROR = ("FeaturesSpecError: Duplicate titles are not supported, ['FakeFoo']\n"
@@ -128,42 +118,3 @@ class PatchBlueprintTests(CommandsE2ETestCase):
         self.assert_call(
             'example.tests.test_stories', 'tests/specs_wrong', exit=4,
             stdout='', stderr=SPECS_ERROR)
-
-
-SUCCESS_MSG = f'{COMPLETION_MSG} ▌ 3 {OK}'
-
-
-class CheckPendingScenariosTests(CommandsE2ETestCase):
-    command_name = 'bdd-pending-scenarios'
-
-    def setUp(self):
-        self.tmp_dir = 'tmp'
-        os.makedirs(self.tmp_dir)
-        self.ok_logs = os.path.join(self.tmp_dir, 'fake_ok_bdd_runs.log')
-        self.wrong_logs = os.path.join(self.tmp_dir, 'fake_wrong_bdd_runs.log')
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp_dir)
-
-    def make_fake_logs(self):
-        with open(self.ok_logs, 'w') as ok_log, open(self.wrong_logs, 'w') as wrong_log:
-            ok_log.write(SUCCESS_MSG)
-            wrong_log.write('Foo OK\n\n')
-
-    def test_no_log_files(self):
-        self.assert_call(
-            self.ok_logs, exit=4, stdout='',
-            stderr=f'LogsNotFoundError: No logs found in {self.ok_logs}\n')
-
-    def test_no_success(self):
-        self.make_fake_logs()
-        self.assert_call(
-            self.wrong_logs, exit=3, stdout='',
-            stderr='PendingScenariosError: Some scenarios did not run! '
-            f'Check the logs in {self.wrong_logs}\n')
-
-    def test_success(self):
-        self.make_fake_logs()
-        self.assert_call(self.ok_logs, exit=0,
-                         stdout=f'{COMPLETION_MSG}. Check the logs in {self.ok_logs}\n',
-                         stderr='')

@@ -3,18 +3,65 @@ import copy
 import itertools
 import json
 import os
+import re
 import yaml
 
 from bdd_coder import sentence_to_name
 from bdd_coder import sentence_to_method_name
-
+from bdd_coder import strip_lines
+from bdd_coder import I_REGEX, O_REGEX, TO
 from bdd_coder import exceptions
 from bdd_coder import stock
 from bdd_coder import text_utils
 
-from bdd_coder.decorators import Step
-
 MAX_INHERITANCE_LEVEL = 100
+
+
+class StepSpec(stock.Repr):
+    @classmethod
+    def generate_steps(cls, lines, *args, **kwargs):
+        return (cls(line, i, *args, **kwargs) for i, line in enumerate(strip_lines(lines)))
+
+    def __init__(self, text, ordinal, aliases):
+        self.text = text.strip().split(maxsplit=1)[1].strip()
+        self.ordinal = ordinal
+        self.aliases = aliases
+        self.validate()
+        self.own = False
+
+    def __str__(self):
+        own = 'i' if self.own else 'o'
+        output_names = ', '.join(self.output_names)
+
+        return f'({own}) {self.name} {self.inputs} {TO} ({output_names})'
+
+    def validate(self):
+        inputs_ok = self.inputs == self.get_inputs_by(r'"([^"]+)"')
+        outputs_ok = self.output_names == self.get_output_names_by(r'`([^`]+)`')
+
+        if not (inputs_ok and outputs_ok):
+            raise exceptions.FeaturesSpecError(
+                f'Inputs (by ") or outputs (by `) from {self.text} not understood')
+
+    def get_inputs_by(self, regex):
+        return re.findall(regex, self.text)
+
+    def get_output_names_by(self, regex):
+        return tuple(sentence_to_name(s) for s in re.findall(regex, self.text))
+
+    @property
+    def name(self):
+        method = sentence_to_method_name(self.text)
+
+        return self.aliases.get(method, method)
+
+    @property
+    def inputs(self):
+        return self.get_inputs_by(I_REGEX)
+
+    @property
+    def output_names(self):
+        return self.get_output_names_by(O_REGEX)
 
 
 class FeaturesSpec(stock.Repr):
@@ -78,7 +125,7 @@ class FeaturesSpec(stock.Repr):
         return f'Test{class_name}' if self.is_test(class_name) else class_name
 
     def is_test(self, class_name):
-        return not all(s['inherited'] for s in self.features[class_name]['scenarios'].values())
+        return not self.features[class_name]['inherited']
 
     @staticmethod
     def get_aliases(specs_path):
@@ -131,7 +178,7 @@ class FeaturesSpec(stock.Repr):
                 'bases': set(), 'mro_bases': set(), 'inherited': False, 'scenarios': {
                     sentence_to_method_name(title): {
                         'title': title, 'inherited': False,  'doc_lines': lines,
-                        'steps': tuple(Step.generate_steps(lines, aliases))}
+                        'steps': tuple(StepSpec.generate_steps(lines, aliases))}
                     for title, lines in yml_feature.pop('Scenarios').items()},
                 'doc': yml_feature.pop('Story')}
             feature['extra_class_attrs'] = {

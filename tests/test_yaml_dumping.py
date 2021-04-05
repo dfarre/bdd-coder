@@ -27,7 +27,7 @@ class YamlDumpTests(unittest.TestCase):
         self.assert_equal_yamls('tmp/aliases.yml', 'example/specs/aliases.yml')
 
     def test_feature_yamls__newgame(self):
-        test_stories.TestNewGame.dump_yaml_feature('tmp')
+        test_stories.NewGame.dump_yaml_feature('tmp')
 
         self.assert_equal_yamls(
             'tmp/new-game.yml', 'example/specs/features/new-game.yml')
