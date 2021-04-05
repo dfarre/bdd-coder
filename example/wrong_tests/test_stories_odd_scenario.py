@@ -1,7 +1,7 @@
 from . import base
 
 
-class NewGame(base.BddTester):
+class TestNewGame(base.BddTester):
     """
     As a codebreaker
     I want to start a new Mastermind game of B boards of G guesses
@@ -40,7 +40,7 @@ class NewGame(base.BddTester):
         assert len(args) == 1
 
 
-class TestClearBoard(NewGame, base.BaseTestCase):
+class TestClearBoard(TestNewGame):
     """
     As a codebreaker
     I want a clear board with a new code

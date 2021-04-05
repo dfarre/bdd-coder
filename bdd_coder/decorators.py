@@ -16,7 +16,7 @@ from bdd_coder import I_REGEX, O_REGEX, OK, FAIL, TO
 from bdd_coder import strip_lines, sentence_to_name, sentence_to_method_name
 
 
-class Step(stock.Repr):
+class Step:
     def __init__(self, text, ordinal, aliases=None, gherkin=None):
         self.gherkin = gherkin
         self.text = text.strip().split(maxsplit=1)[1].strip()

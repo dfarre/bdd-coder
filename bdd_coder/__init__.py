@@ -1,16 +1,14 @@
 """Common utils and constants"""
 import re
 
-BASE_TEST_CASE_NAME = 'BaseTestCase'
 BASE_TESTER_NAME = 'BddTester'
 
 COMPLETION_MSG = 'All scenarios ran'
 OK, FAIL, TO = '✅', '❌', '↦'
 
-PARAM_REGEX = r'[^"`\$]+'
-I_REGEX = rf'"({PARAM_REGEX})"'
-O_REGEX = rf'`({PARAM_REGEX})`'
-FIXTURE_REGEX = r'\$[a-zA-Z_]\w*'
+I_REGEX = r'"([^"`\$]+)"'
+O_REGEX = r'`([^"`\$]+)`'
+PARAM_REGEX = r'\$[a-zA-Z_]\w*'
 
 
 def to_sentence(name):

@@ -41,7 +41,7 @@ class NewGame(base.BddTester):
         assert len(args) == 1
 
 
-class ClearBoard(NewGame, base.BaseTestCase):
+class ClearBoard(NewGame):
     """
     As a codebreaker
     I want a clear board with a new code

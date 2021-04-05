@@ -6,7 +6,6 @@ import subprocess
 import unittest
 import unittest.mock as mock
 
-from bdd_coder import BASE_TEST_CASE_NAME
 from bdd_coder import BASE_TESTER_NAME
 
 from bdd_coder import stock
@@ -15,7 +14,7 @@ from bdd_coder.exceptions import (
     BaseModuleNotFoundError, BaseTesterNotFoundError, StoriesModuleNotFoundError,
     Flake8Error, ScenarioMismatchError)
 
-from bdd_coder.coder import coders
+from bdd_coder import coders
 
 PYTEST_OUTPUT = """
 ============================= test session starts ==============================
@@ -32,16 +31,15 @@ tmp/generated/test_stories.py::TestClearBoard::test_start_board PASSED   [100%]
 class BlueprintTester(unittest.TestCase):
     kwargs = dict(specs_path='example/specs', tests_path='tmp/generated',
                   logs_path='example/tests/bdd_runs.log')
-    base_class = ''
 
     def setUp(self):
-        self.coder = coders.PackageCoder(**{
-            **self.kwargs, **({'base_class': self.base_class} if self.base_class else {})})
+        self.coder = coders.PackageCoder(**self.kwargs)
 
         with mock.patch('sys.stdout.write') as stdout_mock:
             self.coder.create_tester_package()
-            self.coder_output = ''.join([
-                line for (line,), kw in stdout_mock.call_args_list])
+
+        self.coder_output = ''.join([
+            line for (line,), kw in stdout_mock.call_args_list])
 
     def tearDown(cls):
         shutil.rmtree('tmp')
@@ -62,6 +60,7 @@ class CoderTests(BlueprintTester):
         assert re.sub(r'[0-9]{2}s', '05s', output) == PYTEST_OUTPUT
 
     def test_no_pending(self):
+        import ipdb; ipdb.set_trace()
         assert subprocess.run([
             'bdd-pending-scenarios', self.coder.logs_path]).returncode == 0
 
@@ -73,18 +72,6 @@ class CoderTests(BlueprintTester):
 
     def test_example_test_files_match(self):
         self.assert_test_files_match('example/tests')
-
-
-class CoderCustomBaseTests(BlueprintTester):
-    base_class = 'my.module.path.MyTestCase'
-
-    def test_base_test_case_bases(self):
-        with open(os.path.join(self.coder.tests_path, 'base.py')) as py_file:
-            source = py_file.read()
-
-        regex = rf'class {BASE_TEST_CASE_NAME}\(MyTestCase, tester\.BaseTestCase\)'
-
-        assert len(re.findall(regex, source)) == 1
 
 
 class StoriesModuleNotFoundErrorRaiseTest(unittest.TestCase):

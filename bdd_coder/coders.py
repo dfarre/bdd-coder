@@ -7,7 +7,6 @@ import os
 import re
 import subprocess
 
-from bdd_coder import BASE_TEST_CASE_NAME
 from bdd_coder import BASE_TESTER_NAME
 from bdd_coder import extract_name
 from bdd_coder import strip_lines
@@ -15,19 +14,24 @@ from bdd_coder import strip_lines
 from bdd_coder import exceptions
 from bdd_coder import stock
 from bdd_coder import features
+from bdd_coder import text_utils
+from bdd_coder import tester
 
-from bdd_coder.coder import text_utils
-
-from bdd_coder.tester import tester
-
-BDD_TEST_CASE_PATH = 'tester.BaseTestCase'
 BDD_TESTER_PATH = 'tester.BddTester'
 
 
 class FeatureClassCoder:
     def __init__(self, class_name, features_spec):
-        self.spec = features_spec.features[class_name]
-        self.class_name = features_spec.get_test_class_name(class_name)
+        self.class_name = class_name
+        self.features_spec = features_spec
+
+    @property
+    def spec(self):
+        return self.features_spec.features[self.class_name]
+
+    @property
+    def test_class_name(self):
+        return self.features_spec.get_test_class_name(self.class_name)
 
     @property
     def scenario_method_defs(self):
@@ -54,12 +58,13 @@ class FeatureClassCoder:
     @property
     def source(self):
         return text_utils.make_class(
-            self.class_name, self.spec['doc'], body=self.class_body, bases=self.bases)
+            self.test_class_name, self.spec['doc'], body=self.class_body, bases=self.bases)
 
     @property
     def bases(self):
-        return (self.spec['bases'] or [f'base.{BASE_TESTER_NAME}']) + (
-            [] if self.spec['inherited'] else [f'base.{BASE_TEST_CASE_NAME}'])
+        return [
+            self.features_spec.get_test_class_name(b) for b in self.spec['bases']
+        ] if self.spec['bases'] else [f'base.{BASE_TESTER_NAME}']
 
     @staticmethod
     def make_step_method_defs_for(steps_to_code):
@@ -85,15 +90,8 @@ class FeatureClassCoder:
 class PackageCoder:
     logs_file_name = 'bdd_runs.log'
 
-    def __init__(self, base_class='', specs_path='behaviour/specs',
-                 tests_path='', test_module_name='stories', overwrite=False, logs_path=''):
-        if not base_class:
-            self.base_test_case_bases = (BDD_TEST_CASE_PATH,)
-            self.base_class_name = ''
-        else:
-            self.module_or_package_path, self.base_class_name = base_class.rsplit('.', 1)
-            self.base_test_case_bases = (self.base_class_name, BDD_TEST_CASE_PATH)
-
+    def __init__(self, specs_path='behaviour/specs', tests_path='',
+                 test_module_name='stories', overwrite=False, logs_path=''):
         self.features_spec = features.FeaturesSpec.from_specs_dir(specs_path)
         self.tests_path = tests_path or os.path.join(os.path.dirname(specs_path), 'tests')
         self.logs_path = (
@@ -120,12 +118,10 @@ class PackageCoder:
                 for name in self.features_spec.base_methods]
 
     @property
-    def base_class_defs(self):
-        return [text_utils.make_class(
-            BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,), decorators=('gherkin',)
-        ), text_utils.make_class(
-            BASE_TEST_CASE_NAME, bases=self.base_test_case_bases,
-            body='\n\n'.join(self.base_method_defs))]
+    def base_class_def(self):
+        return text_utils.make_class(
+            BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,), decorators=('gherkin',),
+            body='\n\n'.join(self.base_method_defs))
 
     def pytest(self):
         stock.Process('pytest', '-vv', self.tests_path).write()
@@ -137,13 +133,11 @@ class PackageCoder:
     @property
     def base_module_source(self):
         return '\n\n\n'.join([
-            (f'from {self.module_or_package_path} import {self.base_class_name}\n\n'
-             if self.base_class_name else '') + (
-                'from bdd_coder.tester import decorators\n'
-                'from bdd_coder.tester import tester\n\n'
+                'from bdd_coder import decorators\n'
+                'from bdd_coder import tester\n\n'
                 'from . import aliases\n\n'
-                f"gherkin = decorators.Gherkin(aliases.MAP, logs_path='{self.logs_path}')")
-        ] + self.base_class_defs)
+                f"gherkin = decorators.Gherkin(aliases.MAP, logs_path='{self.logs_path}')",
+                self.base_class_def])
 
     def create_tester_package(self):
         exceptions.makedirs(self.tests_path, exist_ok=self.overwrite)
@@ -303,7 +297,7 @@ class PackagePatcher(PackageCoder):
         old_specs = self.base_tester.features_spec()
 
         self.splits = {'base': TestModule(
-            os.path.join(self.tests_path, 'base.py'), BASE_TEST_CASE_NAME
+            os.path.join(self.tests_path, 'base.py'), BASE_TESTER_NAME
         ), self.test_module_name: TestModule(
             os.path.join(self.tests_path, f'{self.test_module_name}.py'),
             *(old_specs.get_test_class_name(n) for n in old_specs.features))}
@@ -402,7 +396,7 @@ class PackagePatcher(PackageCoder):
                 lambda s: s.own and not hasattr(tester, s.name), steps))))
 
     def add_base_methods(self, pieces):
-        pieces[BASE_TEST_CASE_NAME].tail.extend(map(text_utils.indent, self.base_method_defs))
+        pieces[BASE_TESTER_NAME].tail.extend(map(text_utils.indent, self.base_method_defs))
 
     def patch(self):
         self.patch_module(

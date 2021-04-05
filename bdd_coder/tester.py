@@ -18,7 +18,7 @@ from bdd_coder import exceptions
 from bdd_coder import features
 from bdd_coder import stock
 
-from bdd_coder.tester.decorators import Step
+from bdd_coder.decorators import Step
 
 from bdd_coder.exceptions import InconsistentClassStructure
 
@@ -117,15 +117,7 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         for name in spec_bases:
             own_bases = set(cls_bases[name])
             own_bases.discard(cls)
-            base_test_cases = [b for b in own_bases if issubclass(b, BaseTestCase)]
-
-            if features_spec.features[name]['inherited'] and len(base_test_cases) != 0:
-                errors.append(f'unexpected {BaseTestCase.__name__} subclass in {name}')
-
-            if not features_spec.features[name]['inherited'] and len(base_test_cases) != 1:
-                errors.append(f'expected one {BaseTestCase.__name__} subclass in {name}')
-
-            own_bases_names = {b.__name__ for b in own_bases if b not in base_test_cases}
+            own_bases_names = {b.__name__ for b in own_bases}
 
             if own_bases_names != spec_bases[name]:
                 errors.append(f'bases {own_bases_names} declared in {name} do not '
@@ -180,8 +172,6 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         return dict(filter(lambda it: f'\n    {it[0]} = ' in inspect.getsource(cls),
                            inspect.getmembers(cls)))
 
-
-class BaseTestCase:
     @classmethod
     def setup_class(cls):
         if cls.gherkin.validate:

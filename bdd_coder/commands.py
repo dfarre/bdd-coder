@@ -10,17 +10,17 @@ from bdd_coder.exceptions import (
     OverwriteError, Flake8Error, PendingScenariosError, LogsNotFoundError,
     ScenarioMismatchError)
 
-from bdd_coder.coder import coders
+from bdd_coder import coders
 
 
 @ErrorsCommand(FileNotFoundError, FeaturesSpecError, OverwriteError)
-def make_blueprint(*, base_class: 'Base test case class' = '',
+def make_blueprint(*,
                    specs_path: 'Directory containing the YAML specs' = 'behaviour/specs',
                    tests_path: 'Default: next to specs' = '',
                    test_module_name: 'Name for test_<name>.py' = 'stories',
                    overwrite=False):
     coders.PackageCoder(
-        base_class=base_class, specs_path=specs_path, tests_path=tests_path,
+        specs_path=specs_path, tests_path=tests_path,
         test_module_name=test_module_name, overwrite=overwrite,
     ).create_tester_package()
 

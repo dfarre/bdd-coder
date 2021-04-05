@@ -73,8 +73,10 @@ class DecoratorTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        assert list(base.gherkin.scenarios) == [
-            'test_odd_boards', 'even_boards', 'test_start_board']
+        assert [method.__qualname__ for method in base.gherkin] == [
+            'NewGame.test_odd_boards',
+            'NewGame.even_boards',
+            'TestClearBoard.test_start_board']
 
     def setUp(self):
         base.gherkin.run_number = 0

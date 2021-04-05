@@ -49,18 +49,6 @@ class ValidateBasesTests(unittest.TestCase):
     def test_wrong_bases(self):
         self.assert_error(self.wrong_bases_error)
 
-    def test_missing_test_case(self):
-        self.fake_specs.features['NewGame']['inherited'] = False
-
-        self.assert_error('expected one BaseTestCase subclass in NewGame, '
-                          + self.wrong_bases_error)
-
-    def test_unexpected_test_case(self):
-        self.fake_specs.features['ClearBoard']['inherited'] = True
-
-        self.assert_error('unexpected BaseTestCase subclass in ClearBoard, '
-                          + self.wrong_bases_error)
-
     def test_sets_differ(self):
         self.fake_specs.class_bases = [('FooStory', set())]
 

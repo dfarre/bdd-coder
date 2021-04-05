@@ -10,11 +10,11 @@ from bdd_coder import sentence_to_method_name
 
 from bdd_coder import exceptions
 from bdd_coder import stock
+from bdd_coder import text_utils
 
-from bdd_coder.coder import MAX_INHERITANCE_LEVEL
-from bdd_coder.coder import text_utils
+from bdd_coder.decorators import Step
 
-from bdd_coder.tester.decorators import Step
+MAX_INHERITANCE_LEVEL = 100
 
 
 class FeaturesSpec(stock.Repr):
@@ -75,7 +75,10 @@ class FeaturesSpec(stock.Repr):
         return list(map(lambda it: text_utils.make_class_head(*it), self.class_bases))
 
     def get_test_class_name(self, class_name):
-        return class_name if self.features[class_name]['inherited'] else f'Test{class_name}'
+        return f'Test{class_name}' if self.is_test(class_name) else class_name
+
+    def is_test(self, class_name):
+        return not all(s['inherited'] for s in self.features[class_name]['scenarios'].values())
 
     @staticmethod
     def get_aliases(specs_path):
@@ -102,10 +105,10 @@ class FeaturesSpec(stock.Repr):
             for step in cls.get_all_steps(feature_spec):
                 if step.name in other_scenario_names:
                     other_class_name = other_scenario_names[step.name]
-                    feature_spec['bases'].add(other_class_name)
-                    feature_spec['mro_bases'].add(other_class_name)
                     features[other_class_name]['inherited'] = True
                     features[other_class_name]['scenarios'][step.name]['inherited'] = True
+                    feature_spec['mro_bases'].add(other_class_name)
+                    feature_spec['bases'].add(other_class_name)
                 elif step.name in feature_spec['scenarios']:
                     feature_spec['scenarios'][step.name]['inherited'] = True
                 elif step.name in aliases.values():
@@ -128,7 +131,7 @@ class FeaturesSpec(stock.Repr):
                 'bases': set(), 'mro_bases': set(), 'inherited': False, 'scenarios': {
                     sentence_to_method_name(title): {
                         'title': title, 'inherited': False,  'doc_lines': lines,
-                        'steps': tuple(Step.steps(lines, aliases))}
+                        'steps': tuple(Step.generate_steps(lines, aliases))}
                     for title, lines in yml_feature.pop('Scenarios').items()},
                 'doc': yml_feature.pop('Story')}
             feature['extra_class_attrs'] = {
