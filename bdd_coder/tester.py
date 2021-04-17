@@ -178,3 +178,7 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
 
     def teardown_method(self):
         self.gherkin.reset_outputs()
+
+    @property
+    def outputs(self):
+        self.gherkin.outputs

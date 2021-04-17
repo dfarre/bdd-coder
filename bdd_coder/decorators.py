@@ -64,10 +64,11 @@ class Step(StepSpec):
 
         return pytest.fixture(name=self.name)(logger_step_method)
 
-    @staticmethod
-    def refine_steps(steps):
+    @classmethod
+    def refine_steps(cls, steps):
         for i, step in enumerate(chain(*(
-                [s] if s.doc_scenario is None else s.doc_scenario.steps for s in steps))):
+                [s] if s.doc_scenario is None else list(cls.refine_steps(s.doc_scenario.steps))
+                for s in steps))):
             step.ordinal = i
             yield step
 
