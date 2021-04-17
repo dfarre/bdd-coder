@@ -55,16 +55,19 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
             return
 
         for name, scenario in cls.gherkin.scenarios[cls.__name__].items():
-            for step in filter(lambda step: not step.ready, scenario.steps):
+            for step in scenario.steps:
                 try:
                     step_method = getattr(cls, step.name)
                 except AttributeError:
                     raise exceptions.InconsistentClassStructure(
                         error=f'method {step.name} not found')
 
+                if getattr(step_method, 'ready', False) is True:
+                    continue
+
                 if step_method.__qualname__ in cls.gherkin:
                     step.doc_scenario = cls.gherkin[step_method.__qualname__]
-                    step.ready = True
+                    step_method.ready = True
                 else:
                     klass = (cls if step_method.__qualname__.split('.')[0] == cls.__name__
                              else cls.gherkin.BddTester

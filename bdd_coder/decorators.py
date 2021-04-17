@@ -60,7 +60,7 @@ class Step(StepSpec):
                 f'{self.symbol} {step_method.__qualname__} {self.inputs} '
                 f'{TO} {self.result or ()}')
 
-        self.ready = True
+        logger_step_method.ready = True
 
         return pytest.fixture(name=self.name)(logger_step_method)
 
