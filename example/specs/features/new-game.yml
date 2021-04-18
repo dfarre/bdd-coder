@@ -10,8 +10,8 @@ Fixtures:
 
 Scenarios:
   Odd boards:
-      - When I request a new `game` with an odd number of boards
+      - When I request a new `game` with $(9) boards
       - Then I get a 400 response saying it must be even
   Even boards:
-      - When I request a new `game` with an even number of boards
-      - Then a game is created with boards of "12" guesses
+      - When I request a new `game` with $(8) boards
+      - Then a game is created with boards of $guess_count guesses

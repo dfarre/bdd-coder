@@ -1,3 +1,33 @@
+"""Common utils and constants"""
+import re
+
+BASE_TESTER_NAME = 'BddTester'
+
+COMPLETION_MSG = 'All scenarios ran!'
+OK, FAIL, PENDING, TO = '✔', '✖', '❓', '↦'
+BOLD = {OK: '✅', FAIL: '❌'}
+
+PARAM_REGEX = r'\$([a-zA-Z_]+)'
+I_REGEX = r'\$\(([^\$]+)\)'
+O_REGEX = r'`([^`\$]+)`'
+
+
+def to_sentence(name):
+    return name.replace('_', ' ').capitalize()
+
+
+def sentence_to_name(text):
+    return '_'.join([re.sub(r'\W+', '', t).lower() for t in text.split()])
+
+
+def strip_lines(lines):
+    return list(filter(None, map(str.strip, lines)))
+
+
+def extract_name(test_class_name):
+    return test_class_name[4:] if test_class_name.startswith('Test') else test_class_name
+
+
 def indent(text, tabs=1):
     newspace = ' '*4*tabs
     text = text.replace('\n', '\n' + newspace)

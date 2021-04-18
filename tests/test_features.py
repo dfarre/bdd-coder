@@ -6,15 +6,6 @@ from bdd_coder import exceptions
 from bdd_coder import features
 
 
-class StepTests(unittest.TestCase):
-    def test_parse_error(self):
-        with self.assertRaises(exceptions.FeaturesSpecError) as cm:
-            features.StepSpec('Given I `say" `hello"',  0, {})
-
-        assert str(cm.exception) == (
-            'Inputs (by ") or outputs (by `) from I `say" `hello" not understood')
-
-
 class FeaturesSpecTests(unittest.TestCase):
     def setUp(self):
         self.specs_path = 'tests/specs_ok'

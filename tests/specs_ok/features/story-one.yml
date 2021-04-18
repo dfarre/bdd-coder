@@ -8,7 +8,7 @@ Scenarios:
   Ones first scenario:
     - Given `something` amazing
     - When something even funnier on three
-    - Then you `smile` and say "cool"
+    - Then you `smile` and say $cool
   Ones second scenario:
     - Given ones first scenario
     - Then you keep working on two

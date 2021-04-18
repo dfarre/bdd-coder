@@ -6,7 +6,7 @@ import subprocess
 import unittest
 import unittest.mock as mock
 
-from bdd_coder import BASE_TESTER_NAME
+from bdd_coder.text_utils import BASE_TESTER_NAME
 
 from bdd_coder import stock
 
@@ -22,10 +22,11 @@ platform linux -- Python [L1-4]
 collecting ... collected 2 items
 
 tmp/generated/test_stories.py::TestClearBoard::test_odd_boards PASSED    [ 50%]
-tmp/generated/test_stories.py::TestClearBoard::test_start_board PASSED   [100%]
+tmp/generated/test_stories.py::TestClearBoard::test_start_board ERROR    [100%]
 
-============================== 2 passed in 0.05s ===============================
-""".strip('\n')
+==================================== ERRORS ====================================
+______________ ERROR at setup of TestClearBoard.test_start_board _______________
+""".strip()
 
 
 class BlueprintTester(unittest.TestCase):
@@ -55,9 +56,10 @@ class BlueprintTester(unittest.TestCase):
 class CoderTests(BlueprintTester):
     def test_pytest_output(self):
         lines = self.coder_output.splitlines()
-        output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:])
+        output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:12])
 
-        assert re.sub(r'[0-9]{2}s', '05s', output) == PYTEST_OUTPUT
+        assert output == PYTEST_OUTPUT
+        assert lines[17] == "E       fixture 'guess_count' not found"
 
     def test_pass_flake8(self):
         try:
@@ -119,7 +121,7 @@ class ScenarioMismatchErrorRaiseTest(PatcherTester):
             self.get_patcher('example.wrong_tests.test_stories_odd_scenario')
 
         assert str(cm.exception) == (
-            'Scenario code not understood: def test_odd_boards(self, *args)...')
+            'Scenario code not understood: def even_boards(self, *args)...')
 
 
 MODULE_TEXT = ("<module 'tmp.generated.test_stories' from '" +

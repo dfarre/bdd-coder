@@ -76,12 +76,12 @@ Features {
                 "doc_lines": [
                     "Given `something` amazing",
                     "When something even funnier on three",
-                    "Then you `smile` and say \"cool\""
+                    "Then you `smile` and say $cool"
                 ],
                 "steps": [
                     "(o) something_cool [] ↦ (something)",
                     "(o) something_even_funnier_on_three [] ↦ ()",
-                    "(i) you_smile_and_say__ ['cool'] ↦ (smile)"
+                    "(i) you_smile_and_say_cool [cool] ↦ (smile)"
                 ]
             },
             "ones_second_scenario": {

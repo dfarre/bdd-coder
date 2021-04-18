@@ -8,9 +8,7 @@ class ClearBoard(base.BddTester):
     In order to start making guesses on it
     """
 
-    def i_request_a_clear_board_in_my_new_game(self, *args):
-        assert len(args) == 0
-
+    def i_request_a_clear_board_in_my_new_game(self):
         return 'board',
 
 
@@ -28,11 +26,11 @@ class NewPlayer(base.BddTester):
         Then a new player is added
         """
 
-    def a_user_signs_in(self, *args):
-        assert len(args) == 0
+    def a_user_signs_in(self):
+        pass
 
-    def a_new_player_is_added(self, *args):
-        assert len(args) == 0
+    def a_new_player_is_added(self):
+        pass
 
 
 class TestNewGame(NewPlayer):
@@ -48,7 +46,7 @@ class TestNewGame(NewPlayer):
         """
         Given new player joins
         When I request a new `game` with an even number of boards
-        Then a game is created with boards of "12" guesses
+        Then a game is created with boards of $guess_count guesses
         """
 
     @base.gherkin.scenario()
@@ -65,21 +63,17 @@ class TestNewGame(NewPlayer):
         Then she is welcome
         """
 
-    def i_request_a_new_game_with_an_odd_number_of_boards(self, *args):
-        assert len(args) == 0
-
+    def i_request_a_new_game_with_an_odd_number_of_boards(self):
         return 'game',
 
-    def i_get_a_400_response_saying_it_must_be_even(self, *args):
-        assert len(args) == 0
+    def i_get_a_400_response_saying_it_must_be_even(self):
+        pass
 
-    def i_request_a_new_game_with_an_even_number_of_boards(self, *args):
-        assert len(args) == 0
-
+    def i_request_a_new_game_with_an_even_number_of_boards(self):
         return 'game',
 
-    def a_game_is_created_with_boards_of__guesses(self, *args):
-        assert len(args) == 1
+    def a_game_is_created_with_boards_of_guess_count_guesses(self, guess_count):
+        pass
 
-    def class_hierarchy_has_changed(self, *args):
-        assert len(args) == 0
+    def class_hierarchy_has_changed(self):
+        pass

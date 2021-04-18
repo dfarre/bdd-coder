@@ -9,7 +9,7 @@ Scenarios:
   Even boards:
       - Given new player joins
       - When I request a new `game` with an even number of boards
-      - Then a game is created with boards of "12" guesses
+      - Then a game is created with boards of $guess_count guesses
   Funny boards:
       - Given new player joins
       - Then class hierarchy has changed

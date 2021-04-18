@@ -79,3 +79,16 @@ class SetPair(Repr):
             return '⊂'
         elif not parts['r-l']:
             return '⊃'
+
+
+def list_drop_duplicates(iterable, key=None):
+    elements = []
+    if key is None:
+        for e in filter(lambda x: x not in elements, iterable):
+            elements.append(e)
+    else:
+        keys = []
+        for e in filter(lambda x: key(x) not in keys, iterable):
+            keys.append(key(e))
+            elements.append(e)
+    return elements

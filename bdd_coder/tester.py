@@ -6,13 +6,13 @@ import shutil
 import sys
 import yaml
 
-from bdd_coder import extract_name
-from bdd_coder import strip_lines
-from bdd_coder import to_sentence
-
 from bdd_coder import exceptions
 from bdd_coder import features
 from bdd_coder import stock
+
+from bdd_coder.text_utils import extract_name
+from bdd_coder.text_utils import strip_lines
+from bdd_coder.text_utils import to_sentence
 
 from bdd_coder.exceptions import InconsistentClassStructure
 
@@ -62,20 +62,12 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
                     raise exceptions.InconsistentClassStructure(
                         error=f'method {step.name} not found')
 
-                if getattr(step_method, 'ready', False) is True:
-                    continue
+                step.method_qualname = step_method.__qualname__
 
                 if step_method.__qualname__ in cls.gherkin:
                     step.doc_scenario = cls.gherkin[step_method.__qualname__]
-                    step_method.ready = True
                 else:
-                    klass = (cls if step_method.__qualname__.split('.')[0] == cls.__name__
-                             else cls.gherkin.BddTester
-                             if hasattr(cls.gherkin.BddTester, step_method.__name__)
-                             else None)
-
-                    if klass is not None:
-                        setattr(klass, step.name, step(step_method))
+                    setattr(cls, step.fixture_name, step(step_method))
 
         for scenario in filter(lambda s: not s.ready,
                                cls.gherkin.scenarios[cls.__name__].values()):
@@ -176,9 +168,8 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
     def teardown_class(cls):
         cls.gherkin.logger.info(str(cls.gherkin))
 
-    def teardown_method(self):
+    def setup_method(self):
         self.gherkin.reset_outputs()
 
-    @property
-    def outputs(self):
-        self.gherkin.outputs
+    def get_output(self, name, index=-1):
+        return self.gherkin.outputs[name][index]

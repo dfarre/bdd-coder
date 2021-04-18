@@ -6,13 +6,13 @@ import os
 import re
 import yaml
 
-from bdd_coder import sentence_to_name
-from bdd_coder import sentence_to_method_name
-from bdd_coder import strip_lines
-from bdd_coder import I_REGEX, O_REGEX, TO
 from bdd_coder import exceptions
 from bdd_coder import stock
-from bdd_coder import text_utils
+
+from bdd_coder.text_utils import make_class_head
+from bdd_coder.text_utils import sentence_to_name
+from bdd_coder.text_utils import strip_lines
+from bdd_coder.text_utils import I_REGEX, O_REGEX, PARAM_REGEX, TO
 
 MAX_INHERITANCE_LEVEL = 100
 
@@ -26,42 +26,41 @@ class StepSpec(stock.Repr):
         self.text = text.strip().split(maxsplit=1)[1].strip()
         self.ordinal = ordinal
         self.aliases = aliases
-        self.validate()
         self.own = False
+        self.validate()
 
     def __str__(self):
         own = 'i' if self.own else 'o'
         output_names = ', '.join(self.output_names)
+        param_names = ', '.join(self.param_names)
 
-        return f'({own}) {self.name} {self.inputs} {TO} ({output_names})'
+        return f'({own}) {self.name} [{param_names}] {TO} ({output_names})'
 
     def validate(self):
-        inputs_ok = self.inputs == self.get_inputs_by(r'"([^"]+)"')
-        outputs_ok = self.output_names == self.get_output_names_by(r'`([^`]+)`')
+        inames, onames = self.param_names, self.output_names
+        has_repeated_inputs = len(set(inames)) < len(inames)
+        has_repeated_outputs = len(set(onames)) < len(onames)
 
-        if not (inputs_ok and outputs_ok):
-            raise exceptions.FeaturesSpecError(
-                f'Inputs (by ") or outputs (by `) from {self.text} not understood')
-
-    def get_inputs_by(self, regex):
-        return re.findall(regex, self.text)
-
-    def get_output_names_by(self, regex):
-        return tuple(sentence_to_name(s) for s in re.findall(regex, self.text))
+        if any([has_repeated_inputs, has_repeated_outputs]):
+            raise exceptions.FeaturesSpecError(f'Repeated parameter names in {self}')
 
     @property
     def name(self):
-        method = sentence_to_method_name(self.text)
+        method = sentence_to_name(re.sub(I_REGEX, '', self.text))
 
         return self.aliases.get(method, method)
 
     @property
     def inputs(self):
-        return self.get_inputs_by(I_REGEX)
+        return re.findall(I_REGEX, self.text)
+
+    @property
+    def param_names(self):
+        return re.findall(PARAM_REGEX, self.text)
 
     @property
     def output_names(self):
-        return self.get_output_names_by(O_REGEX)
+        return tuple(sentence_to_name(s) for s in re.findall(O_REGEX, self.text))
 
 
 class FeaturesSpec(stock.Repr):
@@ -119,7 +118,7 @@ class FeaturesSpec(stock.Repr):
 
     @property
     def class_bases_text(self):
-        return list(map(lambda it: text_utils.make_class_head(*it), self.class_bases))
+        return list(map(lambda it: make_class_head(*it), self.class_bases))
 
     def get_test_class_name(self, class_name):
         return f'Test{class_name}' if self.is_test(class_name) else class_name
@@ -132,8 +131,8 @@ class FeaturesSpec(stock.Repr):
         with open(os.path.join(specs_path, 'aliases.yml')) as yml_file:
             yml_aliases = yaml.load(yml_file.read(), Loader=yaml.FullLoader)
 
-        return dict(itertools.chain(*(zip(map(sentence_to_method_name, names), [
-            sentence_to_method_name(alias)]*len(names))
+        return dict(itertools.chain(*(zip(map(sentence_to_name, names), [
+            sentence_to_name(alias)]*len(names))
             for alias, names in yml_aliases.items()))) if yml_aliases else {}
 
     @staticmethod
@@ -176,7 +175,7 @@ class FeaturesSpec(stock.Repr):
             feature = {
                 'class_name': cls.title_to_class_name(yml_feature.pop('Title')),
                 'bases': set(), 'mro_bases': set(), 'inherited': False, 'scenarios': {
-                    sentence_to_method_name(title): {
+                    sentence_to_name(title): {
                         'title': title, 'inherited': False,  'doc_lines': lines,
                         'steps': tuple(StepSpec.generate_steps(lines, aliases))}
                     for title, lines in yml_feature.pop('Scenarios').items()},

@@ -7,15 +7,14 @@ import os
 import re
 import subprocess
 
-from bdd_coder import BASE_TESTER_NAME
-from bdd_coder import extract_name
-from bdd_coder import strip_lines
-
 from bdd_coder import exceptions
 from bdd_coder import stock
 from bdd_coder import features
-from bdd_coder import text_utils
 from bdd_coder import tester
+
+from bdd_coder.text_utils import (
+    BASE_TESTER_NAME, extract_name, strip_lines, indent, make_method,
+    make_class, make_doc, rstrip)
 
 BDD_TESTER_PATH = 'tester.BddTester'
 
@@ -57,7 +56,7 @@ class FeatureClassCoder:
 
     @property
     def source(self):
-        return text_utils.make_class(
+        return make_class(
             self.test_class_name, self.spec['doc'], body=self.class_body, bases=self.bases)
 
     @property
@@ -68,23 +67,23 @@ class FeatureClassCoder:
 
     @staticmethod
     def make_step_method_defs_for(steps_to_code):
-        return [text_utils.make_method(
-            s.name, body=FeatureClassCoder.make_method_body(s.inputs, s.output_names),
-            args_text=', *args') for s in steps_to_code]
+        return [make_method(
+            s.name, body=FeatureClassCoder.make_method_body(s.param_names, s.output_names),
+            args_text=''.join([
+                f', {n}' for n in s.param_names + (['request'] if s.inputs else [])])
+        ) for s in stock.list_drop_duplicates(steps_to_code, lambda s: s.name)]
 
     @staticmethod
     def make_scenario_method_def(name, scenario_spec):
-        return text_utils.make_method(
+        return make_method(
             ('' if scenario_spec['inherited'] else 'test_') + name,
             *scenario_spec['doc_lines'], decorators=('base.gherkin.scenario()',))
 
     @staticmethod
-    def make_method_body(inputs, output_names):
-        outputs_help = [
+    def make_method_body(param_names, output_names):
+        return (
             'return ' + ''.join(f"'{output}', " for output in output_names)
-        ] if output_names else []
-
-        return '\n\n'.join([f'assert len(args) == {len(inputs)}'] + outputs_help)
+        ) if output_names else 'pass'
 
 
 class PackageCoder:
@@ -106,7 +105,7 @@ class PackageCoder:
 
     @property
     def aliases_def(self):
-        dict_text = text_utils.indent(
+        dict_text = indent(
             '\n'.join([f"'{k}': '{v}'," for k, v in sorted(
                 self.features_spec.aliases.items(), key=lambda it: it[0])]))
 
@@ -114,12 +113,12 @@ class PackageCoder:
 
     @property
     def base_method_defs(self):
-        return [text_utils.make_method(name, args_text=', *args')
+        return [make_method(name, args_text=', *args')
                 for name in self.features_spec.base_methods]
 
     @property
     def base_class_def(self):
-        return text_utils.make_class(
+        return make_class(
             BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,), decorators=('gherkin',),
             body='\n\n'.join(self.base_method_defs))
 
@@ -128,7 +127,7 @@ class PackageCoder:
 
     def write_aliases_module(self):
         with open(os.path.join(self.tests_path, 'aliases.py'), 'w') as aliases_py:
-            aliases_py.write(text_utils.rstrip(self.aliases_def) + '\n')
+            aliases_py.write(rstrip(self.aliases_def) + '\n')
 
     @property
     def base_module_source(self):
@@ -147,11 +146,11 @@ class PackageCoder:
                           "pytest.register_assert_rewrite(f'{__name__}.base')\n")
 
         with open(os.path.join(self.tests_path, 'base.py'), 'w') as base_py:
-            base_py.write(text_utils.rstrip(self.base_module_source) + '\n')
+            base_py.write(rstrip(self.base_module_source) + '\n')
 
         with open(os.path.join(self.tests_path, f'test_{self.test_module_name}.py'),
                   'w') as test_py:
-            test_py.write(text_utils.rstrip('\n\n\n'.join(
+            test_py.write(rstrip('\n\n\n'.join(
                 ['from . import base'] + self.story_class_defs)) + '\n')
 
         self.write_aliases_module()
@@ -162,7 +161,7 @@ class ModulePiece(stock.Repr):
     scenario_delimiter = '@base.gherkin.scenario()'
 
     def __init__(self, text, name_regex=r'[A-Za-z0-9]+'):
-        rtext = text_utils.rstrip(text)
+        rtext = rstrip(text)
         match = re.match(
             fr'^(@(.+))?class ({name_regex})(.*?):\n(    """(.+?)""")?(.*)$',
             rtext, flags=re.DOTALL)
@@ -193,12 +192,12 @@ class ModulePiece(stock.Repr):
         if not self.match:
             return self.text
 
-        return text_utils.rstrip('\n\n'.join(list(map(text_utils.rstrip, itertools.chain(
+        return rstrip('\n\n'.join(list(map(rstrip, itertools.chain(
             [self.head], self.scenarios.values(), self.tail)))))
 
     @property
     def head(self):
-        doc = [text_utils.indent(text_utils.make_doc(
+        doc = [indent(make_doc(
             *self.doc.splitlines()))] if self.doc else []
         body_head = [self.body_head] if self.body_head else []
 
@@ -244,7 +243,7 @@ class TestModule(stock.Repr):
         self.name_regex = r'|'.join(class_names)
 
         with open(filename) as py_file:
-            self.pieces = self.split_module(text_utils.rstrip(py_file.read()))
+            self.pieces = self.split_module(rstrip(py_file.read()))
 
     def __str__(self):
         return '\n\n-----\n'.join([str(p) for p in self.pieces.values()])
@@ -271,7 +270,7 @@ class TestModule(stock.Repr):
 
     @property
     def source(self):
-        return text_utils.rstrip('\n\n\n'.join([
+        return rstrip('\n\n\n'.join([
             piece.source for piece in self.pieces.values()]))
 
     def flake8(cls, filename):
@@ -346,12 +345,12 @@ class PackagePatcher(PackageCoder):
     def update_scenarios(self, pieces):
         for name, class_name in self.updated_scenarios.items():
             spec = self.new_specs.features[class_name]['scenarios'][name]
-            pieces[class_name].scenarios[name] = text_utils.indent(
+            pieces[class_name].scenarios[name] = indent(
                 FeatureClassCoder.make_scenario_method_def(name, spec))
 
     def add_scenarios(self, pieces):
         for class_name, scenarios in self.added_scenarios.items():
-            new_scenarios = {name: text_utils.indent(
+            new_scenarios = {name: indent(
                 FeatureClassCoder.make_scenario_method_def(name, spec))
                 for name, spec in scenarios.items()}
             pieces[class_name].scenarios.update(new_scenarios)
@@ -392,11 +391,11 @@ class PackagePatcher(PackageCoder):
         tester = self.get_tester(class_name)
         steps = self.new_specs.get_all_steps(self.new_specs.features[class_name])
         pieces[class_name].tail.extend(map(
-            text_utils.indent, FeatureClassCoder.make_step_method_defs_for(filter(
+            indent, FeatureClassCoder.make_step_method_defs_for(filter(
                 lambda s: s.own and not hasattr(tester, s.name), steps))))
 
     def add_base_methods(self, pieces):
-        pieces[BASE_TESTER_NAME].tail.extend(map(text_utils.indent, self.base_method_defs))
+        pieces[BASE_TESTER_NAME].tail.extend(map(indent, self.base_method_defs))
 
     def patch(self):
         self.patch_module(
