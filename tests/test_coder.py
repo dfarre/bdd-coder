@@ -21,11 +21,11 @@ PYTEST_OUTPUT = """
 platform linux -- Python [L1-4]
 collecting ... collected 2 items
 
-tmp/generated/test_stories.py::TestClearBoard::test_odd_boards PASSED    [ 50%]
-tmp/generated/test_stories.py::TestClearBoard::test_start_board ERROR    [100%]
+tmp/generated/test_stories.py::TestClearBoard::test_odd_boards[9] PASSED [ 50%]
+tmp/generated/test_stories.py::TestClearBoard::test_start_board[8] ERROR [100%]
 
 ==================================== ERRORS ====================================
-______________ ERROR at setup of TestClearBoard.test_start_board _______________
+_____________ ERROR at setup of TestClearBoard.test_start_board[8] _____________
 """.strip()
 
 
@@ -42,7 +42,7 @@ class BlueprintTester(unittest.TestCase):
         self.coder_output = ''.join([
             line for (line,), kw in stdout_mock.call_args_list])
 
-    def tearDown(cls):
+    def tearDown(self):
         shutil.rmtree('tmp')
 
     def assert_test_files_match(self, path):

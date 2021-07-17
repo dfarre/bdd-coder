@@ -63,17 +63,17 @@ class TestNewGame(NewPlayer):
         Then she is welcome
         """
 
-    def i_request_a_new_game_with_an_odd_number_of_boards(self):
+    def i_request_a_new_game_with_boards(self, request):
         return 'game',
 
     def i_get_a_400_response_saying_it_must_be_even(self):
         pass
 
-    def i_request_a_new_game_with_an_even_number_of_boards(self):
-        return 'game',
-
     def a_game_is_created_with_boards_of_guess_count_guesses(self, guess_count):
         pass
+
+    def i_request_a_new_game_with_an_even_number_of_boards(self):
+        return 'game',
 
     def class_hierarchy_has_changed(self):
         pass
