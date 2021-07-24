@@ -49,6 +49,17 @@ class InconsistentClassStructure(DocException):
     """
 
 
+class WrongParametersError(DocException):
+    """
+    Invalid parameters at positions {positions} in scenario {name}:
+    should be lists of length {length} (number of parameters declared in doc)
+    """
+
+
+class RedeclaredParametersError(DocException):
+    """Redeclared parameter(s) {params}"""
+
+
 class BaseTesterRetrievalError(DocException):
     """Raised in the base tester retrieval process"""
 

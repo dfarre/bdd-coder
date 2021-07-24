@@ -81,14 +81,11 @@ class SetPair(Repr):
             return '⊃'
 
 
-def list_drop_duplicates(iterable, key=None):
-    elements = []
-    if key is None:
-        for e in filter(lambda x: x not in elements, iterable):
-            elements.append(e)
-    else:
-        keys = []
-        for e in filter(lambda x: key(x) not in keys, iterable):
-            keys.append(key(e))
-            elements.append(e)
+def list_drop_duplicates(iterable, keylambda):
+    elements, keys = [], []
+
+    for e in filter(lambda x: keylambda(x) not in keys, iterable):
+        keys.append(keylambda(e))
+        elements.append(e)
+
     return elements

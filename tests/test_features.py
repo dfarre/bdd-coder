@@ -44,3 +44,9 @@ class FeaturesSpecTests(unittest.TestCase):
         assert self.specs.base_methods == ['something_cool']
         assert self.specs.features['FakeOne']['scenarios']['ones_first_scenario'][
             'steps'][0].own is False
+
+
+class StepSpecTests(unittest.TestCase):
+    def test_input_gegex(self):
+        step_spec = features.StepSpec('Given IPv6 $(::) and IPv4 $(1.2.3.4,0.0.0.0)', 0, {})
+        assert step_spec.name == 'ipv6_and_ipv4'

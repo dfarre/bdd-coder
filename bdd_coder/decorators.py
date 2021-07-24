@@ -1,6 +1,7 @@
 """To be employed with `BddTester` and `BaseTestCase`"""
 import collections
 import datetime
+import itertools
 import functools
 import logging
 from logging.handlers import RotatingFileHandler
@@ -37,10 +38,6 @@ class Step(StepSpec):
         self.__symbol = value
 
     @property
-    def param_ids(self):
-        return self.param_names if self.doc_scenario is None else []
-
-    @property
     def fixture_param(self):
         if self.inputs:
             return [self.inputs[0] if len(self.inputs) == 1 else self.inputs]
@@ -50,7 +47,7 @@ class Step(StepSpec):
         return f'{self.name}{id(self)}'
 
     def __str__(self):
-        return (f'Doc doc_scenario {self.name}' if self.doc_scenario is not None
+        return (f'Doc scenario {self.name}' if self.doc_scenario is not None
                 else super().__str__())
 
     def __call__(self, step_method):
@@ -99,15 +96,15 @@ class Step(StepSpec):
 
     @property
     def formatted_result(self):
+        if not self.result:
+            return ''
+
         if isinstance(self.result, tuple) and self.result:
             text = '\n'.join([f'    {repr(v)}' for v in self.result])
 
             return f'\n  {TO} {text.lstrip()}'
 
-        if not self.result:
-            return ''
-
-        return self.result
+        return f' {TO} {self.result}'
 
     @staticmethod
     def last_step(steps):
@@ -115,11 +112,6 @@ class Step(StepSpec):
             if step.symbol in [FAIL, PENDING]:
                 return step
         return step
-
-    @staticmethod
-    def get_param_ids(steps):
-        return stock.list_drop_duplicates(
-            n for step in steps for n in step.param_ids)
 
 
 class Scenario:
@@ -133,32 +125,40 @@ class Scenario:
         return Step.last_step(self.steps).symbol
 
     @property
-    def param_ids(self):
-        return Step.get_param_ids(self.steps)
+    def param_names(self):
+        names = []
+        for name in itertools.chain(*(s.param_names for s in self.steps)):
+            if name in names:
+                raise exceptions.RedeclaredParametersError(params=name)
+            else:
+                names.append(name)
+        return names
 
-    @property
-    def params(self):
-        ids = self.param_ids
-        return [dict(zip(ids, values)) for values in self.param_values]
+    def refine(self):
+        fine_steps, param_ids, param_values = [], self.param_names, self.param_values
+        wrong_values = [i for i, values in enumerate(param_values) if not (
+            isinstance(values, list) and len(param_ids) == len(values))]
 
-    @property
-    def refined_steps(self):
-        fine_steps, params = [], self.params
+        if wrong_values:
+            raise exceptions.WrongParametersError(
+                name=self.name, positions=', '.join([str(i) for i in wrong_values]),
+                length=len(param_ids))
 
         for step in self.steps:
             if step.doc_scenario is None:
                 fine_steps.append(step)
             else:
-                doc_fine_steps, doc_params = step.doc_scenario.refined_steps
-                fine_steps.extend(doc_fine_steps)
+                finesteps, paramids, paramvalues = step.doc_scenario.refine()
+                reused_ids = set(param_ids) & set(paramids)
 
-                if not params:
-                    params.extend(doc_params)
-                else:
-                    for param, doc_param in zip(params, doc_params):
-                        param.update(doc_param)
+                if reused_ids:
+                    raise exceptions.RedeclaredParametersError(params=', '.join(reused_ids))
 
-        return fine_steps, params
+                param_ids.extend(paramids)
+                fine_steps.extend(finesteps)
+                param_values = tuple(v1 + v2 for v1, v2 in zip(param_values, paramvalues))
+
+        return fine_steps, param_ids, param_values
 
     def log(self):
         self.gherkin.logger.info(
@@ -182,7 +182,7 @@ class Scenario:
         return scenario_doc_method
 
     def make_test_method(self, marked_method):
-        fine_steps, params = self.refined_steps
+        fine_steps, param_ids, param_values = self.refine()
 
         @functools.wraps(marked_method)
         @pytest.mark.usefixtures(*(step.fixture_name for step in fine_steps))
@@ -193,12 +193,7 @@ class Scenario:
                 self.log()
                 pytest.fail('Test did not complete!')
 
-        if params:
-            param_ids = sorted(params[0])
-            param_values = [
-                tuple(p[k] for k in param_ids) for p in params
-            ] if len(param_ids) > 1 else [p[param_ids[0]] for p in params]
-
+        if param_values:
             return pytest.mark.parametrize(
                 ','.join(param_ids), param_values)(scenario_test_method)
 
@@ -223,6 +218,7 @@ class Gherkin(stock.Repr):
         self.scenarios = collections.defaultdict(dict)
         self.aliases = aliases
         self.validate = validate
+        self._parameter_ids = []
 
     def __call__(self, BddTester):
         self.BddTester = BddTester
