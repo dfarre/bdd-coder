@@ -74,7 +74,7 @@ class FeatureClassCoder:
         ) for s in stock.list_drop_duplicates(steps_to_code, lambda s: s.name)]
 
     @staticmethod
-    def make_scenario_method_def(name, scenario_spec):
+    def make_scenario_method_def(name, scenario_spec, parameters=''):
         return make_method(
             ('' if scenario_spec['inherited'] else 'test_') + name,
             *scenario_spec['doc_lines'], decorators=('base.gherkin.scenario()',))
@@ -132,13 +132,13 @@ class PackageCoder:
     @property
     def base_module_source(self):
         return '\n\n\n'.join([
-                'from bdd_coder import decorators\n'
-                'from bdd_coder import tester\n\n'
-                'from . import aliases\n\n'
-                f"gherkin = decorators.Gherkin(aliases.MAP, logs_path='{self.logs_path}')",
-                self.base_class_def])
+            'from bdd_coder import decorators\n'
+            'from bdd_coder import tester\n\n'
+            'from . import aliases\n\n'
+            f"gherkin = decorators.Gherkin(aliases.MAP, logs_path='{self.logs_path}')",
+            self.base_class_def])
 
-    def create_tester_package(self):
+    def create_tester_package(self, run_pytest=False):
         exceptions.makedirs(self.tests_path, exist_ok=self.overwrite)
 
         with open(os.path.join(self.tests_path, '__init__.py'), 'w') as init_py:
@@ -154,11 +154,13 @@ class PackageCoder:
                 ['from . import base'] + self.story_class_defs)) + '\n')
 
         self.write_aliases_module()
-        self.pytest()
+
+        if run_pytest:
+            self.pytest()
 
 
 class ModulePiece(stock.Repr):
-    scenario_delimiter = '@base.gherkin.scenario()'
+    scenario_delimiter = '@base.gherkin.scenario'
 
     def __init__(self, text, name_regex=r'[A-Za-z0-9]+'):
         rtext = rstrip(text)
@@ -221,13 +223,14 @@ class ModulePiece(stock.Repr):
 
     @classmethod
     def match_scenario_piece(cls, text):
+        scenario_code = f'    {cls.scenario_delimiter}{text}'
         match = re.match(
-            r'^(    @base\.gherkin\.scenario\(\)\n    def (test_)?([^(]+)\(self\):\n'
+            r'^(    @base\.gherkin\.scenario\(.*\)\n    def (test_)?([^(]+)\(self\):\n'
             rf'{" "*8}"""\n.+?\n{" "*8}""")(.*)$',
-            f'    {cls.scenario_delimiter}\n    {text}', flags=re.DOTALL)
+            scenario_code, flags=re.DOTALL)
 
         if match is None:
-            raise exceptions.ScenarioMismatchError(code=text.split('\n', 1)[0].strip(':'))
+            raise exceptions.ScenarioMismatchError(code=scenario_code)
 
         return match.groups()
 
@@ -317,7 +320,8 @@ class PackagePatcher(PackageCoder):
         self.removed_scenarios = {n: old_specs.scenarios[n] for n in (
             set(old_specs.scenarios) - set(self.new_specs.scenarios))}
         self.updated_scenarios = {n: self.new_specs.scenarios[n] for n in (
-            set(old_specs.scenarios) & set(self.new_specs.scenarios))}
+            set(old_specs.scenarios) & set(self.new_specs.scenarios)
+        ) if self.new_specs.scenarios[n] != old_specs.scenarios[n]}
 
         self.features_spec = features.FeaturesSpec(new_features, (
             set(self.new_specs.base_methods) - set(old_specs.base_methods)
@@ -397,7 +401,7 @@ class PackagePatcher(PackageCoder):
     def add_base_methods(self, pieces):
         pieces[BASE_TESTER_NAME].tail.extend(map(indent, self.base_method_defs))
 
-    def patch(self):
+    def patch(self, run_pytest=False):
         self.patch_module(
             self.test_module_name,
             self.remove_scenarios, self.update_docs, self.update_scenarios,
@@ -407,7 +411,9 @@ class PackagePatcher(PackageCoder):
                 if subclass.__name__ in self.new_specs.features])
         self.patch_module('base', self.add_base_methods)
         self.write_aliases_module()
-        self.pytest()
+
+        if run_pytest:
+            self.pytest()
 
 
 def get_base_tester(test_module_path):

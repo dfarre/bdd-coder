@@ -17,8 +17,9 @@ class NewGame(base.BddTester):
         And the number of boards is indeed odd
         """
 
-    @base.gherkin.scenario([8, 'Boring', 9], [6, 'Funny', 11])
-    def even_boards(self):  # n,kind,guess_count param values
+    @base.gherkin.scenario([8, 'Boring', 9],
+                           [6, 'Funny', 11])
+    def even_boards(self):
         """
         When I request a new `game` with $n boards
         Then a game of $kind is created with boards of $guess_count guesses
@@ -45,15 +46,17 @@ class TestClearBoard(NewGame):
     """
 
     @base.gherkin.scenario(['Goat'], ['Cat'])
-    def test_start_board(self):  # additional animal param
+    def test_start_board(self):
         """
         Given a new game
         When I request a clear `board` in my new game
         Then the first board is added with the $animal
         """
 
-    @base.gherkin.scenario([0, 'Red'], [1, 'Green'], [2, 'Blue'])
-    def test_start_colored_board(self):  # additional nth,color params
+    @base.gherkin.scenario([0, 'Red'],
+                           [1, 'Green'],
+                           [2, 'Blue'])
+    def test_start_colored_board(self):
         """
         Given a new game
         When I request a clear `board` in my new game

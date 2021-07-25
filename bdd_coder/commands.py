@@ -12,19 +12,20 @@ def make_blueprint(*,
                    specs_path: 'Directory containing the YAML specs' = 'behaviour/specs',
                    tests_path: 'Default: next to specs' = '',
                    test_module_name: 'Name for test_<name>.py' = 'stories',
-                   overwrite=False):
+                   overwrite=False,
+                   run_pytest=False):
     coders.PackageCoder(
         specs_path=specs_path, tests_path=tests_path,
         test_module_name=test_module_name, overwrite=overwrite,
-    ).create_tester_package()
+    ).create_tester_package(run_pytest=run_pytest)
 
 
 @ErrorsCommand(BaseTesterRetrievalError, FeaturesSpecError, Flake8Error, ScenarioMismatchError)
 def patch_blueprint(test_module: 'Passed to `importlib.import_module`',
                     specs_path: 'Directory to take new specs from. '
                     f'Default: {coders.PackagePatcher.default_specs_dir_name}/ '
-                    'next to test package' = ''):
-    coders.PackagePatcher(test_module, specs_path).patch()
+                    'next to test package' = '', *, run_pytest=False):
+    coders.PackagePatcher(test_module, specs_path).patch(run_pytest=run_pytest)
 
 
 @ErrorsCommand(BaseTesterRetrievalError, OverwriteError, FeaturesSpecError,

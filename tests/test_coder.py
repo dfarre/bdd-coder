@@ -6,9 +6,7 @@ import subprocess
 import unittest
 import unittest.mock as mock
 
-from bdd_coder.text_utils import BASE_TESTER_NAME
-
-from bdd_coder import stock
+from bdd_coder.text_utils import BASE_TESTER_NAME, assert_test_files_match
 
 from bdd_coder.exceptions import (
     BaseModuleNotFoundError, BaseTesterNotFoundError, StoriesModuleNotFoundError,
@@ -37,20 +35,13 @@ class BlueprintTester(unittest.TestCase):
         self.coder = coders.PackageCoder(**self.kwargs)
 
         with mock.patch('sys.stdout.write') as stdout_mock:
-            self.coder.create_tester_package()
+            self.coder.create_tester_package(run_pytest=True)
 
         self.coder_output = ''.join([
             line for (line,), kw in stdout_mock.call_args_list])
 
     def tearDown(self):
         shutil.rmtree('tmp')
-
-    def assert_test_files_match(self, path):
-        py_file_names = ['__init__.py', 'aliases.py', 'base.py', 'test_stories.py']
-
-        assert not set(py_file_names) - set(os.listdir(self.coder.tests_path))
-        assert [str(stock.Process('diff', f'tmp/generated/{name}', os.path.join(path, name)))
-                for name in py_file_names] == ['']*len(py_file_names)
 
 
 class CoderTests(BlueprintTester):
@@ -68,7 +59,7 @@ class CoderTests(BlueprintTester):
             self.fail(error.stdout.decode())
 
     def test_example_test_files_match(self):
-        self.assert_test_files_match('example/tests')
+        assert_test_files_match('example/tests', 'tmp/generated')
 
 
 class StoriesModuleNotFoundErrorRaiseTest(unittest.TestCase):
@@ -89,14 +80,14 @@ class PatcherTests(PatcherTester):
     def setUp(self):
         super().setUp()
         self.patcher = self.get_patcher()
-        self.patcher.patch()
+        self.patcher.patch(run_pytest=True)
 
     def test_split_str(self):
         with open('tests/base_split.txt') as txt_file:
             assert str(self.patcher.splits['base']) == txt_file.read().strip('\n')
 
     def test_new_example_test_files_match(self):
-        self.assert_test_files_match('example/new_tests')
+        assert_test_files_match('example/new_tests', 'tmp/generated')
 
 
 class Flake8ErrorRaiseTest(PatcherTester):
@@ -120,8 +111,7 @@ class ScenarioMismatchErrorRaiseTest(PatcherTester):
         with self.assertRaises(ScenarioMismatchError) as cm:
             self.get_patcher('example.wrong_tests.test_stories_odd_scenario')
 
-        assert str(cm.exception) == (
-            'Scenario code not understood: def even_boards(self, *args)...')
+        assert str(cm.exception).startswith('Scenario code not understood')
 
 
 MODULE_TEXT = ("<module 'tmp.generated.test_stories' from '" +

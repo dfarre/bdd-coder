@@ -1,5 +1,8 @@
 """Common utils and constants"""
+import os
 import re
+
+from bdd_coder import stock
 
 BASE_TESTER_NAME = 'BddTester'
 
@@ -68,3 +71,20 @@ def make_method(name, *doc_lines, args_text='', decorators=(), body=''):
 
 def rstrip(text):
     return '\n'.join(list(map(str.rstrip, text.splitlines()))).lstrip('\n')
+
+
+def assert_test_files_match(origin_dir, target_dir):
+    py_file_names = ['__init__.py', 'aliases.py', 'base.py', 'test_stories.py']
+    missing_in_origin = set(py_file_names) - set(os.listdir(origin_dir))
+    missing_in_target = set(py_file_names) - set(os.listdir(target_dir))
+
+    assert not missing_in_origin, f'Missing in {origin_dir}: {missing_in_origin}'
+    assert not missing_in_target, f'Missing in {target_dir}: {missing_in_target}'
+
+    diff_lines = {name: str(stock.Process(
+        'diff', os.path.join(origin_dir, name), os.path.join(target_dir, name)
+    )) for name in py_file_names}
+
+    assert list(diff_lines.values()) == ['']*len(py_file_names), '\n'.join([
+        f'Diff from {os.path.join(origin_dir, name)}:\n{diff}'
+        for name, diff in diff_lines.items() if diff])
