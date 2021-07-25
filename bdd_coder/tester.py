@@ -162,12 +162,6 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         if cls.gherkin.validate:
             cls.gherkin.BddTester.validate()
 
-        cls.gherkin.logger.info('_'*80)
-
-    @classmethod
-    def teardown_class(cls):
-        cls.gherkin.logger.info(str(cls.gherkin))
-
     def setup_method(self):
         self.gherkin.reset_outputs()
 

@@ -1,6 +1,10 @@
 from . import base
 
 
+def teardown_module():
+    base.gherkin.log()
+
+
 class NewGame(base.BddTester):
     """
     As a codebreaker

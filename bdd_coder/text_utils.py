@@ -15,6 +15,46 @@ I_REGEX = r'\$\(([^\$]+)\)'
 O_REGEX = r'`([^`\$]+)`'
 
 
+class Style:
+    end_mark = '\033[0m'
+
+    @classmethod
+    def purple(cls, text):
+        return '\033[95m' + text + cls.end_mark
+
+    @classmethod
+    def dark_cyan(cls, text):
+        return '\033[36m' + text + cls.end_mark
+
+    @classmethod
+    def cyan(cls, text):
+        return '\033[96m' + text + cls.end_mark
+
+    @classmethod
+    def blue(cls, text):
+        return '\033[94m' + text + cls.end_mark
+
+    @classmethod
+    def green(cls, text):
+        return '\033[92m' + text + cls.end_mark
+
+    @classmethod
+    def yellow(cls, text):
+        return '\033[93m' + text + cls.end_mark
+
+    @classmethod
+    def red(cls, text):
+        return '\033[91m' + text + cls.end_mark
+
+    @classmethod
+    def bold(cls, text):
+        return '\033[1m' + text + cls.end_mark
+
+    @classmethod
+    def underline(cls, text):
+        return '\033[1m' + text + cls.end_mark
+
+
 def to_sentence(name):
     return name.replace('_', ' ').capitalize()
 

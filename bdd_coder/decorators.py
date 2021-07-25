@@ -11,7 +11,7 @@ import pytest
 from bdd_coder import exceptions
 from bdd_coder.features import StepSpec
 from bdd_coder import stock
-from bdd_coder.text_utils import OK, FAIL, PENDING, TO, COMPLETION_MSG, BOLD
+from bdd_coder.text_utils import OK, FAIL, PENDING, TO, COMPLETION_MSG, BOLD, Style, indent
 
 
 class Step(StepSpec):
@@ -22,6 +22,7 @@ class Step(StepSpec):
         self.result = ''
         self.is_last = False
         self.method_qualname = ''
+        self.run_timestamp = None
 
     @property
     def gherkin(self):
@@ -53,13 +54,10 @@ class Step(StepSpec):
     def __call__(self, step_method):
         @functools.wraps(step_method)
         def logger_step_method(tester, *args, **kwargs):
-            __tracebackhide__ = True
-
             try:
                 self.result = step_method(tester, *args, **kwargs)
             except Exception:
                 self.symbol = FAIL
-                self.scenario.symbol = self.symbol
                 self.result = exceptions.format_next_traceback()
             else:
                 self.symbol = OK
@@ -72,15 +70,16 @@ class Step(StepSpec):
             self.log(**kwargs)
 
             if self.is_last:
-                self.scenario.symbol = self.symbol
+                self.scenario.runs.append(self)
                 self.scenario.log()
 
         return pytest.fixture(name=self.fixture_name, params=self.fixture_param)(
             logger_step_method)
 
     def log(self, **kwargs):
+        self.run_timestamp = datetime.datetime.utcnow()
         self.gherkin.logger.info(
-            f'{datetime.datetime.utcnow()} '
+            f'{self.run_timestamp} '
             f'{self.symbol} {self.method_qualname}{self.format_parameters(**kwargs)}'
             f'{self.formatted_result}')
 
@@ -105,20 +104,32 @@ class Step(StepSpec):
 
         return f' {TO} {self.result}'
 
-    @staticmethod
-    def last_step(steps):
-        for step in steps:
-            if step.symbol in [FAIL, PENDING]:
-                return step
-        return step
-
 
 class Scenario:
     def __init__(self, gherkin, *param_values):
         self.gherkin = gherkin
         self.param_values = param_values
         self.marked, self.ready = False, False
-        self.symbol = PENDING
+        self.runs = []
+
+    @property
+    def symbol(self):
+        symbols = {s.symbol for s in self.runs}
+
+        if not symbols or symbols == {PENDING}:
+            return PENDING
+
+        if symbols == {OK}:
+            return OK
+
+        if FAIL in symbols:
+            return FAIL
+
+    @property
+    def first_failed_step(self):
+        for step in self.runs:
+            if step.symbol == FAIL:
+                return step
 
     @property
     def param_names(self):
@@ -157,9 +168,20 @@ class Scenario:
         return fine_steps, param_ids, param_values
 
     def log(self):
-        self.gherkin.logger.info(
-            f'{datetime.datetime.utcnow()} {BOLD.get(self.symbol, self.symbol)} '
-            f'{self.method.__qualname__}\n')
+        symbol = (f'{PENDING} ' if self.symbol == PENDING else
+                  f'{datetime.datetime.utcnow()} {BOLD[self.symbol]} ')
+        self.gherkin.logger.info(f'{symbol} {self.method.__qualname__}\n')
+
+    @property
+    def runs_summary(self):
+        qualname = self.method.__qualname__
+
+        if not self.runs:
+            return f'{PENDING} {qualname}'
+
+        return '\n'.join([
+            f'{step.run_timestamp} {BOLD.get(step.symbol, step.symbol)} {qualname}'
+            for step in self.runs])
 
     def mark_method(self, method):
         self.steps = list(Step.generate_steps(method.__doc__.splitlines(), self))
@@ -184,14 +206,9 @@ class Scenario:
         @pytest.mark.usefixtures(*(step.fixture_name for step in fine_steps))
         def scenario_test_method(tester, *args, **kwargs):
             __tracebackhide__ = True
-            last_step = Step.last_step(fine_steps)
-            self.symbol = last_step.symbol
 
-            if self.symbol == PENDING:
-                self.log()
-                pytest.fail('Test did not complete!')
-            elif self.symbol == FAIL:
-                pytest.fail(msg=last_step.result, pytrace=False)
+            if self.symbol == FAIL:
+                pytest.fail(msg=self.first_failed_step.result, pytrace=False)
 
         if len(param_ids) == 1:
             param_values = [v[0] for v in param_values]
@@ -217,11 +234,9 @@ class Gherkin(stock.Repr):
     def __init__(self, aliases, validate=True, **logging_kwds):
         self.reset_logger(**logging_kwds)
         self.reset_outputs()
-        self.passed, self.failed = 0, 0
         self.scenarios = collections.defaultdict(dict)
         self.aliases = aliases
         self.validate = validate
-        self._parameter_ids = []
 
     def __call__(self, BddTester):
         self.BddTester = BddTester
@@ -229,13 +244,24 @@ class Gherkin(stock.Repr):
 
         return BddTester
 
-    def __str__(self):
-        passed = len(self.passed_scenarios)
-        failed = len(self.failed_scenarios)
-        pending = len(self.pending_scenarios)
-        return ''.join([f'{passed}{BOLD[OK]}' if passed else '',
-                        f'  {failed}{BOLD[FAIL]}' if failed else '',
-                        f'  {pending}{PENDING}' if pending else f'  {COMPLETION_MSG}'])
+    def log(self):
+        __tracebackhide__ = True
+        passed = self.passed_scenarios
+        failed = self.failed_scenarios
+        pending = self.pending_scenarios
+        self.logger.info('\n' + ''.join([
+            f'  {len(passed)}{BOLD[OK]}' if passed else '',
+            f'  {len(failed)}{BOLD[FAIL]}' if failed else '',
+            f'  {len(pending)}{PENDING}' if pending else f'  {COMPLETION_MSG}']) + '\n')
+
+        if failed:
+            self.logger.info('  ' + Style.bold('Scenario failures summary:'))
+            for scenario in self.failed_scenarios:
+                self.logger.info(indent(scenario.runs_summary))
+
+        if pending:
+            qualnames = ', '.join([s.method.__qualname__ for s in pending])
+            pytest.fail(f'These scenarios did not run: {qualnames}')
 
     def __contains__(self, scenario_qualname):
         class_name, method_name = scenario_qualname.split('.')

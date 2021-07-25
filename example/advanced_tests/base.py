@@ -3,7 +3,7 @@ from bdd_coder import tester
 
 from . import aliases
 
-gherkin = decorators.Gherkin(aliases.MAP, logs_path='example/tests/bdd_runs.log')
+gherkin = decorators.Gherkin(aliases.MAP, logs_path='example/advanced_tests/bdd_runs.log')
 
 
 @gherkin
