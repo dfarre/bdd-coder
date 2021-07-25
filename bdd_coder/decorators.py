@@ -59,6 +59,7 @@ class Step(StepSpec):
                 self.result = step_method(tester, *args, **kwargs)
             except Exception:
                 self.symbol = FAIL
+                self.scenario.symbol = self.symbol
                 self.result = exceptions.format_next_traceback()
             else:
                 self.symbol = OK
@@ -71,10 +72,8 @@ class Step(StepSpec):
             self.log(**kwargs)
 
             if self.is_last:
+                self.scenario.symbol = self.symbol
                 self.scenario.log()
-
-            if self.symbol == FAIL:
-                pytest.fail(self.result)
 
         return pytest.fixture(name=self.fixture_name, params=self.fixture_param)(
             logger_step_method)
@@ -119,10 +118,7 @@ class Scenario:
         self.gherkin = gherkin
         self.param_values = param_values
         self.marked, self.ready = False, False
-
-    @property
-    def symbol(self):
-        return Step.last_step(self.steps).symbol
+        self.symbol = PENDING
 
     @property
     def param_names(self):
@@ -188,10 +184,17 @@ class Scenario:
         @pytest.mark.usefixtures(*(step.fixture_name for step in fine_steps))
         def scenario_test_method(tester, *args, **kwargs):
             __tracebackhide__ = True
+            last_step = Step.last_step(fine_steps)
+            self.symbol = last_step.symbol
 
             if self.symbol == PENDING:
                 self.log()
                 pytest.fail('Test did not complete!')
+            elif self.symbol == FAIL:
+                pytest.fail(msg=last_step.result, pytrace=False)
+
+        if len(param_ids) == 1:
+            param_values = [v[0] for v in param_values]
 
         if param_values:
             return pytest.mark.parametrize(

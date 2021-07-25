@@ -14,6 +14,7 @@ class NewGame(base.BddTester):
         """
         When I request a new `game` with $n boards
         Then I get a 400 response saying it must be even
+        And the number of boards is indeed odd
         """
 
     @base.gherkin.scenario([8, 'Boring', 9], [6, 'Funny', 11])
@@ -31,6 +32,9 @@ class NewGame(base.BddTester):
 
     def a_game_of_kind_is_created_with_boards_of_guess_count_guesses(self, kind, guess_count):
         pass
+
+    def the_number_of_boards_is_indeed_odd(self):
+        assert False, 'Subsequent forced error'
 
 
 class TestClearBoard(NewGame):
