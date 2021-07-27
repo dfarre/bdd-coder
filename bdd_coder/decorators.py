@@ -227,7 +227,9 @@ class Scenario:
 
                 param_ids.extend(paramids)
                 fine_steps.extend(finesteps)
-                param_values = tuple(v1 + v2 for v1, v2 in zip(param_values, paramvalues))
+
+                param_values = (tuple(v1 + v2 for v1, v2 in zip(param_values, paramvalues))
+                                if param_values else paramvalues)
 
         return fine_steps, param_ids, param_values
 
