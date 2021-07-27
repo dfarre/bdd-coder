@@ -6,6 +6,8 @@ import shutil
 import sys
 import yaml
 
+import pytest
+
 from bdd_coder import exceptions
 from bdd_coder import features
 from bdd_coder import stock
@@ -164,6 +166,10 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
 
     def setup_method(self):
         self.gherkin.reset_outputs()
+
+    @pytest.fixture(autouse=True)
+    def fixture_setup(self, request):
+        self.pytest_request = request
 
     def get_output(self, name, index=-1):
         return self.gherkin.outputs[name][index]

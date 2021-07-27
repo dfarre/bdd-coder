@@ -63,7 +63,7 @@ class TestNewGame(NewPlayer):
         Then she is welcome
         """
 
-    def i_request_a_new_game_with_boards(self, request):
+    def i_request_a_new_game_with_boards(self):
         return 'game',
 
     def i_get_a_400_response_saying_it_must_be_even(self):

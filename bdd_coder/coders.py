@@ -69,8 +69,7 @@ class FeatureClassCoder:
     def make_step_method_defs_for(steps_to_code):
         return [make_method(
             s.name, body=FeatureClassCoder.make_method_body(s.param_names, s.output_names),
-            args_text=''.join([
-                f', {n}' for n in s.param_names + (['request'] if s.inputs else [])])
+            args_text=''.join([f', {n}' for n in s.param_names])
         ) for s in stock.list_drop_duplicates(steps_to_code, lambda s: s.name)]
 
     @staticmethod
