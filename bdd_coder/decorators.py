@@ -14,34 +14,34 @@ from bdd_coder import stock
 from bdd_coder.text_utils import OK, FAIL, PENDING, TO, COMPLETION_MSG, BOLD, Style, indent
 
 
-class Run(stock.Repr):
-    def __init__(self, test_id):
-        self.test_id = test_id
+class StepRun(stock.Repr):
+    def __init__(self, scenario_run, step, kwargs):
+        self.scenario_run = scenario_run
+        self.step = step
+        self.kwargs = kwargs
+        self.result = None
 
     @property
     def symbol(self):
-        return getattr(self, '_Run__symbol', PENDING)
+        return getattr(self, '_StepRun__symbol', PENDING)
 
     @symbol.setter
     def symbol(self, value):
         self.__symbol = value
         self.__end_time = datetime.datetime.utcnow()
 
+        if value == FAIL:
+            self.scenario_run.symbol = FAIL
+        elif value == OK and self.step.is_last:
+            self.scenario_run.symbol = OK
+
     @property
     def end_time(self):
-        return getattr(self, '_Run__end_time', None)
+        return getattr(self, '_StepRun__end_time', None)
 
     @end_time.setter
     def end_time(self, value):
         raise AttributeError("'end_time' is read-only")
-
-
-class StepRun(Run):
-    def __init__(self, test_id, step, kwargs):
-        super().__init__(test_id)
-        self.step = step
-        self.result = None
-        self.kwargs = kwargs
 
     def __str__(self):
         return (f'{self.end_time} {self.symbol} {self.step.method_qualname}'
@@ -60,19 +60,18 @@ class StepRun(Run):
         return f' {TO} {self.result}'
 
     def log(self, **kwargs):
-        self.step.gherkin.logger.info(str(self))
+        lines = str(self).splitlines()
+        lines[0] = f'├─{lines[0]}'
+        lines[1:] = [f'|{line}' for line in lines[1:]]
+        self.step.gherkin.logger.info('\n'.join(lines))
 
 
-class IterableRun(Run):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class IterableRun(stock.Repr):
+    def __init__(self):
         self.runs = []
 
     def __iter__(self):
         yield from self.runs
-
-    def append_run(self, run):
-        self.runs.append(run)
 
     @property
     def result(self):
@@ -81,33 +80,82 @@ class IterableRun(Run):
 
 
 class ScenarioRun(IterableRun):
-    def __init__(self, test_id, scenario):
-        super().__init__(test_id)
+    def __init__(self, test_run, scenario):
+        super().__init__()
+        self.test_run = test_run
         self.scenario = scenario
 
     def __str__(self):
-        return (f'{PENDING} ' if self.symbol == PENDING else
-                f'{self.end_time} {BOLD[self.symbol]} ') + self.scenario.method.__qualname__
+        qualname = self.scenario.method.__qualname__
+        result = self.result
 
-    def log(self):
-        self.scenario.gherkin.logger.info(f'{self}\n')
+        if result and isinstance(result, str):
+            lines = result.splitlines()
+
+            if len(lines) > 10:
+                result = '\n'.join(lines[:5] + ['... ... ... ...'] + lines[-5:])
+
+        result = f' {TO} {result}' if result else '.'
+
+        return (f'{PENDING} {qualname}' if self.symbol == PENDING else
+                f'{self.end_time} {BOLD[self.symbol]} {qualname}{result}')
 
     @property
-    def runs_summary(self):
-        qualname = self.scenario.method.__qualname__
+    def symbol(self):
+        return getattr(self, '_ScenarioRun__symbol', PENDING)
 
-        if not self.runs:
-            return f'{PENDING} {qualname}'
+    @symbol.setter
+    def symbol(self, value):
+        self.__symbol = value
+        self.__end_time = datetime.datetime.utcnow()
 
-        return '\n'.join([
-            f'{run.end_time} {BOLD.get(run.symbol, run.symbol)} {qualname}'
-            for run in self.runs])
+        if value == FAIL:
+            self.test_run.symbol = FAIL
+
+    @property
+    def end_time(self):
+        return getattr(self, '_ScenarioRun__end_time', None)
+
+    @end_time.setter
+    def end_time(self, value):
+        raise AttributeError("'end_time' is read-only")
+
+    def append_run(self, step, kwargs):
+        self.runs.append(StepRun(self, step, kwargs))
+
+    def log(self):
+        self.scenario.gherkin.logger.info(f'└─{self}')
 
 
 class TestRun(IterableRun):
     def __init__(self, test_id, gherkin):
-        super().__init__(test_id)
+        super().__init__()
+        self.test_id = test_id
         self.gherkin = gherkin
+
+    def __str__(self):
+        return (f'{PENDING} ' if self.symbol == PENDING else
+                f'{self.end_time} {BOLD[self.symbol]} ') + self.test_id
+
+    @property
+    def symbol(self):
+        return getattr(self, '_TestRun__symbol', PENDING)
+
+    @symbol.setter
+    def symbol(self, value):
+        self.__symbol = value
+        self.__end_time = datetime.datetime.utcnow()
+
+    @property
+    def end_time(self):
+        return getattr(self, '_TestRun__end_time', None)
+
+    @end_time.setter
+    def end_time(self, value):
+        raise AttributeError("'end_time' is read-only")
+
+    def append_run(self, scenario):
+        self.runs.append(ScenarioRun(self, scenario))
 
 
 class Step(StepSpec):
@@ -146,26 +194,20 @@ class Step(StepSpec):
                 return
 
             if self.is_first:
-                scenario_run = ScenarioRun(tester.pytest_request.node.name, self.scenario)
-                test_run.append_run(scenario_run)
-            else:
-                scenario_run = test_run.runs[-1]
+                self.gherkin.logger.info('_'*26)
+                test_run.append_run(self.scenario)
 
-            step_run = StepRun(tester.pytest_request.node.name, self, kwargs)
-            scenario_run.append_run(step_run)
+            scenario_run = test_run.runs[-1]
+            scenario_run.append_run(self, kwargs)
+            step_run = scenario_run.runs[-1]
 
             try:
                 step_run.result = step_method(tester, *args, **kwargs)
             except Exception:
                 step_run.result = exceptions.format_next_traceback()
                 step_run.symbol = FAIL
-                scenario_run.symbol = FAIL
-                test_run.symbol = FAIL
             else:
                 step_run.symbol = OK
-
-                if self.is_last:
-                    scenario_run.symbol = OK
 
                 if isinstance(step_run.result, tuple):
                     for name, value in zip(self.output_names, step_run.result):
@@ -189,11 +231,14 @@ class Step(StepSpec):
         return f'\n{text}'
 
 
-class Scenario:
+class Scenario(stock.Repr):
     def __init__(self, gherkin, *param_values):
         self.gherkin = gherkin
         self.param_values = param_values
         self.marked, self.ready = False, False
+
+    def __str__(self):
+        return f'{self.steps[0]}...{self.steps[-1]} params={self.param_names}'
 
     @property
     def param_names(self):
@@ -214,6 +259,14 @@ class Scenario:
             raise exceptions.WrongParametersError(
                 name=self.name, positions=', '.join([str(i) for i in wrong_values]),
                 length=len(param_ids))
+
+        simple_steps = list(filter(lambda s: s.doc_scenario is None, self.steps))
+
+        if simple_steps:
+            simple_steps[0].is_first = True
+
+            if simple_steps[-1] == self.steps[-1]:
+                self.steps[-1].is_last = True
 
         for step in self.steps:
             if step.doc_scenario is None:
@@ -236,8 +289,6 @@ class Scenario:
     def mark_method(self, method):
         self.steps = list(Step.generate_steps(method.__doc__.splitlines(), self))
         self.name = method.__name__
-        self.steps[0].is_first = True
-        self.steps[-1].is_last = True
         self.is_test = self.name.startswith('test_')
         self.gherkin[method.__qualname__] = self
 
@@ -261,6 +312,8 @@ class Scenario:
 
             if test_run.symbol == FAIL:
                 pytest.fail(msg=test_run.result, pytrace=False)
+
+            test_run.symbol = OK
 
         if len(param_ids) == 1:
             param_values = [v[0] for v in param_values]
@@ -290,6 +343,9 @@ class Gherkin(stock.Repr):
         self.aliases = aliases
         self.validate = validate
         self.test_runs = {}
+
+    def __str__(self):
+        return str(self.test_runs or self.scenarios)
 
     def __call__(self, BddTester):
         self.BddTester = BddTester
@@ -326,40 +382,30 @@ class Gherkin(stock.Repr):
         self.logger.handlers.clear()
         self.logger.addHandler(handler)
 
-    def log(self):
+    def log(self, fail_if_pending=False):
         __tracebackhide__ = True
-        passed = self.scenario_runs_ok
-        failed = self.scenario_runs_failed
-        pending = self.scenario_runs_pending
+        runs = self.get_scenario_runs()
         self.logger.info('\n' + ''.join([
-            f'  {len(passed)}{BOLD[OK]}' if passed else '',
-            f'  {len(failed)}{BOLD[FAIL]}' if failed else '',
-            f'  {len(pending)}{PENDING}' if pending else f'  {COMPLETION_MSG}']) + '\n')
+            f'  {len(runs[OK])}{BOLD[OK]}' if runs[OK] else '',
+            f'  {len(runs[FAIL])}{BOLD[FAIL]}' if runs[FAIL] else '',
+            f'  {len(runs[PENDING])}{PENDING}' if runs[PENDING] else f'  {COMPLETION_MSG}'
+        ]) + '\n')
 
-        if failed:
+        if runs[FAIL]:
             self.logger.info('  ' + Style.bold('Scenario failures summary:'))
-            for scenario_run in failed:
-                self.logger.info(indent(scenario_run.runs_summary))
 
-        if pending:
-            qualnames = ', '.join([r.scenario.method.__qualname__ for r in pending])
-            pytest.fail(f'These scenarios did not run: {qualnames}')
+            for name, sruns in runs[FAIL].items():
+                for r in sruns:
+                    self.logger.info(indent(str(r)) + '\n')
 
-    @property
-    def scenario_runs(self):
-        yield from itertools.chain(*self.test_runs.values())
+        if runs[PENDING] and fail_if_pending:
+            names = ', '.join(list(runs[FAIL]))
+            pytest.fail(f'These scenarios did not run: {names}')
 
-    @property
-    def scenario_runs_ok(self):
-        return list(filter(lambda s: s.symbol == OK, self.scenario_runs))
-
-    @property
-    def scenario_runs_failed(self):
-        return list(filter(lambda s: s.symbol == FAIL, self.scenario_runs))
-
-    @property
-    def scenario_runs_pending(self):
-        return list(filter(lambda s: s.symbol == PENDING, self.scenario_runs))
+    def get_scenario_runs(self, symbols=(OK, FAIL, PENDING)):
+        return {symbol: collections.OrderedDict(itertools.groupby(
+            filter(lambda s: s.symbol == symbol, itertools.chain(*self.test_runs.values())),
+            key=lambda s: s.scenario.name)) for symbol in symbols}
 
     def reset_outputs(self):
         self.outputs = collections.defaultdict(list)

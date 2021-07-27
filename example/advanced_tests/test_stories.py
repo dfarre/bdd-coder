@@ -33,7 +33,7 @@ class NewGame(base.BddTester):
         return 'game',
 
     def i_get_a_400_response_saying_it_must_be_even(self):
-        assert False, 'Forced error'
+        assert False, 'Forced error\n' * 10
 
     def a_game_of_kind_is_created_with_boards_of_guess_count_guesses(self, kind, guess_count):
         pass
