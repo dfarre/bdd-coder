@@ -35,8 +35,9 @@ def format_next_traceback():
     exc_type, exc_value, tb = sys.exc_info()
     tb_text = ''.join(traceback.format_list(traceback.extract_tb(tb.tb_next)))
 
-    return ('Traceback (most recent call last):\n'
-            f'{tb_text}{exc_type.__qualname__}: {exc_value}\n')
+    return exc_type, exc_value, (
+        'Traceback (most recent call last):\n'
+        f'{tb_text}{exc_type.__qualname__}: {exc_value}\n')
 
 
 class ScenarioMismatchError(DocException):

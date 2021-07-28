@@ -49,15 +49,16 @@ class StepRun(stock.Repr):
 
     @property
     def formatted_result(self):
-        if not self.result:
-            return ''
-
         if isinstance(self.result, tuple) and self.result:
-            text = '\n'.join([f'    {repr(v)}' for v in self.result])
+            if self.symbol == OK:
+                text = '\n'.join([f'    {repr(v)}' for v in self.result])
 
-            return f'\n  {TO} {text.lstrip()}'
+                return f'\n  {TO} {text.lstrip()}'
 
-        return f' {TO} {self.result}'
+            if self.symbol == FAIL:
+                return f'{TO} {self.result[2]}'
+
+        return ''
 
     def log(self, **kwargs):
         lines = str(self).splitlines()
@@ -87,18 +88,15 @@ class ScenarioRun(IterableRun):
 
     def __str__(self):
         qualname = self.scenario.method.__qualname__
-        result = self.result
 
-        if result and isinstance(result, str):
-            lines = result.splitlines()
-
-            if len(lines) > 10:
-                result = '\n'.join(lines[:5] + ['... ... ... ...'] + lines[-5:])
-
-        result = f' {TO} {result}' if result else '.'
+        if self.symbol == FAIL:
+            exc_type, exc_value, tb_text = self.result
+            result_text = f' {TO} {exc_type.__name__}: {exc_value}'
+        elif self.symbol == OK:
+            result_text = f' {TO} {self.result}' if self.result else '.'
 
         return (f'{PENDING} {qualname}' if self.symbol == PENDING else
-                f'{self.end_time} {BOLD[self.symbol]} {qualname}{result}')
+                f'{self.end_time} {BOLD[self.symbol]} {qualname}{result_text}')
 
     @property
     def symbol(self):
@@ -163,7 +161,6 @@ class Step(StepSpec):
         super().__init__(text, ordinal, scenario.gherkin.aliases)
         self.scenario = scenario
         self.doc_scenario = None
-        self.result = ''
         self.is_last = False
         self.is_first = False
         self.method_qualname = ''
@@ -311,7 +308,7 @@ class Scenario(stock.Repr):
             test_run = self.gherkin.setdefault_run(tester.pytest_request.node.name)
 
             if test_run.symbol == FAIL:
-                pytest.fail(msg=test_run.result, pytrace=False)
+                pytest.fail(msg=test_run.result[2], pytrace=False)
 
             test_run.symbol = OK
 
