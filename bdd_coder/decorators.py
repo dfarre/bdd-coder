@@ -67,27 +67,18 @@ class StepRun(stock.Repr):
         self.step.gherkin.logger.info('\n'.join(lines))
 
 
-class IterableRun(stock.Repr):
-    def __init__(self):
+class ScenarioRun(stock.Repr):
+    def __init__(self, test_run, scenario):
+        super().__init__()
+        self.test_run = test_run
+        self.scenario = scenario
         self.runs = []
 
     def __iter__(self):
         yield from self.runs
 
-    @property
-    def result(self):
-        if self.symbol != PENDING:
-            return self.runs[-1].result
-
-
-class ScenarioRun(IterableRun):
-    def __init__(self, test_run, scenario):
-        super().__init__()
-        self.test_run = test_run
-        self.scenario = scenario
-
     def __str__(self):
-        qualname = self.scenario.method.__qualname__
+        qualname = self.scenario.qualname
 
         if self.symbol == FAIL:
             exc_type, exc_value, tb_text = self.result
@@ -99,6 +90,10 @@ class ScenarioRun(IterableRun):
                 f'{self.end_time} {BOLD[self.symbol]} {qualname}{result_text}')
 
     @property
+    def result(self):
+        return self.runs[-1].result if self.symbol != PENDING else ''
+
+    @property
     def symbol(self):
         return getattr(self, '_ScenarioRun__symbol', PENDING)
 
@@ -107,7 +102,7 @@ class ScenarioRun(IterableRun):
         self.__symbol = value
         self.__end_time = datetime.datetime.utcnow()
 
-        if value == FAIL:
+        if value == FAIL and not self.scenario.is_test:
             self.test_run.symbol = FAIL
 
     @property
@@ -125,35 +120,46 @@ class ScenarioRun(IterableRun):
         self.scenario.gherkin.logger.info(f'└─{self}')
 
 
-class TestRun(IterableRun):
-    def __init__(self, test_id, gherkin):
-        super().__init__()
+class TestRun(stock.Repr):
+    def __init__(self, test_id, scenario):
         self.test_id = test_id
-        self.gherkin = gherkin
+        self.scenario = scenario
+        self.runs = collections.defaultdict(list)
+        self.add_run(self.scenario)
 
     def __str__(self):
         return (f'{PENDING} ' if self.symbol == PENDING else
                 f'{self.end_time} {BOLD[self.symbol]} ') + self.test_id
 
+    def __iter__(self):
+        yield from self.sorted_runs
+
+    @property
+    def sorted_runs(self):
+        return sorted(itertools.chain(*self.runs.values()), key=lambda sr: sr.end_time)
+
+    @property
+    def scenario_run(self):
+        return self.runs[self.scenario.name][-1]
+
     @property
     def symbol(self):
-        return getattr(self, '_TestRun__symbol', PENDING)
+        return self.scenario_run.symbol
 
     @symbol.setter
     def symbol(self, value):
-        self.__symbol = value
-        self.__end_time = datetime.datetime.utcnow()
+        self.scenario_run.symbol = value
 
     @property
     def end_time(self):
-        return getattr(self, '_TestRun__end_time', None)
+        return self.scenario_run.end_time
 
-    @end_time.setter
-    def end_time(self, value):
-        raise AttributeError("'end_time' is read-only")
+    @property
+    def result(self):
+        return self.scenario_run.result
 
-    def append_run(self, scenario):
-        self.runs.append(ScenarioRun(self, scenario))
+    def add_run(self, scenario):
+        self.runs[scenario.name].append(ScenarioRun(self, scenario))
 
 
 class Step(StepSpec):
@@ -161,6 +167,7 @@ class Step(StepSpec):
         super().__init__(text, ordinal, scenario.gherkin.aliases)
         self.scenario = scenario
         self.doc_scenario = None
+        self.test_scenario = None
         self.is_last = False
         self.is_first = False
         self.method_qualname = ''
@@ -185,16 +192,13 @@ class Step(StepSpec):
     def __call__(self, step_method):
         @functools.wraps(step_method)
         def logger_step_method(tester, *args, **kwargs):
-            test_run = self.gherkin.setdefault_run(tester.pytest_request.node.name)
-
-            if test_run.symbol != PENDING:
+            if tester.current_run.symbol != PENDING:
                 return
 
-            if self.is_first:
-                self.gherkin.logger.info('_'*26)
-                test_run.append_run(self.scenario)
+            if self.is_first and not self.scenario.is_test:
+                tester.current_run.add_run(self.scenario)
 
-            scenario_run = test_run.runs[-1]
+            scenario_run = tester.current_run.runs[self.scenario.name][-1]
             scenario_run.append_run(self, kwargs)
             step_run = scenario_run.runs[-1]
 
@@ -236,6 +240,14 @@ class Scenario(stock.Repr):
 
     def __str__(self):
         return f'{self.steps[0]}...{self.steps[-1]} params={self.param_names}'
+
+    @property
+    def name(self):
+        return self.method.__name__
+
+    @property
+    def qualname(self):
+        return self.method.__qualname__
 
     @property
     def param_names(self):
@@ -285,9 +297,8 @@ class Scenario(stock.Repr):
 
     def mark_method(self, method):
         self.steps = list(Step.generate_steps(method.__doc__.splitlines(), self))
-        self.name = method.__name__
-        self.is_test = self.name.startswith('test_')
         self.gherkin[method.__qualname__] = self
+        self.is_test = method.__name__.startswith('test_')
 
         if self.is_test:
             return method
@@ -305,12 +316,9 @@ class Scenario(stock.Repr):
         @pytest.mark.usefixtures(*(step.fixture_name for step in fine_steps))
         def scenario_test_method(tester, *args, **kwargs):
             __tracebackhide__ = True
-            test_run = self.gherkin.setdefault_run(tester.pytest_request.node.name)
 
-            if test_run.symbol == FAIL:
-                pytest.fail(msg=test_run.result[2], pytrace=False)
-
-            test_run.symbol = OK
+            if tester.current_run.symbol == FAIL:
+                pytest.fail(msg=tester.current_run.result[2], pytrace=False)
 
         if len(param_ids) == 1:
             param_values = [v[0] for v in param_values]
@@ -328,6 +336,8 @@ class Scenario(stock.Repr):
         elif self.is_test and self.ready is False:
             self.method = self.make_test_method(method)
             self.ready = True
+
+        self.method.scenario = self
 
         return self.method
 
@@ -368,8 +378,9 @@ class Gherkin(stock.Repr):
         for class_name in self.scenarios:
             yield from self.scenarios[class_name].values()
 
-    def setdefault_run(self, test_id):
-        return self.test_runs.setdefault(test_id, TestRun(test_id, self))
+    def new_run(self, test_id, scenario):
+        self.test_runs[test_id] = TestRun(test_id, scenario)
+        self.logger.info('_'*26)
 
     def reset_logger(self, logs_path, maxBytes=100000, backupCount=10):
         self.logger = logging.getLogger('bdd_test_runs')

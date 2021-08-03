@@ -164,12 +164,15 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         if cls.gherkin.validate:
             cls.gherkin.BddTester.validate()
 
-    def setup_method(self):
-        self.gherkin.reset_outputs()
-
     @pytest.fixture(autouse=True)
     def fixture_setup(self, request):
+        self.gherkin.new_run(request.node.name, request.function.scenario)
         self.pytest_request = request
+        self.gherkin.reset_outputs()
+
+    @property
+    def current_run(self):
+        return self.gherkin.test_runs[self.pytest_request.node.name]
 
     def get_output(self, name, index=-1):
         return self.gherkin.outputs[name][index]
