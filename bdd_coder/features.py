@@ -36,6 +36,12 @@ class StepSpec(stock.Repr):
 
         return f'({own}) {self.name} [{param_names}] {TO} ({output_names})'
 
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        return (self.text, self.ordinal, self.own) == (other.text, other.ordinal, other.own)
+
     def validate(self):
         inames, onames = self.param_names, self.output_names
         has_repeated_inputs = len(set(inames)) < len(inames)

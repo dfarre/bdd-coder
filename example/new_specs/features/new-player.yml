@@ -7,5 +7,5 @@ Story: |-
 
 Scenarios:
   New player joins:
-      - When a user signs in
-      - Then a new player is added
+  - When a user signs in
+  - Then a new player is added

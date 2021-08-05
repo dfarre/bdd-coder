@@ -320,7 +320,9 @@ class PackagePatcher(PackageCoder):
             set(old_specs.scenarios) - set(self.new_specs.scenarios))}
         self.updated_scenarios = {n: self.new_specs.scenarios[n] for n in (
             set(old_specs.scenarios) & set(self.new_specs.scenarios)
-        ) if self.new_specs.scenarios[n] != old_specs.scenarios[n]}
+        ) if self.new_specs.scenarios[n] == old_specs.scenarios[n] and (
+            old_specs.features[old_specs.scenarios[n]]['scenarios'][n] !=
+            self.new_specs.features[self.new_specs.scenarios[n]]['scenarios'][n])}
 
         self.features_spec = features.FeaturesSpec(new_features, (
             set(self.new_specs.base_methods) - set(old_specs.base_methods)
