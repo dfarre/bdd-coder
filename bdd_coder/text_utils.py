@@ -1,6 +1,12 @@
 """Common utils and constants"""
 import os
 import re
+import sys
+import traceback
+
+from pygments import highlight
+from pygments.lexers import python as python_lexers
+from pygments.formatters import TerminalFormatter
 
 from bdd_coder import stock
 
@@ -53,6 +59,23 @@ class Style:
     @classmethod
     def underline(cls, text):
         return '\033[1m' + text + cls.end_mark
+
+
+class ExcInfo:
+    def __init__(self):
+        self.exc_type, self.exc_value, self.tb = sys.exc_info()
+
+    @property
+    def next_traceback(self):
+        text = ''.join(traceback.format_list(traceback.extract_tb(self.tb.tb_next)))
+
+        return ('Traceback (most recent call last):\n'
+                f'{text}{self.exc_type.__qualname__}: {self.exc_value}\n')
+
+    @property
+    def highlighted_traceback(self):
+        return highlight(
+            self.next_traceback, python_lexers.PythonTracebackLexer(), TerminalFormatter())
 
 
 def to_sentence(name):

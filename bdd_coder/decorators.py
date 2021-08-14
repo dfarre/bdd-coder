@@ -11,7 +11,8 @@ import pytest
 from bdd_coder import exceptions
 from bdd_coder.features import StepSpec
 from bdd_coder import stock
-from bdd_coder.text_utils import OK, FAIL, PENDING, TO, COMPLETION_MSG, BOLD, Style, indent
+from bdd_coder.text_utils import (
+    OK, FAIL, PENDING, TO, COMPLETION_MSG, BOLD, Style, indent, ExcInfo)
 
 
 class StepRun(stock.Repr):
@@ -50,14 +51,13 @@ class StepRun(stock.Repr):
 
     @property
     def formatted_result(self):
-        if isinstance(self.result, tuple) and self.result:
-            if self.symbol == OK:
-                text = '\n'.join([f'    {repr(v)}' for v in self.result])
+        if isinstance(self.result, tuple) and self.result and self.symbol == OK:
+            text = '\n'.join([f'    {repr(v)}' for v in self.result])
 
-                return f'\n  {TO} {text.lstrip()}'
+            return f'\n  {TO} {text.lstrip()}'
 
-            if self.symbol == FAIL:
-                return f'{TO} {self.result[2]}'
+        if self.symbol == FAIL:
+            return f'{TO} {self.result.highlighted_traceback}'
 
         return ''
 
@@ -87,8 +87,7 @@ class ScenarioRun(stock.Repr):
         qualname = self.scenario.qualname
 
         if self.symbol == FAIL:
-            exc_type, exc_value, tb_text = self.result
-            result_text = f' {TO} {exc_type.__name__}: {exc_value}'
+            result_text = f' {TO} {self.result.exc_type.__name__}: {self.result.exc_value}'
         elif self.symbol == OK:
             result_text = f' {TO} {self.result}' if self.result else '.'
 
@@ -174,12 +173,13 @@ class Step(StepSpec):
                 return
 
             step_run = tester.current_run.get_pending_step_run(self)
-            step_run.kwargs = kwargs
+            step_run.kwargs = {k: v for k, v in kwargs.items()
+                               if k not in self.gherkin.fixtures_not_to_log}
 
             try:
                 step_run.result = step_method(tester, *args, **kwargs)
             except Exception:
-                step_run.result = exceptions.format_next_traceback()
+                step_run.result = ExcInfo()
                 step_run.symbol = FAIL
             else:
                 step_run.symbol = OK
@@ -284,7 +284,7 @@ class Scenario(stock.Repr):
             __tracebackhide__ = True
 
             if tester.current_run.symbol == FAIL:
-                pytest.fail(msg=tester.current_run.result[2], pytrace=False)
+                pytest.fail(msg=tester.current_run.result.next_traceback, pytrace=False)
 
         if len(param_ids) == 1:
             param_values = [v[0] for v in param_values]
@@ -309,12 +309,14 @@ class Scenario(stock.Repr):
 
 
 class Gherkin(stock.Repr):
-    def __init__(self, aliases, validate=True, **logging_kwds):
+    def __init__(self, aliases, validate=True, fixtures_not_to_log=('request',),
+                 **logging_kwds):
         self.reset_logger(**logging_kwds)
         self.reset_outputs()
         self.scenarios = collections.defaultdict(dict)
         self.aliases = aliases
         self.validate = validate
+        self.fixtures_not_to_log = fixtures_not_to_log
         self.test_runs = {}
 
     def __str__(self):
