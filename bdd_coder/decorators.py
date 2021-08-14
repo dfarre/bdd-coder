@@ -21,6 +21,7 @@ class StepRun(stock.Repr):
         self.step = step
         self.kwargs = {}
         self.result = None
+        self.is_last = False
 
     @property
     def symbol(self):
@@ -32,10 +33,8 @@ class StepRun(stock.Repr):
         self.__end_time = datetime.datetime.utcnow()
         self.log()
 
-        if value == FAIL:
-            self.scenario_run.symbol = FAIL
-        elif value == OK and self.step.is_last:
-            self.scenario_run.symbol = OK
+        if value == FAIL or value == OK and self.is_last:
+            self.scenario_run.symbol = value
 
     @property
     def end_time(self):
@@ -73,8 +72,10 @@ class ScenarioRun(stock.Repr):
         self.test_id = test_id
         self.scenario = scenario
         self.parent_run = parent_run
+        self.is_last = False
         self.runs = [StepRun(step, self) if step.doc_scenario is None else ScenarioRun(
             test_id, step.doc_scenario, self) for step in scenario.steps]
+        self.runs[-1].is_last = True
 
     def __iter__(self):
         yield self
@@ -111,8 +112,8 @@ class ScenarioRun(stock.Repr):
         self.__end_time = datetime.datetime.utcnow()
         self.log()
 
-        if value == FAIL and self.parent_run is not None:
-            self.parent_run.symbol = FAIL
+        if self.parent_run is not None and (value == FAIL or value == OK and self.is_last):
+            self.parent_run.symbol = value
 
     @property
     def end_time(self):
@@ -146,7 +147,6 @@ class Step(StepSpec):
         self.scenario = scenario
         self.doc_scenario = None
         self.test_scenario = None
-        self.is_last = False
         self.method_qualname = ''
 
     @property
@@ -237,11 +237,6 @@ class Scenario(stock.Repr):
             raise exceptions.WrongParametersError(
                 name=self.name, positions=', '.join([str(i) for i in wrong_values]),
                 length=len(param_ids))
-
-        simple_steps = list(filter(lambda s: s.doc_scenario is None, self.steps))
-
-        if simple_steps and simple_steps[-1] == self.steps[-1]:
-            self.steps[-1].is_last = True
 
         for step in self.steps:
             if step.doc_scenario is None:
