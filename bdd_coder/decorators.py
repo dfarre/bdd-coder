@@ -15,10 +15,10 @@ from bdd_coder.text_utils import OK, FAIL, PENDING, TO, COMPLETION_MSG, BOLD, St
 
 
 class StepRun(stock.Repr):
-    def __init__(self, scenario_run, step, kwargs):
+    def __init__(self, step, scenario_run):
         self.scenario_run = scenario_run
         self.step = step
-        self.kwargs = kwargs
+        self.kwargs = {}
         self.result = None
 
     @property
@@ -29,6 +29,7 @@ class StepRun(stock.Repr):
     def symbol(self, value):
         self.__symbol = value
         self.__end_time = datetime.datetime.utcnow()
+        self.log()
 
         if value == FAIL:
             self.scenario_run.symbol = FAIL
@@ -68,14 +69,19 @@ class StepRun(stock.Repr):
 
 
 class ScenarioRun(stock.Repr):
-    def __init__(self, test_run, scenario):
-        super().__init__()
-        self.test_run = test_run
+    def __init__(self, test_id, scenario, parent_run=None):
+        self.test_id = test_id
         self.scenario = scenario
-        self.runs = []
+        self.parent_run = parent_run
+        self.runs = [StepRun(step, self) if step.doc_scenario is None else ScenarioRun(
+            test_id, step.doc_scenario, self) for step in scenario.steps]
 
     def __iter__(self):
-        yield from self.runs
+        yield self
+
+        for run in self.runs:
+            if isinstance(run, ScenarioRun):
+                yield from run
 
     def __str__(self):
         qualname = self.scenario.qualname
@@ -91,7 +97,10 @@ class ScenarioRun(stock.Repr):
 
     @property
     def result(self):
-        return self.runs[-1].result if self.symbol != PENDING else ''
+        for step_run in self.iter_step_runs():
+            if step_run.symbol == FAIL:
+                return step_run.result
+        return step_run.result
 
     @property
     def symbol(self):
@@ -101,9 +110,10 @@ class ScenarioRun(stock.Repr):
     def symbol(self, value):
         self.__symbol = value
         self.__end_time = datetime.datetime.utcnow()
+        self.log()
 
-        if value == FAIL and not self.scenario.is_test:
-            self.test_run.symbol = FAIL
+        if value == FAIL and self.parent_run is not None:
+            self.parent_run.symbol = FAIL
 
     @property
     def end_time(self):
@@ -113,53 +123,22 @@ class ScenarioRun(stock.Repr):
     def end_time(self, value):
         raise AttributeError("'end_time' is read-only")
 
-    def append_run(self, step, kwargs):
-        self.runs.append(StepRun(self, step, kwargs))
+    def iter_step_runs(self):
+        for run in self.runs:
+            if isinstance(run, StepRun):
+                yield run
+            elif isinstance(run, ScenarioRun):
+                yield from run.iter_step_runs()
+
+    def get_pending_step_run(self, step):
+        for step_run in self.iter_step_runs():
+            if step_run.step == step and step_run.symbol == PENDING:
+                return step_run
 
     def log(self):
-        self.scenario.gherkin.logger.info(f'└─{self}')
-
-
-class TestRun(stock.Repr):
-    def __init__(self, test_id, scenario):
-        self.test_id = test_id
-        self.scenario = scenario
-        self.runs = collections.defaultdict(list)
-        self.add_run(self.scenario)
-
-    def __str__(self):
-        return (f'{PENDING} ' if self.symbol == PENDING else
-                f'{self.end_time} {BOLD[self.symbol]} ') + self.test_id
-
-    def __iter__(self):
-        yield from self.sorted_runs
-
-    @property
-    def sorted_runs(self):
-        return sorted(itertools.chain(*self.runs.values()), key=lambda sr: sr.end_time)
-
-    @property
-    def scenario_run(self):
-        return self.runs[self.scenario.name][-1]
-
-    @property
-    def symbol(self):
-        return self.scenario_run.symbol
-
-    @symbol.setter
-    def symbol(self, value):
-        self.scenario_run.symbol = value
-
-    @property
-    def end_time(self):
-        return self.scenario_run.end_time
-
-    @property
-    def result(self):
-        return self.scenario_run.result
-
-    def add_run(self, scenario):
-        self.runs[scenario.name].append(ScenarioRun(self, scenario))
+        self.scenario.gherkin.logger.info('└─' + (
+            f'{PENDING} {self.scenario.qualname}' if self.symbol == PENDING else
+            f'{self.end_time} {BOLD[self.symbol]} {self.scenario.qualname}'))
 
 
 class Step(StepSpec):
@@ -169,7 +148,6 @@ class Step(StepSpec):
         self.doc_scenario = None
         self.test_scenario = None
         self.is_last = False
-        self.is_first = False
         self.method_qualname = ''
 
     @property
@@ -195,12 +173,8 @@ class Step(StepSpec):
             if tester.current_run.symbol != PENDING:
                 return
 
-            if self.is_first and not self.scenario.is_test:
-                tester.current_run.add_run(self.scenario)
-
-            scenario_run = tester.current_run.runs[self.scenario.name][-1]
-            scenario_run.append_run(self, kwargs)
-            step_run = scenario_run.runs[-1]
+            step_run = tester.current_run.get_pending_step_run(self)
+            step_run.kwargs = kwargs
 
             try:
                 step_run.result = step_method(tester, *args, **kwargs)
@@ -213,11 +187,6 @@ class Step(StepSpec):
                 if isinstance(step_run.result, tuple):
                     for name, value in zip(self.output_names, step_run.result):
                         self.gherkin.outputs[name].append(value)
-
-            step_run.log()
-
-            if scenario_run.symbol != PENDING:
-                scenario_run.log()
 
         return pytest.fixture(name=self.fixture_name, params=self.fixture_param)(
             logger_step_method)
@@ -271,11 +240,8 @@ class Scenario(stock.Repr):
 
         simple_steps = list(filter(lambda s: s.doc_scenario is None, self.steps))
 
-        if simple_steps:
-            simple_steps[0].is_first = True
-
-            if simple_steps[-1] == self.steps[-1]:
-                self.steps[-1].is_last = True
+        if simple_steps and simple_steps[-1] == self.steps[-1]:
+            self.steps[-1].is_last = True
 
         for step in self.steps:
             if step.doc_scenario is None:
@@ -379,7 +345,7 @@ class Gherkin(stock.Repr):
             yield from self.scenarios[class_name].values()
 
     def new_run(self, test_id, scenario):
-        self.test_runs[test_id] = TestRun(test_id, scenario)
+        self.test_runs[test_id] = ScenarioRun(test_id, scenario)
         self.logger.info('_'*26)
 
     def reset_logger(self, logs_path, maxBytes=100000, backupCount=10):
