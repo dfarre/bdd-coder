@@ -47,7 +47,10 @@ class WrongParametersError(DocException):
 
 
 class RedeclaredParametersError(DocException):
-    """Redeclared parameter(s) {params}"""
+    """
+    Redeclared parameter(s) {params}. If trying to reuse a step, you may take the
+    already given parameter values by removing the corresponding $ signs from the sentence
+    """
 
 
 class BaseTesterRetrievalError(DocException):
