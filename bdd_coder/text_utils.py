@@ -5,7 +5,7 @@ import sys
 import traceback
 
 from pygments import highlight
-from pygments.lexers import python as python_lexers
+from pygments.lexers.python import PythonTracebackLexer
 from pygments.formatters import TerminalFormatter
 
 from bdd_coder import stock
@@ -75,7 +75,7 @@ class ExcInfo:
     @property
     def highlighted_traceback(self):
         return highlight(
-            self.next_traceback, python_lexers.PythonTracebackLexer(), TerminalFormatter())
+            self.next_traceback, PythonTracebackLexer(), TerminalFormatter())
 
 
 def to_sentence(name):
