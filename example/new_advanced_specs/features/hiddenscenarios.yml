@@ -1,0 +1,17 @@
+Title: Hiddenscenarios
+Story: |-
+  The 'no end' scenario - ending with a scenario step - should show up in logs
+Scenarios:
+  Fine scenario:
+  - Given a first step with $param and $(input)
+  - When a second simple step
+  - Then the final third step
+  No end scenario:
+  - Given a new game
+  - Then fine scenario
+  Test scenario:
+  - Given no end scenario
+  - And the first test step with $new_param
+  - And a game of kind is created with boards of guess_count guesses
+  - And a first step with param and $(other input)
+  - Then final test step
