@@ -5,9 +5,6 @@ Story: |-
   I want to start a new Mastermind game of B boards of G guesses
   In order to play
 
-Fixtures:
-  - player-alice
-
 Scenarios:
   Odd boards:
       - When I request a new `game` with $(9) boards

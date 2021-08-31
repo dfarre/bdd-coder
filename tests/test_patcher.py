@@ -23,3 +23,11 @@ class AdvancedPatcherTests(unittest.TestCase):
     def test_no_changes(self):
         self.patch('example/advanced_specs')
         text_utils.assert_test_files_match('example/advanced_tests', 'example/tmp')
+
+    def test_patch_from_tests(self):
+        specs_path = 'example/new_advanced_specs'
+        base_tester, _ = coders.get_base_tester('example.new_advanced_tests.test_stories')
+        features_spec = base_tester.features_spec(specs_path)
+        base_tester.validate_bases(features_spec)
+        self.patch(specs_path)
+        text_utils.assert_test_files_match('example/new_advanced_tests', 'example/tmp')

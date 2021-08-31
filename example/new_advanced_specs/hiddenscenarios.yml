@@ -7,7 +7,7 @@ Scenarios:
   - When a second simple step
   - Then the final third step
   No end scenario:
-  - Given a new game
+  - Given even boards
   - Then fine scenario
   Test scenario:
   - Given no end scenario

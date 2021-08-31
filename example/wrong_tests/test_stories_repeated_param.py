@@ -47,7 +47,7 @@ class TestClearBoard(NewGame):
     @base.gherkin.scenario([0, 'Goat'], [1, 'Cat'])
     def test_start_board(self):  # additional animal param
         """
-        Given a new game
+        Given even boards
         When I request a clear `board` in my new $n game
         Then the first board is added with the $animal
         """
@@ -55,7 +55,7 @@ class TestClearBoard(NewGame):
     @base.gherkin.scenario([0, 'Red'], [1, 'Green'], [2, 'Blue'])
     def test_start_colored_board(self):  # additional nth,color params
         """
-        Given a new game
+        Given even boards
         When I request a clear `board` in my new $n game
         Then the $nth board is added with the $color
         """

@@ -1,15 +1,44 @@
+import abc
 import collections
 import itertools
 import subprocess
 import sys
 
 
-class Repr:
+class Repr(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
     def __str__(self):
-        raise NotImplementedError
+        """Object's text content"""
 
     def __repr__(self):
         return f'<{self.__class__.__name__}: {self}>'
+
+
+class Eq(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def eq(self, other):
+        """Return self == other for same type"""
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        return self.eq(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+class Hashable(Eq, metaclass=abc.ABCMeta):
+    def __hash__(self):
+        return hash(self.eqkey())
+
+    @abc.abstractmethod
+    def eqkey(self):
+        """Return hashable, frozen property to compare to others"""
+
+    def eq(self, other):
+        return self.eqkey() == other.eqkey()
 
 
 class SubclassesMixin:

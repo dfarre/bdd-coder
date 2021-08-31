@@ -5,10 +5,10 @@ Story: |-
   In order to start making guesses on it
 Scenarios:
   Start board:
-  - Given a new game
-  - When I request a clear `board` in my new game
+  - Given even boards
+  - When I `request` a clear `board` in my new game
   - Then the first board is added with the $animal
   Start colored board:
-  - Given a new game
-  - When I request a clear `board` in my new game
+  - Given even boards
+  - When I `request` a clear `board` in my new game
   - Then the $nth board is added with the $color

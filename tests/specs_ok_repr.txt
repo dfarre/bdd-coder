@@ -1,0 +1,23 @@
+<FeaturesSpec: ['class FakeThree', 'class FakeTwo(FakeThree)', 'class FakeOne(FakeTwo)']
+    <FeatureClassSpec: FakeThree: bases=[], mro_bases=[], inherited=True
+            Whatever
+        <ScenarioSpec: (d) something_funny_on_three
+            <StepSpec: (+) bla_bla_bla [] ↦ ()>>
+        <ScenarioSpec: (d) something_even_funnier_on_three
+            <StepSpec: (+) fours_second_scenario [] ↦ ()>
+            <StepSpec: (+) bla_bla_bla [] ↦ ()>>>
+    <FeatureClassSpec: FakeTwo: bases=['FakeThree'], mro_bases=['FakeThree'], inherited=True
+            Whatever
+        <ScenarioSpec: (d) you_keep_working_on_two
+            <StepSpec: (s) something_funny_on_three [] ↦ ()>
+            <StepSpec: (+) you_laugh [] ↦ ()>>>
+    <FeatureClassSpec: FakeOne: bases=['FakeTwo'], mro_bases=['FakeThree', 'FakeTwo'], inherited=False
+            Once upon a time
+            In a Python test
+        <ScenarioSpec: (d) ones_first_scenario
+            <StepSpec: (+) something_amazing [] ↦ (something)>
+            <StepSpec: (s) something_even_funnier_on_three [] ↦ ()>
+            <StepSpec: (+) you_smile_and_say_cool [cool] ↦ (smile)>>
+        <ScenarioSpec: (t) ones_second_scenario
+            <StepSpec: (s) ones_first_scenario [] ↦ ()>
+            <StepSpec: (s) you_keep_working_on_two [] ↦ ()>>>>

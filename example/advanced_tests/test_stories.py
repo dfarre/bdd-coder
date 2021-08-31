@@ -52,8 +52,8 @@ class TestClearBoard(NewGame):
     @base.gherkin.scenario(['Goat'], ['Cat'])
     def test_start_board(self):
         """
-        Given a new game
-        When I request a clear `board` in my new game
+        Given even boards
+        When I `request` a clear `board` in my new game
         Then the first board is added with the $animal
         """
 
@@ -62,16 +62,16 @@ class TestClearBoard(NewGame):
                            [2, 'Blue'])
     def test_start_colored_board(self):
         """
-        Given a new game
-        When I request a clear `board` in my new game
+        Given even boards
+        When I `request` a clear `board` in my new game
         Then the $nth board is added with the $color
         """
 
     def i_request_a_clear_board_in_my_new_game(self):
-        return 'board',
+        return 'request-result', 'board-result'
 
     def the_first_board_is_added_with_the_animal(self, animal):
-        pass
+        print(animal)
 
     def the_nth_board_is_added_with_the_color(self, nth, n, color, pytestconfig):
-        assert self.get_output('board') == 'board'
+        assert self.get_output('board') == 'board-result'

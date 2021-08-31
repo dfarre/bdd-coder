@@ -61,7 +61,6 @@ class MakeYamlSpecsTests(CommandsE2ETestCase):
 
     def setUp(self):
         os.makedirs(self.specs_path)
-        self.features_dir = os.path.join(self.specs_path, 'features')
 
     def tearDown(self):
         shutil.rmtree(self.specs_path)
@@ -79,13 +78,11 @@ class MakeYamlSpecsTests(CommandsE2ETestCase):
             " (--overwrite not set). [Errno 17] File exists: 'tmp'\n", stdout='')
 
     def test_validated_ok(self):
-        os.makedirs(self.features_dir)
         self.assert_call(
             overwrite=True, exit=0, stderr='',
             stdout=self.files_made_msg + 'Test case hierarchy validated\n')
 
     def test_class_bases_error(self):
-        os.makedirs(self.features_dir)
         self.assert_call(
             '_not_inherited', overwrite=True, exit=6,
             stderr='InconsistentClassStructure: Expected class structure from docs does not '

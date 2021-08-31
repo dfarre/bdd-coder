@@ -34,16 +34,6 @@ class YamlDumper:
         with open(path, 'w') as yml_file:
             yaml.dump(data, yml_file, default_flow_style=False)
 
-    @classmethod
-    def dump_yaml_aliases(cls, aliases, parent_dir):
-        alias_lists = collections.defaultdict(list)
-
-        for item in aliases.items():
-            name, alias = map(to_sentence, item)
-            alias_lists[alias].append(name)
-
-        cls.dump_yaml(dict(alias_lists), os.path.join(parent_dir, 'aliases.yml'))
-
 
 class BddTester(YamlDumper, stock.SubclassesMixin):
     """
@@ -118,17 +108,13 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         sys.stdout.write('Test case hierarchy validated\n')
 
     @classmethod
-    def dump_yaml_specs(cls, parent_dir, overwrite=False):
-        exceptions.makedirs(parent_dir, exist_ok=overwrite)
-        features_path = os.path.join(parent_dir, 'features')
+    def dump_yaml_specs(cls, features_path, overwrite=False):
         exceptions.makedirs(features_path, exist_ok=overwrite)
-
-        cls.dump_yaml_aliases(cls.gherkin.aliases, parent_dir)
 
         for tester_subclass in cls.subclasses_down():
             tester_subclass.dump_yaml_feature(features_path)
 
-        sys.stdout.write(f'Specification files generated in {parent_dir}\n')
+        sys.stdout.write(f'Specification files generated in {features_path}\n')
 
     @classmethod
     def dump_yaml_feature(cls, parent_dir):

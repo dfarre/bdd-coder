@@ -46,7 +46,7 @@ class TestClearBoard(base.BddTester):
     @base.gherkin.scenario()
     def test_start_board(self):
         """
-        Given a new game
+        Given even boards
         When I request a clear `board` in my new game
         Then the first board is added to the game
         """

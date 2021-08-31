@@ -112,8 +112,8 @@ def decorate(target, decorators):
 
 
 def make_def_content(*doc_lines, body=''):
-    return indent('\n'.join(([make_doc(*doc_lines)] if doc_lines else []) +
-                            ([body] if body else []) or ['pass']))
+    return indent('\n\n'.join(([make_doc(*doc_lines)] if doc_lines else []) +
+                              ([body.strip()] if body.strip() else []) or ['pass']))
 
 
 def make_class_head(name, bases=(), decorators=()):
@@ -137,7 +137,7 @@ def rstrip(text):
 
 
 def assert_test_files_match(origin_dir, target_dir):
-    py_file_names = ['__init__.py', 'aliases.py', 'base.py', 'test_stories.py']
+    py_file_names = ['__init__.py', 'base.py', 'test_stories.py']
     missing_in_origin = set(py_file_names) - set(os.listdir(origin_dir))
     missing_in_target = set(py_file_names) - set(os.listdir(target_dir))
 

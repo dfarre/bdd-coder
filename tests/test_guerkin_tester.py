@@ -29,8 +29,10 @@ class GherkinTesterTests(unittest.TestCase):
         return output
 
     def test_parameter_collection(self):
-        output = self.assert_pytest_fails('advanced_tests').splitlines()
-        cut_output = '\n'.join([output[0], 'platform linux -- Python [L1-4]'] + output[5:13])
+        output = self.assert_pytest_fails('advanced_tests')
+        print(output)
+        lines = output.splitlines()
+        cut_output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:13])
 
         assert cut_output == PYTEST_OUTPUT
 

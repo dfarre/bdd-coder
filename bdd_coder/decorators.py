@@ -1,4 +1,4 @@
-"""To be employed with `BddTester` and `BaseTestCase`"""
+"""To be employed with `BddTester`"""
 import collections
 import datetime
 import itertools
@@ -143,7 +143,7 @@ class ScenarioRun(stock.Repr):
 
 class Step(StepSpec):
     def __init__(self, text, ordinal, scenario):
-        super().__init__(text, ordinal, scenario.gherkin.aliases)
+        super().__init__(text, ordinal)
         self.scenario = scenario
         self.doc_scenario = None
         self.test_scenario = None
@@ -304,12 +304,11 @@ class Scenario(stock.Repr):
 
 
 class Gherkin(stock.Repr):
-    def __init__(self, aliases, validate=True, fixtures_not_to_log=('request',),
+    def __init__(self, validate=True, fixtures_not_to_log=('request',),
                  **logging_kwds):
         self.reset_logger(**logging_kwds)
         self.reset_outputs()
         self.scenarios = collections.defaultdict(dict)
-        self.aliases = aliases
         self.validate = validate
         self.fixtures_not_to_log = fixtures_not_to_log
         self.test_runs = {}
@@ -345,13 +344,14 @@ class Gherkin(stock.Repr):
         self.test_runs[test_id] = ScenarioRun(test_id, scenario)
         self.logger.info('_'*26)
 
-    def reset_logger(self, logs_path, maxBytes=100000, backupCount=10):
+    def reset_logger(self, logs_path='./', maxBytes=1000000, backupCount=10):
         self.logger = logging.getLogger('bdd_test_runs')
         self.logger.setLevel(level=logging.INFO)
         handler = RotatingFileHandler(logs_path, maxBytes=maxBytes, backupCount=backupCount)
         handler.setFormatter(logging.Formatter('%(message)s'))
         self.logger.handlers.clear()
         self.logger.addHandler(handler)
+        self.logger.propagate = False
 
     def log(self, fail_if_pending=False):
         __tracebackhide__ = True

@@ -1,6 +1,6 @@
 Title: Clear Board
 Story: |-
-  As a codebreaker
+  As a developer player
   I want a clear board with a new code
   In order to start making guesses on it
 Scenarios:

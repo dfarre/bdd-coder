@@ -7,7 +7,6 @@ class NewGame(base.BddTester):
     I want to start a new Mastermind game of B boards of G guesses
     In order to play
     """
-    fixtures = ['player-alice']
 
     @base.gherkin.scenario()
     def test_odd_boards(self):
@@ -43,10 +42,13 @@ class TestClearBoard(NewGame):
     @base.gherkin.scenario()
     def test_start_board(self):
         """
-        Given a new game
+        Given even boards
         When I request a clear `board` in my new game
         Then the first board is added to the game
         """
 
     def i_request_a_clear_board_in_my_new_game(self):
         return 'board',
+
+    def the_first_board_is_added_to_the_game(self):
+        pass

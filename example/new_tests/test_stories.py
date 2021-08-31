@@ -11,6 +11,9 @@ class ClearBoard(base.BddTester):
     def i_request_a_clear_board_in_my_new_game(self):
         return 'board',
 
+    def the_first_board_is_added_to_the_game(self):
+        pass
+
 
 class NewPlayer(base.BddTester):
     """
@@ -39,7 +42,6 @@ class TestNewGame(NewPlayer):
     I want to start a new Mastermind game of B boards of G guesses
     In order to play and have fun
     """
-    fixtures = ['player-alice']
 
     @base.gherkin.scenario()
     def test_even_boards(self):
@@ -76,4 +78,7 @@ class TestNewGame(NewPlayer):
         return 'game',
 
     def class_hierarchy_has_changed(self):
+        pass
+
+    def she_is_welcome(self):
         pass
