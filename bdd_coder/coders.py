@@ -61,7 +61,7 @@ class FeatureClassCoder:
     def make_step_method_defs_for(steps_to_code):
         return [make_method(
             s.name, body=FeatureClassCoder.make_method_body(s.param_names, s.output_names),
-            args_text=''.join([f', {n}' for n in s.param_names])
+            args_text='self' + ''.join([f', {n}' for n in s.param_names])
         ) for s in stock.list_drop_duplicates(steps_to_code, lambda s: s.name)]
 
     @staticmethod
@@ -92,7 +92,11 @@ class FeatureCoder:
     @property
     def base_class_def(self):
         return make_class(
-            BASE_TESTER_NAME, bases=(BDD_TESTER_PATH,), decorators=('gherkin',))
+            BASE_TESTER_NAME,
+            f'The decorated {BASE_TESTER_NAME} subclass of this tester package.',
+            'It manages scenario runs. All test classes inherit from this one,',
+            'so generic test methods for this package are expected to be defined here',
+            bases=(BDD_TESTER_PATH,), decorators=('gherkin',))
 
 
 class PackageCoder:
@@ -130,8 +134,12 @@ class PackageCoder:
 
         with open(os.path.join(self.tests_path, f'test_{self.test_module_name}.py'),
                   'w') as test_py:
-            test_py.write(rstrip('\n\n\n'.join(
-                ['from . import base'] + self.feature_coder.story_class_defs)) + '\n')
+            test_py.write(rstrip('\n\n\n'.join(['from . import base', make_method(
+                'teardown_module',
+                'Called by Pytest at teardown of the test module, employed here to',
+                'log final scenario results',
+                body='base.gherkin.log()', args_text='', upper_blank_line=False
+            )] + self.feature_coder.story_class_defs)) + '\n')
 
         if run_pytest:
             self.pytest()

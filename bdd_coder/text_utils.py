@@ -111,9 +111,10 @@ def decorate(target, decorators):
     return '\n'.join([f'@{decorator}' for decorator in decorators] + [target])
 
 
-def make_def_content(*doc_lines, body=''):
-    return indent('\n\n'.join(([make_doc(*doc_lines)] if doc_lines else []) +
-                              ([body.strip()] if body.strip() else []) or ['pass']))
+def make_def_content(*doc_lines, body='', upper_blank_line=True):
+    sep = '\n\n' if upper_blank_line else '\n'
+    return indent(sep.join(([make_doc(*doc_lines)] if doc_lines else []) +
+                           ([body.strip()] if body.strip() else []) or ['pass']))
 
 
 def make_class_head(name, bases=(), decorators=()):
@@ -127,9 +128,11 @@ def make_class(name, *doc_lines, bases=(), decorators=(), body=''):
                       make_def_content(*doc_lines, body=body)])
 
 
-def make_method(name, *doc_lines, args_text='', decorators=(), body=''):
-    return '\n'.join([decorate(f'def {name}(self{args_text}):', decorators),
-                      make_def_content(*doc_lines, body=body)])
+def make_method(name, *doc_lines, args_text='self', decorators=(), body='',
+                upper_blank_line=True):
+    return '\n'.join([decorate(f'def {name}({args_text}):', decorators),
+                      make_def_content(*doc_lines, body=body,
+                                       upper_blank_line=upper_blank_line)])
 
 
 def rstrip(text):

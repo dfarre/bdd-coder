@@ -1,6 +1,14 @@
 from . import base
 
 
+def teardown_module():
+    """
+    Called by Pytest at teardown of the test module, employed here to
+    log final scenario results
+    """
+    base.gherkin.log()
+
+
 class NewGame(base.BddTester):
     """
     As a codebreaker
