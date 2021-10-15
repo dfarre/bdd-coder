@@ -1,5 +1,5 @@
 # BDD Coder
-[![PyPI version](https://badge.fury.io/py/bdd-coder.svg)](https://badge.fury.io/py/bdd-coder) [![PyPI downloads](https://img.shields.io/pypi/dm/bdd-coder.svg)](https://img.shields.io/pypi/dm/bdd-coder) [![Build Status](http://eleuteriostuart.com:8080/buildStatus/icon?job=bdd-coder)](http://eleuteriostuart.com:8080/job/bdd-coder)
+[![PyPI version](https://badge.fury.io/py/bdd-coder.svg)](https://badge.fury.io/py/bdd-coder) [![PyPI downloads](https://img.shields.io/pypi/dm/bdd-coder.svg)](https://img.shields.io/pypi/dm/bdd-coder)
 
 A package devoted to agile implementation of **class-based behavior tests**. It consists of:
 * [coder](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/coder) package able to
@@ -25,20 +25,17 @@ In conjunction with `bdd_coder.coder`, development cycles *start* with:
 Each test suite (tester package) has a structure
 ```
 ├─ __init__.py
-├─ aliases.py
 ├─ base.py
 └─ test_stories.py
 ```
-corresponding to a specifications directory
+corresponding to a specifications directory with story YAML files
 ```
-├─ aliases.yml
-└─ features/
-   ├─ some-story.yml
-   ├─ another-story.yml
-   ├─ ...
-   └─ this-story.yml
+├─ some-story.yml
+├─ another-story.yml
+├─ ...
+└─ this-story.yml
 ```
-A story YAML file (the ones under features/) corresponds to a test case class declared into `test_stories.py`, consisting mainly of scenario declarations:
+A story file corresponds to a test case class declared into `test_stories.py`, consisting mainly of scenario declarations:
 ```
 Title: <Story title>  # --> class __name__
 
@@ -49,134 +46,63 @@ Story: |-  # free text --> class __doc__
 
 Scenarios:
   Scenario name:  # --> scenario __doc__
-    - Step "1" with "A" gives `x` and `y`
-      # ...
-    - Last step with "B" gives `result`
+    - Given an event $(1) with $(A) and $first_param that gives `x` and `y`
+    - When it happens that...
+    - And the parameters $second and $third enter
+    - Then finally we assert that...
+    # ...
   # ...
-
-# Extra class atributes - ignored in patching
-Extra name:
-  <yaml-attribute-coded-with-str(yaml.load)>
-...
 ```
-So only the keys `Title`, `Story`, `Scenarios` are reserved.
-
-Scenario names are unique if `bdd_coder.tester.decorators.Steps` takes `validate=True` (the default), which also validates class hierarchy.
+Only the keys `Title`, `Story`, `Scenarios` are required and mean something.
 
 ### Step declarations
+A scenario declaration consists of a list of step declarations, which:
+* Correspond to a test step method to be defined
 * Start with a whole word - normally 'Given', 'When', or 'Then' - that is ignored by the tester (only order matters)
 * May contain:
-    + Input `*args` sequence of values in double-quotes - passed to the step method
-    + Output variable name sequence using backticks - if non-empty, the method should return the output values as a tuple, which are collected by the `bdd_coder.tester.decorators.Steps` decorator instance, by name into its `outputs` map of sequences
+    + Input string values as $(...), which are passed as Pytest fixture parameters to the step method, so that they are available from the Pytest `request` fixture as the tuple `request.param`
+    + Input parameter names as $param_name, which are passed to Pytest's parametrize
+    + Output variable name sequence using backticks - if non-empty, the method should return the output values as a tuple, which are collected by the `bdd_coder.tester.decorators.Gherkin` decorator instance, by name into its `outputs` map of sequences
 * May refer to a scenario name, either belonging to the same class (story), or to an inherited class
 
-### Aliases
-Declared as
-```
-Alias sentence:  # --> method to call
-  - Step sentence  # from scenario __doc__s
-  - Another step sentence
-  # ...
-# ...
-```
-corresponding to `aliases.py`:
-```
-MAP = {
-    'step_sentence': 'alias_sentence',
-    'another_step_sentence': 'alias_sentence',
-    # ...
-}
-```
-
 ## Tester
-The core of each test suite consists of the following required class declarations in its `base.py` module:
-```
-from test.case.module import MyTestCase
+The core of each test suite consists of the following required class declaration in its `base.py` module:
+```python
+from bdd_coder import decorators
+from bdd_coder import tester
 
-from bdd_coder.tester import decorators
-from bdd_coder.tester import tester
-
-from . import aliases
-
-steps = decorators.Steps(aliases.MAP, logs_path='example/tests/bdd_runs.log')
-scenario = decorators.Scenario(steps)
+gherkin = decorators.Gherkin(logs_path='example/tests/bdd_runs.log')
 
 
-@steps
+@gherkin
 class BddTester(tester.BddTester):
     """
-    The decorated BddTester subclass of this suite - manages scenario runs
-    """
-
-
-class BaseTestCase(tester.BaseTestCase, MyTestCase):
-    """
-    The base test case of this suite - manages test runs
+    The decorated BddTester subclass of this tester package.
+    It manages scenario runs. All test classes inherit from this one,
+    so generic test methods for this package are expected to be defined here
     """
 ```
-Then, story test cases are declared in `test_stories.py`, with
+Then, story test cases are declared in `test_stories.py`, with the `base` module imported, as
+```python
+class StoryTitle(BddTesterSubclass, AnotherBddTesterSubclass):
+    @base.gherkin.scenario()
+    def test_scenario_name(self):
+        """
+        Step "1" with "A" gives `x` and `y`
+        ...
+        Last step with "B" gives `result`
+        """
 ```
-from . import base
-from bdd_coder.tester import decorators
-```
-as
-```
-class StoryTitle(BddTesterSubclass, AnotherBddTesterSubclass, ...[, base.BaseTestCase]):
-```
-with scenario declarations
-```
-  @base.scenario
-  def [test_]scenario_name(self):
-      """
-      Step "1" with "A" gives `x` and `y`
-      ...
-      Last step with "B" gives `result`
-      """
-```
-that will run according to their `__doc__`s, and the necessary step method definitions.
+with scenario declarations that will run according to their `__doc__`s, and the necessary step method definitions.
 
 ### Test run logging
 Implemented behavior test step runs are logged by `bdd_coder.tester` as
 ```
-________________________________________________________________________________
-1 ✅ NewGame.even_boards:
-  1.1 - 2020-12-26 13:53:59.291959 ✅ i_request_a_new_game_with_an_even_number_of_boards [] ↦ ('Even Game',)
-  1.2 - 2020-12-26 13:53:59.292028 ✅ a_game_is_created_with_boards_of__guesses ['12'] ↦ ()
-2 ✅ TestClearBoard.test_start_board:
-  2.1 - 2020-12-26 13:53:59.292238 ✅ even_boards [] ↦ ()
-  2.2 - 2020-12-26 13:53:59.292316 ✅ i_request_a_clear_board_in_my_new_game [] ↦ ('Board',)
-  2.3 - 2020-12-26 13:53:59.292374 ✅ board__is_added_to_the_game [] ↦ ()
-3 ❌ NewGame.test_odd_boards:
-  3.1 - 2020-12-26 13:54:01.053963 ❌ i_request_a_new_game_with_an_odd_number_of_boards [] ↦ Traceback (most recent call last):
-  File "/usr/lib/python3.6/unittest/mock.py", line 939, in __call__
-    return _mock_self._mock_call(*args, **kwargs)
-  File "/usr/lib/python3.6/unittest/mock.py", line 995, in _mock_call
-    raise effect
-AssertionError: FAKE
 
-Scenario runs {
-    "1✅": "even_boards",
-    "2✅": "test_start_board"
-    "3❌": "test_odd_boards"
-}
-Pending []
-All scenarios ran ▌ 2 ✅ ▌ 1 ❌
 ```
-into the `logs_path` passed to `bdd_coder.tester.decorators.Steps`.
+into the `logs_path` passed to `bdd_coder.tester.decorators.Gherkin`.
 
 ### Commands
-#### Check if pending scenarios
-It may happen that all steps - and so all tests - that ran succeeded, but some scenarios were not reached. Run `bdd-pending-scenarios` after `pytest` to treat this as an error (recommended)
-```
-Some scenarios did not run! Check the logs in [...]
-```
-```
-usage: bdd-pending-scenarios [-h] logs_path
-
-positional arguments:
-  logs_path   str. Path to BDD run logs file
-```
-
 #### Export test suite docs as YAML
 ```
 usage: bdd-make-yaml-specs [-h] [--overwrite] test_module specs_path
@@ -251,32 +177,5 @@ example/tests/test_stories.py::TestNewGame::test_more_boards PASSED      [100%]
 ```
 and a log
 ```
-________________________________________________________________________________
-1 ✅ TestNewGame.new_player_joins:
-  1.1 - 2019-04-01 00:30:50.164042 ✅ a_user_signs_in [] ↦ ()
-  1.2 - 2019-04-01 00:30:50.164059 ✅ a_new_player_is_added [] ↦ ()
-2 ✅ TestNewGame.test_even_boards:
-  2.1 - 2019-04-01 00:30:50.164178 ✅ new_player_joins [] ↦ ()
-  2.2 - 2019-04-01 00:30:50.164188 ✅ i_request_a_new_game_with_an_even_number_of_boards [] ↦ ('game',)
-  2.3 - 2019-04-01 00:30:50.164193 ✅ a_game_is_created_with_boards_of__guesses ['12'] ↦ ()
-3 ✅ TestNewGame.new_player_joins:
-  3.1 - 2019-04-01 00:30:50.165339 ✅ a_user_signs_in [] ↦ ()
-  3.2 - 2019-04-01 00:30:50.165348 ✅ a_new_player_is_added [] ↦ ()
-4 ✅ TestNewGame.test_funny_boards:
-  4.1 - 2019-04-01 00:30:50.165422 ✅ new_player_joins [] ↦ ()
-  4.2 - 2019-04-01 00:30:50.165429 ✅ class_hierarchy_has_changed [] ↦ ()
-5 ✅ TestNewGame.new_player_joins:
-  5.1 - 2019-04-01 00:30:50.166458 ✅ a_user_signs_in [] ↦ ()
-  5.2 - 2019-04-01 00:30:50.166466 ✅ a_new_player_is_added [] ↦ ()
-6 ✅ TestNewGame.test_more_boards:
-  6.1 - 2019-04-01 00:30:50.166535 ✅ new_player_joins [] ↦ ()
-  6.2 - 2019-04-01 00:30:50.166541 ✅ user_is_welcome [] ↦ ()
-Scenario runs {
-    "1✅-3✅-5✅": "new_player_joins",
-    "2✅": "test_even_boards",
-    "4✅": "test_funny_boards",
-    "6✅": "test_more_boards"
-}
-Pending []
-All scenarios ran ▌ 6 ✅
+
 ```
