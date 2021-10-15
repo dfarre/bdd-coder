@@ -13,7 +13,7 @@ class NewGame(base.BddTester):
     """
     fixtures = ['player-alice']
 
-    @base.gherkin.scenario([9])
+    @base.gherkin.scenario()
     def test_odd_boards(self):
         """
         When I request a new `game` with $n boards
@@ -32,7 +32,9 @@ class NewGame(base.BddTester):
     def i_request_a_new_game_with_n_boards(self, n):
         return 'game',
 
-    def i_get_a_400_response_saying_it_must_be_even(self):
+    def i_get_a_400_response_saying_it_must_be(self):
+        assert self.param == 'even'
+
         assert False, 'Forced error'
 
     def a_game_of_kind_is_created_with_boards_of_guess_count_guesses(self, kind, guess_count):
@@ -40,6 +42,9 @@ class NewGame(base.BddTester):
 
     def the_number_of_boards_is_indeed_odd(self):
         assert False, 'Subsequent forced error'
+
+    def i_get_a_400_response_saying_it_must_be_even(self):
+        pass
 
 
 class Hiddenscenarios(NewGame):

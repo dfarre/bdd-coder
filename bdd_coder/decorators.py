@@ -175,6 +175,7 @@ class Step(StepSpec):
             step_run = tester.current_run.get_pending_step_run(self)
             step_run.kwargs = {k: v for k, v in kwargs.items()
                                if k not in self.gherkin.fixtures_not_to_log}
+            tester.param = self.fixture_param[0] if self.inputs else ()
 
             try:
                 step_run.result = step_method(tester, *args, **kwargs)

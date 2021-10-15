@@ -17,7 +17,7 @@ class NewGame(base.BddTester):
     def test_odd_boards(self):
         """
         When I request a new `game` with $n boards
-        Then I get a 400 response saying it must be even
+        Then I get a 400 response saying it must be $(even)
         And the number of boards is indeed odd
         """
 
@@ -32,7 +32,9 @@ class NewGame(base.BddTester):
     def i_request_a_new_game_with_n_boards(self, n):
         return 'game',
 
-    def i_get_a_400_response_saying_it_must_be_even(self):
+    def i_get_a_400_response_saying_it_must_be(self):
+        assert self.param == 'even'
+
         assert False, 'Forced error'
 
     def a_game_of_kind_is_created_with_boards_of_guess_count_guesses(self, kind, guess_count):

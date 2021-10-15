@@ -6,7 +6,7 @@ PYTEST_OUTPUT = """
 platform linux -- Python [L1-4]
 collecting ... collected 5 items
 
-example/advanced_tests/test_stories.py::TestClearBoard::test_odd_boards[9] FAILED [ 20%]
+example/advanced_tests/test_stories.py::TestClearBoard::test_odd_boards[even-9] FAILED [ 20%]
 example/advanced_tests/test_stories.py::TestClearBoard::test_start_board[Goat-8-Boring-9] PASSED [ 40%]
 example/advanced_tests/test_stories.py::TestClearBoard::test_start_board[Cat-6-Funny-11] PASSED [ 60%]
 example/advanced_tests/test_stories.py::TestClearBoard::test_start_colored_board[0-Red-8-Boring-9] PASSED [ 80%]
@@ -30,7 +30,6 @@ class GherkinTesterTests(unittest.TestCase):
 
     def test_parameter_collection(self):
         output = self.assert_pytest_fails('advanced_tests')
-        print(output)
         lines = output.splitlines()
         cut_output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:13])
 

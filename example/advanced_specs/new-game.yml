@@ -9,5 +9,5 @@ Scenarios:
   - Then a game of $kind is created with boards of $guess_count guesses
   Odd boards:
   - When I request a new `game` with $n boards
-  - Then I get a 400 response saying it must be even
+  - Then I get a 400 response saying it must be $(even)
   - And the number of boards is indeed odd
