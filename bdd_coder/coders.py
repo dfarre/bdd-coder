@@ -13,8 +13,7 @@ from bdd_coder import features
 from bdd_coder import tester
 
 from bdd_coder.text_utils import (
-    BASE_TESTER_NAME, extract_name, strip_lines, indent, make_method,
-    make_class, make_doc, rstrip)
+    BASE_TESTER_NAME, strip_lines, indent, make_method, make_class, make_doc, rstrip)
 
 BDD_TESTER_PATH = 'tester.BddTester'
 
@@ -148,16 +147,15 @@ class PackageCoder:
 class ModulePiece(stock.Repr):
     scenario_delimiter = '@base.gherkin.scenario'
 
-    def __init__(self, text, name_regex=r'[A-Za-z0-9]+'):
+    def __init__(self, text, *class_names):
         rtext = rstrip(text)
         match = re.match(
-            fr'^(@(.+))?class ({name_regex})(.*?):\n(    """(.+?)""")?(.*)$',
+            fr'^(@(.+))?class (Test)?({"|".join(class_names)})(.*?):\n(    """(.+?)""")?(.*)$',
             rtext, flags=re.DOTALL)
 
         if match:
-            decorators, _, name, bases, _, doc, body = match.groups()
-            self.name = extract_name(name)
-            self.class_head = f'{name}{bases or ""}'
+            decorators, _, _, self.name, bases, _, doc, body = match.groups()
+            self.class_head = f'{self.name}{bases or ""}'
             self.decorators = decorators or ''
             self.doc = '\n'.join(strip_lines(doc.splitlines())) if doc else None
             self.body_head, self.scenarios, self.tail = self.split_class_body(body)
@@ -229,7 +227,7 @@ class TestModule(stock.Repr):
         self.filename = filename
         self.tmp_filename = f'tmp_split_{id(self)}.py'
         self.flake8(filename)
-        self.name_regex = r'|'.join(class_names)
+        self.class_names = class_names
 
         with open(filename) as py_file:
             self.pieces = self.split_module(rstrip(py_file.read()))
@@ -271,7 +269,7 @@ class TestModule(stock.Repr):
 
     def split_module(self, source):
         return collections.OrderedDict([(mp.name, mp) for mp in (
-            ModulePiece(piece, self.name_regex) for piece in source.split('\n\n\n'))])
+            ModulePiece(piece, *self.class_names) for piece in source.split('\n\n\n'))])
 
 
 class PackagePatcher:
@@ -305,7 +303,7 @@ class PackagePatcher:
             os.path.join(self.tests_path, 'base.py'), BASE_TESTER_NAME
         ), self.test_module_name: TestModule(
             os.path.join(self.tests_path, f'{self.test_module_name}.py'),
-            *(self.old_specs.features[n].test_class_name for n in self.old_specs.features))}
+            *(self.old_specs.features[n].class_name for n in self.old_specs.features))}
 
     @property
     def new_specs(self):
@@ -345,7 +343,7 @@ class PackagePatcher:
 
     def add_new_stories(self, pieces):
         pieces.update({cp.name: cp for cp in (ModulePiece(
-            self.new_feature_coder.story_class_def(cn)) for cn in self.new_classes)})
+            self.new_feature_coder.story_class_def(cn), cn) for cn in self.new_classes)})
 
     def sort_hierarchy(self, pieces):
         for class_name, piece in self.yield_sorted_pieces(pieces):
