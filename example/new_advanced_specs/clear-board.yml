@@ -12,3 +12,6 @@ Scenarios:
   - Given no end scenario
   - When I `request` a clear `board` in my new game
   - Then the $nth board is added with the $color
+  New independent scenario:
+  - Given a new setup step
+  - Then a new assertion

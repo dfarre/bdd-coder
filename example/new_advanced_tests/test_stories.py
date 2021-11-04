@@ -116,6 +116,13 @@ class TestClearBoard(Hiddenscenarios):
         Then the $nth board is added with the $color
         """
 
+    @base.gherkin.scenario()
+    def test_new_independent_scenario(self):
+        """
+        Given a new setup step
+        Then a new assertion
+        """
+
     def i_request_a_clear_board_in_my_new_game(self):
         return 'request-result', 'board-result'
 
@@ -124,3 +131,9 @@ class TestClearBoard(Hiddenscenarios):
 
     def the_nth_board_is_added_with_the_color(self, nth, n, color, pytestconfig):
         assert self.get_output('board') == 'board-result'
+
+    def a_new_setup_step(self):
+        pass
+
+    def a_new_assertion(self):
+        pass

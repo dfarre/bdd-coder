@@ -66,6 +66,11 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
             setattr(cls, scenario.name, scenario(getattr(cls, scenario.name)))
 
     @classmethod
+    def subclass_names(cls):
+        for subclass in cls.subclasses_down():
+            yield extract_name(subclass.__name__)
+
+    @classmethod
     def validate(cls):
         cls.validate_bases(cls.features_spec())
 

@@ -383,9 +383,9 @@ class PackagePatcher:
             self.test_module_name,
             self.remove_scenarios, self.update_scenarios,
             self.add_scenarios, self.add_new_stories, self.sort_hierarchy, self.update_docs, *[
-                functools.partial(self.add_new_steps, subclass.__name__)
-                for subclass in self.base_tester.subclasses_down()
-                if subclass.__name__ in self.new_specs.features])
+                functools.partial(self.add_new_steps, name)
+                for name in self.base_tester.subclass_names()
+                if name in self.new_specs.features])
 
         if run_pytest:
             self.pytest()
