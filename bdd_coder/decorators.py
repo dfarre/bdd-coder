@@ -371,7 +371,7 @@ class Gherkin(stock.Repr):
                     self.logger.info(indent(str(r)) + '\n')
 
         if runs[PENDING] and fail_if_pending:
-            names = ', '.join(list(runs[FAIL]))
+            names = ', '.join(list(runs[PENDING]))
             pytest.fail(f'These scenarios did not run: {names}')
 
     def get_scenario_runs(self, symbols=(OK, FAIL, PENDING)):

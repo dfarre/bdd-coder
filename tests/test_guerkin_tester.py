@@ -11,7 +11,8 @@ example/advanced_tests/test_stories.py::TestClearBoard::test_start_board[Goat-8-
 example/advanced_tests/test_stories.py::TestClearBoard::test_start_board[Cat-6-Funny-11] PASSED [ 60%]
 example/advanced_tests/test_stories.py::TestClearBoard::test_start_colored_board[0-Red-8-Boring-9] PASSED [ 80%]
 example/advanced_tests/test_stories.py::TestClearBoard::test_start_colored_board[1-Green-6-Funny-11] PASSED [100%]
-""".lstrip()  # noqa
+example/advanced_tests/test_stories.py::TestClearBoard::test_start_colored_board[1-Green-6-Funny-11] ERROR [100%]
+""".strip()  # noqa
 
 
 class GherkinTesterTests(unittest.TestCase):

@@ -2,7 +2,7 @@ from . import base
 
 
 def teardown_module():
-    base.gherkin.log()
+    base.gherkin.log(fail_if_pending=True)
 
 
 class NewGame(base.BddTester):
@@ -11,14 +11,13 @@ class NewGame(base.BddTester):
     I want to start a new Mastermind game of B boards of G guesses
     In order to play
     """
-    fixtures = ['player-alice']
 
     @base.gherkin.scenario([9])
     def test_odd_boards(self):
         """
         When I request a new `game` with $n boards
         Then I get a 400 response saying it must be $(even)
-        And the number of boards is indeed odd
+        And pending scenario
         """
 
     @base.gherkin.scenario([8, 'Boring', 9],
@@ -27,6 +26,12 @@ class NewGame(base.BddTester):
         """
         When I request a new `game` with $n boards
         Then a game of $kind is created with boards of $guess_count guesses
+        """
+
+    @base.gherkin.scenario([])
+    def pending_scenario(self):
+        """
+        Then the number of boards is indeed odd
         """
 
     def i_request_a_new_game_with_n_boards(self, n):

@@ -2,7 +2,7 @@ from . import base
 
 
 def teardown_module():
-    base.gherkin.log()
+    base.gherkin.log(fail_if_pending=True)
 
 
 class NewGame(base.BddTester):
@@ -11,7 +11,6 @@ class NewGame(base.BddTester):
     I want to start a new Mastermind game of B boards of G guesses
     In order to play
     """
-    fixtures = ['player-alice']
 
     @base.gherkin.scenario()
     def test_odd_boards(self):
