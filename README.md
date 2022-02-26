@@ -82,25 +82,18 @@ class BddTester(tester.BddTester):
     so generic test methods for this package are expected to be defined here
     """
 ```
-Then, story test cases are declared in `test_stories.py`, with the `base` module imported, as
+Then, story test cases are declared in `test_stories.py`, with the `base` module imported, scenario declarations such as
 ```python
 class StoryTitle(BddTesterSubclass, AnotherBddTesterSubclass):
-    @base.gherkin.scenario()
+    @base.gherkin.scenario(['param1_value1'], ['param1_value2'])
     def test_scenario_name(self):
         """
-        Step "1" with "A" gives `x` and `y`
+        Given $(input1) and $param1 step one gives `x` and `y`
         ...
-        Last step with "B" gives `result`
+        Last step with $(input2) gives `result`
         """
 ```
-with scenario declarations that will run according to their `__doc__`s, and the necessary step method definitions.
-
-### Test run logging
-Implemented behavior test step runs are logged by `bdd_coder.tester` as
-```
-
-```
-into the `logs_path` passed to `bdd_coder.tester.decorators.Gherkin`.
+that will run according to their `__doc__`s, and the necessary step method definitions.
 
 ### Commands
 #### Export test suite docs as YAML
@@ -174,8 +167,4 @@ example/tests/test_stories.py::TestNewGame::test_funny_boards PASSED     [ 66%]
 example/tests/test_stories.py::TestNewGame::test_more_boards PASSED      [100%]
 
 =========================== 3 passed in 0.04 seconds ===========================
-```
-and a log
-```
-
 ```
