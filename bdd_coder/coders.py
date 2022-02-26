@@ -317,9 +317,6 @@ class PackagePatcher:
     def test_module_name(self):
         return self.test_module.__name__.rsplit('.', 1)[-1]
 
-    def get_tester(self, class_name):
-        return getattr(self.test_module, class_name)
-
     def patch_module(self, module_name, *mutations):
         self.splits[module_name].transform(*mutations)
         self.splits[module_name].write()

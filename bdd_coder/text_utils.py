@@ -25,39 +25,39 @@ class Style:
     end_mark = '\033[0m'
 
     @classmethod
-    def purple(cls, text):
-        return '\033[95m' + text + cls.end_mark
-
-    @classmethod
-    def dark_cyan(cls, text):
-        return '\033[36m' + text + cls.end_mark
-
-    @classmethod
-    def cyan(cls, text):
-        return '\033[96m' + text + cls.end_mark
-
-    @classmethod
-    def blue(cls, text):
-        return '\033[94m' + text + cls.end_mark
-
-    @classmethod
-    def green(cls, text):
-        return '\033[92m' + text + cls.end_mark
-
-    @classmethod
-    def yellow(cls, text):
-        return '\033[93m' + text + cls.end_mark
-
-    @classmethod
-    def red(cls, text):
-        return '\033[91m' + text + cls.end_mark
-
-    @classmethod
     def bold(cls, text):
         return '\033[1m' + text + cls.end_mark
 
     @classmethod
-    def underline(cls, text):
+    def purple(cls, text):  # NO COVER: not in use
+        return '\033[95m' + text + cls.end_mark
+
+    @classmethod
+    def dark_cyan(cls, text):  # NO COVER: not in use
+        return '\033[36m' + text + cls.end_mark
+
+    @classmethod
+    def cyan(cls, text):  # NO COVER: not in use
+        return '\033[96m' + text + cls.end_mark
+
+    @classmethod
+    def blue(cls, text):  # NO COVER: not in use
+        return '\033[94m' + text + cls.end_mark
+
+    @classmethod
+    def green(cls, text):  # NO COVER: not in use
+        return '\033[92m' + text + cls.end_mark
+
+    @classmethod
+    def yellow(cls, text):  # NO COVER: not in use
+        return '\033[93m' + text + cls.end_mark
+
+    @classmethod
+    def red(cls, text):  # NO COVER: not in use
+        return '\033[91m' + text + cls.end_mark
+
+    @classmethod
+    def underline(cls, text):  # NO COVER: not in use
         return '\033[1m' + text + cls.end_mark
 
 

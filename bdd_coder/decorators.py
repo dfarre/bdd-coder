@@ -42,7 +42,7 @@ class StepRun(stock.Repr):
 
     @end_time.setter
     def end_time(self, value):
-        raise AttributeError("'end_time' is read-only")
+        raise AssertionError("'end_time' is read-only")
 
     def __str__(self):
         return (f'{self.end_time} {self.symbol} {self.step.method_qualname}'
@@ -121,7 +121,7 @@ class ScenarioRun(stock.Repr):
 
     @end_time.setter
     def end_time(self, value):
-        raise AttributeError("'end_time' is read-only")
+        raise AssertionError("'end_time' is read-only")
 
     def iter_step_runs(self):
         for run in self.runs:

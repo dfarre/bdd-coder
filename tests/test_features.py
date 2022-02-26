@@ -51,3 +51,9 @@ class StepSpecTests(unittest.TestCase):
     def test_input_gegex(self):
         step_spec = features.StepSpec('Given IPv6 $(::) and IPv4 $(1.2.3.4,0.0.0.0)', 0)
         assert step_spec.name == 'ipv6_and_ipv4'
+
+    def test_repeated_parameter_names(self):
+        self.assertRaisesRegex(
+            exceptions.FeaturesSpecError,
+            r'^Repeated parameter names in \(\+\) param_and_param \[param, param\] ↦ \(\)$',
+            features.StepSpec, 'Given $param and $param', 0)

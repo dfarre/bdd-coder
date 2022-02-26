@@ -88,10 +88,17 @@ class MakeYamlSpecsTests(CommandsE2ETestCase):
             stderr='InconsistentClassStructure: Expected class structure from docs does not '
             'match the defined one: method even_boards not found\n')
 
+    def test_duplicate_scenario_error(self):
+        self.assert_call(
+            '_duplicate_scenario', overwrite=True, exit=5,
+            stderr='FeaturesSpecError: Repeated scenario names are not supported, '
+            "{'odd_boards': ['NewGame', 'ClearBoard']}\n")
 
-SPECS_ERROR = ("FeaturesSpecError: Duplicate titles are not supported, ['FakeFoo']\n"
-               'Repeated scenario names are not supported, '
-               "{'scen_one': ['FakeFoo', 'FakeFoo']}\n")
+
+DUPLICATES_ERROR = (
+    "FeaturesSpecError: Duplicate titles are not supported, ['FakeFoo']\n"
+    'Repeated scenario names are not supported, '
+    "{'scen_one': ['FakeFoo', 'FakeFoo']}\n")
 
 
 class MakeBlueprintTests(CommandsE2ETestCase):
@@ -101,8 +108,8 @@ class MakeBlueprintTests(CommandsE2ETestCase):
         self.assert_call('--specs-path', 'example/specs', '--overwrite', exit=0)
 
     def test_inconsistent_specs(self):
-        self.assert_call(
-            '--specs-path', 'tests/specs_wrong', exit=4, stdout='', stderr=SPECS_ERROR)
+        self.assert_call('--specs-path', 'tests/specs_wrong', exit=4, stdout='',
+                         stderr=DUPLICATES_ERROR)
 
 
 class PatchBlueprintTests(CommandsE2ETestCase):
@@ -112,6 +119,5 @@ class PatchBlueprintTests(CommandsE2ETestCase):
         self.assert_call('example.tests.test_stories', 'example/specs', exit=0)
 
     def test_inconsistent_specs(self):
-        self.assert_call(
-            'example.tests.test_stories', 'tests/specs_wrong', exit=4,
-            stdout='', stderr=SPECS_ERROR)
+        self.assert_call('example.tests.test_stories', 'tests/specs_wrong', exit=4,
+                         stdout='', stderr=DUPLICATES_ERROR)
