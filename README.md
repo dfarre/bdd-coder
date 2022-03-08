@@ -1,11 +1,11 @@
 # BDD Coder
 [![PyPI version](https://badge.fury.io/py/bdd-coder.svg)](https://badge.fury.io/py/bdd-coder) [![PyPI downloads](https://img.shields.io/pypi/dm/bdd-coder.svg)](https://img.shields.io/pypi/dm/bdd-coder)
 
-A package devoted to agile implementation of **class-based behavior tests**. It consists of:
-* [coder](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/coder) package able to
-    - make a tester package - test suite - blueprint - see [example/tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/tests) - from user story specifications in YAML files - see [example/specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/specs),
-    - patch such tester package with new YAML specifications - see [example/new_specs](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_specs) and [example/new_tests](https://bitbucket.org/coleopter/bdd-coder/src/master/example/new_tests)
-* [tester](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/tester) package employed to run such blueprint tests, which also has the ability to export their docs as YAML specifications
+A package devoted to agile implementation of **class-based behavior tests**. It consists of (see [example](https://bitbucket.org/coleopter/bdd-coder/src/master/example/)):
+* [coders](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/coders.py) module able to
+    - make a tester package - test suite - blueprint from user story specifications in YAML files
+    - patch such tester package with new YAML specifications
+* [tester](https://bitbucket.org/coleopter/bdd-coder/src/master/bdd_coder/tester.py) module employed to run such blueprint tests, which also has the ability to export their docs as YAML specifications
 
 Although this package is intended to be used with [pytest](https://docs.pytest.org/en/stable/contents.html), until version 2.0.0 the base test case class for all test suits `bdd_coder.tester.tester.BaseTestCase` was a `unittest.TestCase` subclass. From version 2.0.0 `unittest.TestCase` is no longer supported, so that `pytest`'s setup and teardown functions - see [pytest-xunit_setup](https://docs.pytest.org/en/latest/xunit_setup.html) - should be implemented instead. See [pytest-unittest](https://docs.pytest.org/en/stable/unittest.html#pytest-features-in-unittest-testcase-subclasses) on the benefits of dropping `unittest.TestCase`.
 
