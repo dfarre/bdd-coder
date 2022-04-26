@@ -30,7 +30,7 @@ setuptools.setup(
         'Environment :: Console',
         'Intended Audience :: Developers'],
     packages=setuptools.find_packages(),
-    install_requires=['pyyaml', 'argparse', 'pygments', 'pytest', 'flake8', 'simple-cmd'],
+    install_requires=['pyyaml', 'pygments', 'pytest', 'flake8', 'simple-cmd'],
     setup_requires=['setuptools', 'configparser'],
     tests_require=tests_require,
     extras_require={'dev': ['ipdb', 'ipython'], 'test': tests_require},
