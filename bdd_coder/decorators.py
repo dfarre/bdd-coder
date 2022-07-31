@@ -362,13 +362,13 @@ class Gherkin(stock.Repr):
             f'  {len(runs[FAIL])}{BOLD[FAIL]}' if runs[FAIL] else '',
             f'  {len(runs[PENDING])}{PENDING}' if runs[PENDING] else f'  {COMPLETION_MSG}'
         ]) + '\n')
+        failed_runs = list(itertools.chain(*runs[FAIL].values()))
 
-        if runs[FAIL]:
+        if failed_runs:
             self.logger.info('  ' + Style.bold('Scenario failures summary:'))
 
-            for name, sruns in runs[FAIL].items():
-                for r in sruns:
-                    self.logger.info(indent(str(r)) + '\n')
+            for run in failed_runs:
+                self.logger.info(indent(str(run)) + '\n')
 
         if runs[PENDING] and fail_if_pending:
             names = ', '.join(list(runs[PENDING]))
