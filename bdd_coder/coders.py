@@ -67,7 +67,7 @@ class FeatureClassCoder:
     def make_scenario_method_def(name, scenario_spec, parameters=''):
         return make_method(
             ('test_' if scenario_spec.is_test else '') + name,
-            *scenario_spec.doc_lines, decorators=('base.gherkin.scenario()',))
+            *scenario_spec.doc_lines, decorators=('base.BddTester.gherkin()',))
 
     @staticmethod
     def make_method_body(param_names, output_names):
@@ -88,14 +88,15 @@ class FeatureCoder:
         return [self.story_class_def(class_name)
                 for class_name in self.features_spec.features]
 
-    @property
-    def base_class_def(self):
+    def base_class_def(self, logs_path: str):
         return make_class(
             BASE_TESTER_NAME,
-            f'The decorated {BASE_TESTER_NAME} subclass of this tester package.',
+            f'The {BASE_TESTER_NAME} subclass of this tester package.',
             'It manages scenario runs. All test classes inherit from this one,',
             'so generic test methods for this package are expected to be defined here',
-            bases=(BDD_TESTER_PATH,), decorators=('gherkin',))
+            bases=(BDD_TESTER_PATH,),
+            body=f"gherkin = decorators.Gherkin(logs_path='{logs_path}')",
+            upper_blank_line=False)
 
 
 class PackageCoder:
@@ -117,9 +118,8 @@ class PackageCoder:
     def base_module_source(self):
         return '\n\n\n'.join([
             'from bdd_coder import decorators\n'
-            'from bdd_coder import tester\n\n'
-            f"gherkin = decorators.Gherkin(logs_path='{self.logs_path}')",
-            self.feature_coder.base_class_def])
+            'from bdd_coder import tester',
+            self.feature_coder.base_class_def(self.logs_path)])
 
     def create_tester_package(self, run_pytest=False):
         exceptions.makedirs(self.tests_path, exist_ok=self.overwrite)
@@ -137,7 +137,7 @@ class PackageCoder:
                 'teardown_module',
                 'Called by Pytest at teardown of the test module, employed here to',
                 'log final scenario results',
-                body='base.gherkin.log()', args_text='', upper_blank_line=False
+                body='base.BddTester.gherkin.log()', args_text='', upper_blank_line=False
             )] + self.feature_coder.story_class_defs)) + '\n')
 
         if run_pytest:
@@ -145,7 +145,7 @@ class PackageCoder:
 
 
 class ModulePiece(stock.Repr):
-    scenario_delimiter = '@base.gherkin.scenario'
+    scenario_delimiter = '@base.BddTester.gherkin'
 
     def __init__(self, text, *class_names):
         rtext = rstrip(text)
@@ -164,7 +164,7 @@ class ModulePiece(stock.Repr):
             self.match = False
             self.name, self.text = f'piece{id(self)}', rtext
 
-    def __str__(self):
+    def __str__(self) -> str:
         if not self.match:
             return self.text
 
@@ -209,7 +209,7 @@ class ModulePiece(stock.Repr):
     def match_scenario_piece(cls, text):
         scenario_code = f'    {cls.scenario_delimiter}{text}'
         match = re.match(
-            r'^(    @base\.gherkin\.scenario\(.*\)\n    def (test_)?([^(]+)\(self\):\n'
+            r'^(    @base\.BddTester\.gherkin\(.*\)\n    def (test_)?([^(]+)\(self\):\n'
             rf'{" "*8}"""\n.+?\n{" "*8}""")(.*)$',
             scenario_code, flags=re.DOTALL)
 
@@ -232,7 +232,7 @@ class TestModule(stock.Repr):
         with open(filename) as py_file:
             self.pieces = self.split_module(rstrip(py_file.read()))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '\n\n-----\n'.join([str(p) for p in self.pieces.values()])
 
     def __del__(self):

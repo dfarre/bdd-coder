@@ -2,7 +2,7 @@ from . import base
 
 
 def teardown_module():
-    base.gherkin.log(fail_if_pending=True)
+    base.BddTester.gherkin.log(fail_if_pending=True)
 
 
 class NewGame(base.BddTester):
@@ -12,7 +12,7 @@ class NewGame(base.BddTester):
     In order to play
     """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_odd_boards(self):
         """
         When I request a new `game` with $n boards
@@ -20,8 +20,8 @@ class NewGame(base.BddTester):
         And the number of boards is indeed odd
         """
 
-    @base.gherkin.scenario([8, 'Boring', 9],
-                           [6, 'Funny', 11])
+    @base.BddTester.gherkin([8, 'Boring', 9],
+                            [6, 'Funny', 11])
     def even_boards(self):
         """
         When I request a new `game` with $n boards
@@ -51,7 +51,7 @@ class Hiddenscenarios(NewGame):
     The 'no end' scenario - ending with a scenario step - should show up in logs
     """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def fine_scenario(self):
         """
         Given a first step with $param and $(input)
@@ -59,14 +59,14 @@ class Hiddenscenarios(NewGame):
         Then the final third step
         """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def no_end_scenario(self):
         """
         Given even boards
         Then fine scenario
         """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_test_scenario(self):
         """
         Given no end scenario
@@ -99,7 +99,7 @@ class TestClearBoard(Hiddenscenarios):
     In order to start making guesses on it
     """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_start_board(self):
         """
         Given no end scenario
@@ -107,7 +107,7 @@ class TestClearBoard(Hiddenscenarios):
         Then the first board is added with the $animal
         """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_start_colored_board(self):
         """
         Given no end scenario
@@ -115,7 +115,7 @@ class TestClearBoard(Hiddenscenarios):
         Then the $nth board is added with the $color
         """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_new_independent_scenario(self):
         """
         Given a new setup step

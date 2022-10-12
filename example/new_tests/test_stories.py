@@ -6,7 +6,7 @@ def teardown_module():
     Called by Pytest at teardown of the test module, employed here to
     log final scenario results
     """
-    base.gherkin.log()
+    base.BddTester.gherkin.log()
 
 
 class ClearBoard(base.BddTester):
@@ -30,7 +30,7 @@ class NewPlayer(base.BddTester):
     In order to play
     """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def new_player_joins(self):
         """
         When a user signs in
@@ -51,7 +51,7 @@ class TestNewGame(NewPlayer):
     In order to play and have fun
     """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_even_boards(self):
         """
         Given new player joins
@@ -59,14 +59,14 @@ class TestNewGame(NewPlayer):
         Then a game is created with boards of $guess_count guesses
         """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_funny_boards(self):
         """
         Given new player joins
         Then class hierarchy has changed
         """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_more_boards(self):
         """
         Given new player joins

@@ -6,7 +6,7 @@ def teardown_module():
     Called by Pytest at teardown of the test module, employed here to
     log final scenario results
     """
-    base.gherkin.log()
+    base.BddTester.gherkin.log()
 
 
 class NewGame(base.BddTester):
@@ -16,14 +16,14 @@ class NewGame(base.BddTester):
     In order to play
     """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_odd_boards(self):
         """
         When I request a new `game` with $(9) boards
         Then I get a 400 response saying it must be even
         """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def even_boards(self):
         """
         When I request a new `game` with $(8) boards
@@ -47,7 +47,7 @@ class TestClearBoard(NewGame):
     In order to start making guesses on it
     """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_start_board(self):
         """
         Given even boards

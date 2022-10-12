@@ -8,7 +8,7 @@ ini.read('version.ini')
 with open('README.md', encoding='utf-8') as readme:
     long_description = readme.read()
 
-tests_require = ['pytest-cov', 'freezegun', 'pytest-twisted', 'Twisted']
+tests_require = ['pytest-cov', 'freezegun']
 
 setuptools.setup(
     name=ini['version']['name'],
@@ -33,7 +33,12 @@ setuptools.setup(
     install_requires=['pyyaml', 'pygments', 'pytest', 'flake8', 'simple-cmd'],
     setup_requires=['setuptools', 'configparser'],
     tests_require=tests_require,
-    extras_require={'dev': ['ipdb', 'ipython'], 'test': tests_require},
+    extras_require={
+        'dev': ['ipdb', 'ipython'],
+        'test': tests_require,
+        'flake8': ['flake8'],
+        'mypy': ['mypy', 'types-setuptools', 'types-PyYAML', 'types-Pygments'],
+    },
     entry_points={'console_scripts': [
         'bdd-blueprint=bdd_coder.commands:make_blueprint',
         'bdd-patch=bdd_coder.commands:patch_blueprint',

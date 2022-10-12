@@ -1,13 +1,19 @@
+from __future__ import annotations
+
 import abc
-import collections
+
+from collections import OrderedDict
+
 import itertools
 import subprocess
 import sys
 
+from typing import Callable, Iterable, Iterator
+
 
 class Repr(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def __str__(self):
+    def __str__(self) -> str:
         """Object's text content"""
 
     def __repr__(self):
@@ -37,7 +43,7 @@ class Hashable(Eq, metaclass=abc.ABCMeta):
     def eqkey(self):
         """Return hashable, frozen property to compare to others"""
 
-    def eq(self, other):
+    def eq(self, other) -> bool:
         return self.eqkey() == other.eqkey()
 
 
@@ -53,17 +59,17 @@ class SubclassesMixin:
             clss = chain_subclasses(clss)
             subclasses.extend(clss)
 
-        return collections.OrderedDict([(sc, list(sc.__bases__)) for sc in subclasses])
+        return OrderedDict([(sc, list(sc.__bases__)) for sc in subclasses])
 
 
 class Process(subprocess.Popen):
     def __init__(self, *command, **kwargs):
         super().__init__(command, stdout=subprocess.PIPE, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ''.join(list(self))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         line = self.next_stdout()
 
         while line:
@@ -71,7 +77,7 @@ class Process(subprocess.Popen):
 
             line = self.next_stdout()
 
-    def next_stdout(self):
+    def next_stdout(self) -> str:
         return self.stdout.readline().decode()
 
     def write(self, stream=sys.stdout):
@@ -80,38 +86,46 @@ class Process(subprocess.Popen):
 
 
 class SetPair(Repr):
-    def __init__(self, lset, rset, lname='l', rname='r'):
+    def __init__(self, lset: Iterable, rset: Iterable, lname: str = 'l', rname: str = 'r'):
         self.lset, self.rset = set(lset), set(rset)
         self.lname, self.rname = lname, rname
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.lname} {self.symbol} {self.rname}: ' + ' | '.join(
             list(map(lambda s: '{' + ', '.join(sorted(map(repr, s))) + '}' if s else 'ø',
                      self.partition)))
 
     @property
-    def partition(self):
-        return [self.lset - self.rset, self.lset & self.rset, self.rset - self.lset]
+    def partition(self) -> tuple[set, set, set]:
+        return (self.lset - self.rset, self.lset & self.rset, self.rset - self.lset)
 
     @property
-    def symbol(self):
+    def partition_map(self) -> dict[str, set]:
         parts = {}
         parts['l-r'], parts['l&r'], parts['r-l'] = self.partition
+        return parts
 
-        if not parts['l&r']:
-            return '⪥'
-        elif not parts['l-r'] and not parts['r-l']:
+    @property
+    def symbol(self) -> str:
+        parts = self.partition_map
+
+        if not parts['l-r'] and not parts['r-l']:
             return '='
+        elif not parts['l&r']:
+            return '⪥'
         elif parts['l-r'] and parts['r-l']:
             return '⪤'
         elif not parts['l-r']:
             return '⊂'
         elif not parts['r-l']:
             return '⊃'
+        else:
+            raise AssertionError
 
 
-def list_drop_duplicates(iterable, keylambda):
-    elements, keys = [], []
+def list_drop_duplicates(iterable: Iterable, keylambda: Callable) -> list:
+    elements: list = []
+    keys: list[str] = []
 
     for e in filter(lambda x: keylambda(x) not in keys, iterable):
         keys.append(keylambda(e))

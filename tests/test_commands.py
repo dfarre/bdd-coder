@@ -28,7 +28,7 @@ class CommandsE2ETestCase(unittest.TestCase):
 
 
 class ValidateBasesTests(unittest.TestCase):
-    fake_specs = collections.namedtuple('FakeSpecs', ('class_bases', 'features'))
+    fake_specs = collections.namedtuple('fake_specs', ('class_bases', 'features'))
 
     def setUp(self):
         self.fake_specs.class_bases = [('NewGame', set()), ('ClearBoard', set())]

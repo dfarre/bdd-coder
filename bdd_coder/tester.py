@@ -1,22 +1,28 @@
-import collections
+from __future__ import annotations
+
+from collections import OrderedDict
+
 import inspect
 import os
 import re
 import shutil
 import sys
+
+from typing import Any, Iterator, Optional
+
 import yaml
 
 import pytest
 
+from bdd_coder.decorators import Gherkin, ScenarioRun
+
 from bdd_coder import exceptions
-from bdd_coder import features
+from bdd_coder.features import FeaturesSpec
 from bdd_coder import stock
 
 from bdd_coder.text_utils import extract_name
 from bdd_coder.text_utils import strip_lines
 from bdd_coder.text_utils import to_sentence
-
-from bdd_coder.exceptions import InconsistentClassStructure
 
 
 class literal(str):
@@ -26,7 +32,7 @@ class literal(str):
 class YamlDumper:
     @staticmethod
     def dump_yaml(data, path):
-        yaml.add_representer(collections.OrderedDict,
+        yaml.add_representer(OrderedDict,
                              lambda dumper, data: dumper.represent_dict(data.items()))
         yaml.add_representer(literal, lambda dumper, data: dumper.represent_scalar(
             'tag:yaml.org,2002:str', data, style='|'))
@@ -40,12 +46,10 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
     To be decorated with `Gherkin`
     """
     tmp_dir = '.tmp-specs'
+    gherkin: Gherkin
 
     @classmethod
     def __init_subclass__(cls):
-        if not hasattr(cls, 'gherkin'):
-            return
-
         for name, scenario in cls.gherkin.scenarios[cls.__name__].items():
             for step in scenario.steps:
                 try:
@@ -66,7 +70,7 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
             setattr(cls, scenario.name, scenario(getattr(cls, scenario.name)))
 
     @classmethod
-    def subclass_names(cls):
+    def subclass_names(cls) -> Iterator[str]:
         for subclass in cls.subclasses_down():
             yield extract_name(subclass.__name__)
 
@@ -75,12 +79,12 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         cls.validate_bases(cls.features_spec())
 
     @classmethod
-    def features_spec(cls, parent_dir=None, overwrite=True):
+    def features_spec(cls, parent_dir: Optional[str] = None, overwrite: bool = True) -> FeaturesSpec:
         directory = parent_dir or cls.tmp_dir
         cls.dump_yaml_specs(directory, overwrite)
 
         try:
-            return features.FeaturesSpec.from_specs_dir(directory)
+            return FeaturesSpec.from_specs_dir(directory)
         except exceptions.FeaturesSpecError as error:
             raise error
         finally:
@@ -88,15 +92,16 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
                 shutil.rmtree(directory)
 
     @classmethod
-    def validate_bases(cls, features_spec):
-        spec_bases = collections.OrderedDict(features_spec.class_bases)
-        cls_bases = collections.OrderedDict(
+    def validate_bases(cls, features_spec: FeaturesSpec):
+        spec_bases = OrderedDict(features_spec.class_bases)
+        cls_bases = OrderedDict(
             (extract_name(c.__name__), b) for c, b in cls.subclasses_down().items())
         pair = stock.SetPair(spec_bases, cls_bases, lname='doc', rname='code')
         errors = []
 
         if not pair.symbol == '=':
-            raise InconsistentClassStructure(error=f'Sets of class names differ: {repr(pair)}')
+            raise exceptions.InconsistentClassStructure(
+                error=f'Sets of class names differ: {repr(pair)}')
 
         for name in spec_bases:
             own_bases = set(cls_bases[name])
@@ -108,12 +113,12 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
                               f'match the specified ones {spec_bases[name]}')
 
         if errors:
-            raise InconsistentClassStructure(error=', '.join(errors))
+            raise exceptions.InconsistentClassStructure(error=', '.join(errors))
 
         sys.stdout.write('Test case hierarchy validated\n')
 
     @classmethod
-    def dump_yaml_specs(cls, features_path, overwrite=False):
+    def dump_yaml_specs(cls, features_path: str, overwrite: bool = False):
         exceptions.makedirs(features_path, exist_ok=overwrite)
 
         for tester_subclass in cls.subclasses_down():
@@ -122,38 +127,38 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         sys.stdout.write(f'Specification files generated in {features_path}\n')
 
     @classmethod
-    def dump_yaml_feature(cls, parent_dir):
+    def dump_yaml_feature(cls, parent_dir: str):
         name = '-'.join([s.lower() for s in cls.get_title().split()])
         cls.dump_yaml(cls.as_yaml(), os.path.join(parent_dir, f'{name}.yml'))
 
     @classmethod
-    def as_yaml(cls):
+    def as_yaml(cls) -> OrderedDict:
         story = '\n'.join(map(str.strip, cls.__doc__.strip('\n ').splitlines()))
         scs = {to_sentence(re.sub('test_', '', name, 1)):
                strip_lines(getattr(cls, name).__doc__.splitlines())
                for name in cls.get_own_scenario_names()}
 
-        return collections.OrderedDict([
+        return OrderedDict([
             ('Title', cls.get_title()), ('Story', literal(story)), ('Scenarios', scs)
         ] + [(to_sentence(n), v) for n, v in cls.get_own_class_attrs().items()])
 
     @classmethod
-    def get_title(cls):
+    def get_title(cls) -> str:
         return re.sub(r'[A-Z]', lambda m: f' {m.group()}', extract_name(cls.__name__)).strip()
 
     @classmethod
-    def get_own_scenario_names(cls):
+    def get_own_scenario_names(cls) -> list[str]:
         return list(cls.gherkin.scenarios[cls.__name__])
 
     @classmethod
-    def get_own_class_attrs(cls):
+    def get_own_class_attrs(cls) -> dict:
         return dict(filter(lambda it: f'\n    {it[0]} = ' in inspect.getsource(cls),
                            inspect.getmembers(cls)))
 
     @classmethod
     def setup_class(cls):
         if cls.gherkin.validate:
-            cls.gherkin.BddTester.validate()
+            cls.validate()
 
     @pytest.fixture(autouse=True)
     def fixture_setup(self, request):
@@ -162,8 +167,8 @@ class BddTester(YamlDumper, stock.SubclassesMixin):
         self.gherkin.reset_outputs()
 
     @property
-    def current_run(self):
+    def current_run(self) -> ScenarioRun:
         return self.gherkin.test_runs[self.pytest_request.node.name]
 
-    def get_output(self, name, index=-1):
+    def get_output(self, name: str, index: int = -1) -> Any:
         return self.gherkin.outputs[name][index]

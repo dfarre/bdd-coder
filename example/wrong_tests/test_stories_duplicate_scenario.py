@@ -8,7 +8,7 @@ class NewGame(base.BddTester):
     In order to play
     """
 
-    @base.gherkin.scenario([9])
+    @base.BddTester.gherkin([9])
     def test_odd_boards(self):
         """
         When I request a new `game` with $n boards
@@ -33,7 +33,7 @@ class TestClearBoard(NewGame):
     In order to start making guesses on it
     """
 
-    @base.gherkin.scenario()
+    @base.BddTester.gherkin()
     def test_odd_boards(self):
         """
         Given I request a clear `board` in my new game

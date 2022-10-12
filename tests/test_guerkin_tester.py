@@ -1,40 +1,41 @@
+import os
 import subprocess
 import unittest
 
-PYTEST_OUTPUT = """
-============================= test session starts ==============================
-platform linux -- Python [L1-4]
-collecting ... collected 5 items
-
-example/advanced_tests/test_stories.py::TestClearBoard::test_odd_boards[even-9] FAILED [ 20%]
-example/advanced_tests/test_stories.py::TestClearBoard::test_start_board[Goat-8-Boring-9] PASSED [ 40%]
-example/advanced_tests/test_stories.py::TestClearBoard::test_start_board[Cat-6-Funny-11] PASSED [ 60%]
-example/advanced_tests/test_stories.py::TestClearBoard::test_start_colored_board[0-Red-8-Boring-9] PASSED [ 80%]
-example/advanced_tests/test_stories.py::TestClearBoard::test_start_colored_board[1-Green-6-Funny-11] PASSED [100%]
-example/advanced_tests/test_stories.py::TestClearBoard::test_start_colored_board[1-Green-6-Funny-11] ERROR [100%]
-""".strip()  # noqa
-
 
 class GherkinTesterTests(unittest.TestCase):
+    pytest_outputs_dir = 'tests'
+
     def assert_pytest_fails(self, example_path):
         with self.assertRaises(subprocess.CalledProcessError) as cm:
-            subprocess.check_output(['pytest', '-v', f'example/{example_path}'])
-
-        return cm.exception.output.decode()
+            subprocess.check_output(['pytest',
+                                     '-vv',
+                                     '--log-level=5',
+                                     '--log-format=%(message)s',
+                                     f'example/{example_path}'])
+        return cm
 
     def assert_collection_error(self, example_path):
-        output = self.assert_pytest_fails(example_path)
+        output = self.assert_pytest_fails(example_path).exception.output.decode()
 
         assert f'ERROR collecting example/{example_path}' in output
 
         return output
 
-    def test_parameter_collection(self):
-        output = self.assert_pytest_fails('advanced_tests')
-        lines = output.splitlines()
-        cut_output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:13])
+    def assert_pytest_failure_output(self, package_name):
+        cm = self.assert_pytest_fails(package_name)
+        assert cm.exception.returncode == 1, cm.exception.output.decode()
+        log_path = os.path.join(self.pytest_outputs_dir, f'{package_name}.pytest_output')
 
-        assert cut_output == PYTEST_OUTPUT
+        # FIXME IF not commented out, in order to freeze the files and do real tests
+        # with open(log_path, 'w') as log_file:
+        #     log_file.write(cm.exception.output.decode())
+
+        with open(log_path) as output_file:
+            assert output_file.read() == cm.exception.output.decode()
+
+    def test_parameter_collection(self):
+        self.assert_pytest_failure_output('advanced_tests')
 
     def test_redeclared_parameter_exception(self):
         output = self.assert_collection_error('wrong_tests/test_stories_redeclared_param.py')

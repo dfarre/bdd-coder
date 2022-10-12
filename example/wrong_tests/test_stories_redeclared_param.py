@@ -9,7 +9,7 @@ class NewGame(base.BddTester):
     """
     fixtures = ['player-alice']
 
-    @base.gherkin.scenario([9])
+    @base.BddTester.gherkin([9])
     def test_odd_boards(self):
         """
         When I request a new `game` with $n boards
@@ -17,7 +17,7 @@ class NewGame(base.BddTester):
         And the number of boards is indeed odd
         """
 
-    @base.gherkin.scenario([8, 'Boring', 9], [6, 'Funny', 11])
+    @base.BddTester.gherkin([8, 'Boring', 9], [6, 'Funny', 11])
     def even_boards(self):  # n,kind,guess_count param values
         """
         When I request a new `game` with $n boards
@@ -44,7 +44,7 @@ class TestClearBoard(NewGame):
     In order to start making guesses on it
     """
 
-    @base.gherkin.scenario([0, 'Goat'], [1, 'Cat'])
+    @base.BddTester.gherkin([0, 'Goat'], [1, 'Cat'])
     def test_start_board(self):  # additional animal param
         """
         Given even boards
@@ -52,7 +52,7 @@ class TestClearBoard(NewGame):
         Then the first board is added with the $animal
         """
 
-    @base.gherkin.scenario([0, 'Red'], [1, 'Green'], [2, 'Blue'])
+    @base.BddTester.gherkin([0, 'Red'], [1, 'Green'], [2, 'Blue'])
     def test_start_colored_board(self):  # additional nth,color params
         """
         Given even boards

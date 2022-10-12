@@ -2,7 +2,7 @@ from . import base
 
 
 def teardown_module():
-    base.gherkin.log(fail_if_pending=True)
+    base.BddTester.gherkin.log(fail_if_pending=True)
 
 
 class NewGame(base.BddTester):
@@ -12,7 +12,7 @@ class NewGame(base.BddTester):
     In order to play
     """
 
-    @base.gherkin.scenario([9])
+    @base.BddTester.gherkin([9])
     def test_odd_boards(self):
         """
         When I request a new `game` with $n boards
@@ -20,15 +20,15 @@ class NewGame(base.BddTester):
         And pending scenario
         """
 
-    @base.gherkin.scenario([8, 'Boring', 9],
-                           [6, 'Funny', 11])
+    @base.BddTester.gherkin([8, 'Boring', 9],
+                            [6, 'Funny', 11])
     def even_boards(self):
         """
         When I request a new `game` with $n boards
         Then a game of $kind is created with boards of $guess_count guesses
         """
 
-    @base.gherkin.scenario([])
+    @base.BddTester.gherkin([])
     def pending_scenario(self):
         """
         Then the number of boards is indeed odd
@@ -56,7 +56,7 @@ class TestClearBoard(NewGame):
     In order to start making guesses on it
     """
 
-    @base.gherkin.scenario(['Goat'], ['Cat'])
+    @base.BddTester.gherkin(['Goat'], ['Cat'])
     def test_start_board(self):
         """
         Given even boards
@@ -64,9 +64,9 @@ class TestClearBoard(NewGame):
         Then the first board is added with the $animal
         """
 
-    @base.gherkin.scenario([0, 'Red'],
-                           [1, 'Green'],
-                           [2, 'Blue'])
+    @base.BddTester.gherkin([0, 'Red'],
+                            [1, 'Green'],
+                            [2, 'Blue'])
     def test_start_colored_board(self):
         """
         Given even boards
