@@ -17,6 +17,8 @@ from bdd_coder import coders
 PYTEST_OUTPUT = """
 ============================= test session starts ==============================
 platform linux -- Python [L1-4]
+plugins: asyncio-0.21.0, cov-4.0.0
+asyncio: mode=strict
 collecting ... collected 2 items
 
 tmp/generated/test_stories.py::TestClearBoard::test_odd_boards[9] PASSED [ 50%]
@@ -47,10 +49,10 @@ class BlueprintTester(unittest.TestCase):
 class CoderTests(BlueprintTester):
     def test_pytest_output(self):
         lines = self.coder_output.splitlines()
-        output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:12])
+        output = '\n'.join([lines[0], 'platform linux -- Python [L1-4]'] + lines[5:14])
 
         assert output == PYTEST_OUTPUT
-        assert lines[17] == "E       fixture 'guess_count' not found"
+        assert lines[19] == "E       fixture 'guess_count' not found"
 
     def test_pass_flake8(self):
         try:

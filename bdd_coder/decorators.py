@@ -1,6 +1,8 @@
 """To be employed with `BddTester`"""
 from __future__ import annotations
 
+import inspect
+
 from collections import OrderedDict, defaultdict
 
 import datetime
@@ -12,6 +14,7 @@ from logging.handlers import RotatingFileHandler
 from typing import Callable, Iterator, Optional, Union
 
 import pytest
+import pytest_asyncio
 
 from bdd_coder import exceptions
 from bdd_coder.features import StepSpec
@@ -154,6 +157,7 @@ class Step(StepSpec):
         self.scenario = scenario
         self.doc_scenario: Optional[Scenario] = None
         self.test_scenario: Optional[Scenario] = None
+        self.is_coroutine: bool
 
     @property
     def gherkin(self) -> Gherkin:
@@ -174,7 +178,14 @@ class Step(StepSpec):
                 else super().__str__())
 
     def __call__(self, step_method: Callable) -> Callable:
-        @functools.wraps(step_method)
+        self.is_coroutine = inspect.iscoroutinefunction(step_method)
+
+        return (self.make_async_step_method if self.is_coroutine else
+                self.make_sync_step_method)(step_method)
+
+    def make_sync_step_method(self, sync_method: Callable) -> Callable:
+        @pytest.fixture(name=self.fixture_name, params=self.fixture_param)
+        @functools.wraps(sync_method)
         def logger_step_method(tester, *args, **kwargs):
             if tester.current_run.symbol != PENDING:
                 return
@@ -185,7 +196,7 @@ class Step(StepSpec):
             tester.param = self.fixture_param[0] if self.inputs else ()
 
             try:
-                step_run.result = step_method(tester, *args, **kwargs)
+                step_run.result = sync_method(tester, *args, **kwargs)
             except Exception:
                 step_run.result = ExcInfo()
                 step_run.symbol = FAIL
@@ -195,9 +206,32 @@ class Step(StepSpec):
                 if isinstance(step_run.result, tuple):
                     for name, value in zip(self.output_names, step_run.result):
                         self.gherkin.outputs[name].append(value)
+        return logger_step_method
 
-        return pytest.fixture(name=self.fixture_name, params=self.fixture_param)(
-            logger_step_method)
+    def make_async_step_method(self, coroutine_method: Callable) -> Callable:
+        @pytest_asyncio.fixture(name=self.fixture_name, params=self.fixture_param)
+        @functools.wraps(coroutine_method)
+        async def logger_step_method(tester, *args, **kwargs):
+            if tester.current_run.symbol != PENDING:
+                return
+
+            step_run = tester.current_run.get_pending_step_run(self)
+            step_run.kwargs = {k: v for k, v in kwargs.items()
+                               if k not in self.gherkin.fixtures_not_to_log}
+            tester.param = self.fixture_param[0] if self.inputs else ()
+
+            try:
+                step_run.result = await coroutine_method(tester, *args, **kwargs)
+            except Exception:
+                step_run.result = ExcInfo()
+                step_run.symbol = FAIL
+            else:
+                step_run.symbol = OK
+
+                if isinstance(step_run.result, tuple):
+                    for name, value in zip(self.output_names, step_run.result):
+                        self.gherkin.outputs[name].append(value)
+        return logger_step_method
 
 
 class Scenario(stock.Repr):
@@ -208,6 +242,7 @@ class Scenario(stock.Repr):
         self.ready: bool = False
         self.steps: list[Step]
         self.is_test: bool
+        self.is_coroutine: bool
 
     def __str__(self) -> str:
         return f'{self.steps[0]}...{self.steps[-1]} params={self.param_names}'
@@ -274,7 +309,20 @@ class Scenario(stock.Repr):
 
     def make_test_method(self, marked_method: Callable) -> Callable:
         fine_steps, param_ids, param_values = self.refine()
+        self.is_coroutine = any(step.is_coroutine for step in fine_steps)
 
+        scenario_test_method = (self.make_async_test_method if self.is_coroutine else
+                                self.make_sync_test_method)(marked_method, fine_steps)
+
+        if len(param_ids) == 1:
+            param_values = tuple(v[0] for v in param_values)
+
+        if param_values:
+            return pytest.mark.parametrize(','.join(param_ids), param_values)(scenario_test_method)
+
+        return scenario_test_method
+
+    def make_sync_test_method(self, marked_method: Callable, fine_steps: list) -> Callable:
         @functools.wraps(marked_method)
         @pytest.mark.usefixtures(*(step.fixture_name for step in fine_steps))
         def scenario_test_method(tester, *args, **kwargs):
@@ -283,11 +331,17 @@ class Scenario(stock.Repr):
             if tester.current_run.symbol == FAIL:
                 pytest.fail(reason=tester.current_run.result.next_traceback, pytrace=False)
 
-        if len(param_ids) == 1:
-            param_values = tuple(v[0] for v in param_values)
+        return scenario_test_method
 
-        if param_values:
-            return pytest.mark.parametrize(','.join(param_ids), param_values)(scenario_test_method)
+    def make_async_test_method(self, marked_method: Callable, fine_steps: list) -> Callable:
+        @functools.wraps(marked_method)
+        @pytest.mark.usefixtures(*(step.fixture_name for step in fine_steps))
+        @pytest.mark.asyncio
+        async def scenario_test_method(tester, *args, **kwargs):
+            __tracebackhide__ = True
+
+            if tester.current_run.symbol == FAIL:
+                pytest.fail(reason=tester.current_run.result.next_traceback, pytrace=False)
 
         return scenario_test_method
 
