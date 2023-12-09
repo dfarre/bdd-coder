@@ -8,7 +8,7 @@ ini.read('version.ini')
 with open('README.md', encoding='utf-8') as readme:
     long_description = readme.read()
 
-tests_require = ['pytest-cov', 'pytest-asyncio', 'freezegun']
+tests_require = ['pytest-cov', 'freezegun']
 
 setuptools.setup(
     name=ini['version']['name'],
@@ -30,7 +30,7 @@ setuptools.setup(
         'Environment :: Console',
         'Intended Audience :: Developers'],
     packages=setuptools.find_packages(),
-    install_requires=['pyyaml', 'pygments', 'pytest', 'flake8', 'simple-cmd'],
+    install_requires=['pyyaml', 'pygments', 'pytest', 'flake8', 'simple-cmd', 'pytest-asyncio'],
     setup_requires=['setuptools', 'configparser'],
     tests_require=tests_require,
     extras_require={
