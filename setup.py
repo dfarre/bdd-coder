@@ -30,7 +30,7 @@ setuptools.setup(
         'Environment :: Console',
         'Intended Audience :: Developers'],
     packages=setuptools.find_packages(),
-    install_requires=['pyyaml', 'pygments', 'pytest', 'flake8', 'simple-cmd'],
+    install_requires=['pyyaml', 'pygments', 'pytest', 'flake8', 'simple-cmd', 'pytest-asyncio'],
     setup_requires=['setuptools', 'configparser'],
     tests_require=tests_require,
     extras_require={

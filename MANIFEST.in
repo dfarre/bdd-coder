@@ -1,5 +1,2 @@
 include LICENSE
 include version.ini
-
-exclude example/**
-exclude tests/**

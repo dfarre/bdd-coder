@@ -37,7 +37,7 @@ class NewGame(base.BddTester):
     def i_request_a_new_game_with_n_boards(self, n):
         return 'game',
 
-    def i_get_a_400_response_saying_it_must_be(self):
+    async def i_get_a_400_response_saying_it_must_be(self):
         assert self.param == 'even'
 
         assert False, 'Forced error'
